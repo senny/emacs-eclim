@@ -1,0 +1,66 @@
+OVERVIEW
+========
+
+Eclim is an Eclipse plugin which exposes Eclipse features through a
+server interface.  When this server is started, the command line utility
+eclim can be used to issue requests to that server.
+
+Eclim can be found at http://eclim.sourceforge.net/.
+
+INSTALLATION
+============
+
+Get the installer for your platform from the Eclim downloads page and
+follow those instructions.  After the install procedure, you should have
+the eclim and eclimd executables in
+
+  $ECLIPSE_HOME/eclimd
+  $ECLIPSE_HOME/plugins/org.eclim_1.4.5/bin/eclim
+
+It might be convenient to drop a shellscript like
+
+--8<---------------cut here---------------start------------->8---
+#!/bin/sh
+$ECLIPSE_HOME/plugins/org.eclim_1.4.5/bin/eclim $*
+--8<---------------cut here---------------end--------------->8---
+
+into your PATH.
+
+USAGE
+=====
+
+To start using eclim, first you have to start the eclimd server process.
+Here are two possibilities:
+
+  1. Simply execute the eclimd executable.  This will start a headless
+     eclipse instance in the background, so you have to do all your work
+     in emacs.
+
+  2. Start Eclipse as usual and open the eclimd view, which starts the
+     server, too.
+
+             Show View -> Other -> Eclim -> eclimd
+
+Now you can issue commands via eclim.  As a starter, let's see which
+projects are in the current workspace.  The output should look like
+that:
+
+--8<---------------cut here---------------start------------->8---
+% eclim -command project_list                       
+GraBaJa            - closed - /home/horn/uni/repos/grabaja
+GretlTest          - closed - /home/horn/workspace/GretlTest
+JDT                - closed - /home/horn/workspace/JDT
+SCLTest            - closed - /home/horn/workspace/SCLTest
+eclim              - closed - /home/horn/repos/eclim
+greqlscript        - closed - /home/horn/uni/repos/greqlscript
+gretl              - open   - /home/horn/uni/repos/gretl
+jgStreetMap        - closed - /home/horn/uni/repos/jgstreetmap
+jgralab            - open   - /home/horn/uni/repos/jgralab
+jgwnl              - closed - /home/horn/uni/repos/jgwnl
+rsleditor          - closed - /home/horn/uni/repos/rsleditor
+sclschema          - closed - /home/horn/uni/repos/sclschema
+sidiffadapter      - closed - /home/horn/uni/repos/sidiffadapter
+swank              - closed - /home/horn/workspace/swank
+--8<---------------cut here---------------end--------------->8---
+
+For more commands refer to the eclim docs and source code.
