@@ -39,7 +39,8 @@
   (let (file)
     (dolist (eclipse-root '("/Applications/eclipse" "/usr/lib/eclipse"
                             "/usr/local/lib/eclipse"))
-      (and (file-exists-p (setq file (expand-file-name "plugins" eclipse-root)))
+      (and (file-exists-p
+            (setq file (expand-file-name "plugins" eclipse-root)))
            (setq file (car (last (directory-files file t "^org.eclim_"))))
            (file-exists-p (setq file (expand-file-name "bin/eclim" file)))
            (return file)))))
@@ -64,9 +65,6 @@ saved."
 (defvar eclim--project-name nil)
 (make-variable-buffer-local 'eclim--project-name)
 
-(defvar eclim--doc nil)
-(make-variable-buffer-local 'eclim--doc)
-
 (defun eclim--buffer-lines ()
   (goto-char (point-max))
   (let (lines)
@@ -76,14 +74,22 @@ saved."
             lines))
     lines))
 
+(defun eclim--error-buffer (text)
+  (let ((errbuf (get-buffer-create "*Eclim errors*")))
+    (set-buffer errbuf)
+    (insert text)
+    (setq buffer-read-only t)
+    (display-buffer errbuf t)))
+
 (defun eclim--call-process (&rest args)
   (let ((coding-system-for-read 'utf-8))
     (with-temp-buffer
       (if (= 0 (apply 'call-process eclim-executable nil t nil
                       "-command" args))
           (eclim--buffer-lines)
-        ;; TODO: A more meaningful error message
-        (message "Eclim command failed")
+        (eclim--error-buffer
+         (buffer-substring-no-properties
+          (point-min) (point-max)))
         nil))))
 
 (defun eclim--project-dir ()
@@ -123,3 +129,4 @@ saved."
         (eclim--project-name))
     (kill-local-variable 'eclim--project-dir)
     (kill-local-variable 'eclim--project-name)))
+
