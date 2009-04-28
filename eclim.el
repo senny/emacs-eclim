@@ -1,3 +1,29 @@
+;; eclim.el --- an interface to the Eclipse IDE.
+;;
+;; Copyright (C) 2009  Tassilo Horn <tassilo@member.fsf.org>
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+;;
+;;; Contributors
+;;
+;;  - Nikolaj Schumacher <bugs * nschum de>
+;;
+;;; Conventions
+;;
+;; Conventions used in this file: Name internal variables and functions
+;; "eclim--<descriptive-name>", and name eclim command invocations
+;; "eclim/command-name", like eclim/project-list.
 
 ;;* Eclim
 
@@ -78,9 +104,22 @@ saved."
   (mapcar (lambda (line) (nreverse (split-string line " *- *" nil)))
           (eclim--call-process "project_list")))
 
+;;** The minor mode and its keymap
+
+(defvar eclim-mode-map
+  (let ((map (make-sparse-keymap)))
+    )
+  "The keymap used in `eclim-mode'.")
+
 (define-minor-mode eclim-mode
   "An interface to the Eclipse IDE."
   nil
   "Eclim"
-  (eclim--project-name)
-  )
+  eclim-mode-map
+  (if eclim-mode
+      (progn
+        ;; Set project dir and name.
+        (eclim--project-dir)
+        (eclim--project-name))
+    (kill-local-variable 'eclim--project-dir)
+    (kill-local-variable 'eclim--project-name)))
