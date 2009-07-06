@@ -17,10 +17,10 @@ the eclim and eclimd executables in
 
 It might be convenient to drop a shellscript like
 
---8<---------------cut here---------------start------------->8---
+<pre>
 #!/bin/sh
 $ECLIPSE_HOME/plugins/org.eclim_1.4.5/bin/eclim $*
---8<---------------cut here---------------end--------------->8---
+</pre>
 
 into your PATH.
 
@@ -42,7 +42,7 @@ Now you can issue commands via eclim.  As a starter, let's see which
 projects are in the current workspace.  The output should look like
 that:
 
---8<---------------cut here---------------start------------->8---
+<pre>
 % eclim -command project_list                       
 GraBaJa            - closed - /home/horn/uni/repos/grabaja
 GretlTest          - closed - /home/horn/workspace/GretlTest
@@ -58,6 +58,6 @@ rsleditor          - closed - /home/horn/uni/repos/rsleditor
 sclschema          - closed - /home/horn/uni/repos/sclschema
 sidiffadapter      - closed - /home/horn/uni/repos/sidiffadapter
 swank              - closed - /home/horn/workspace/swank
---8<---------------cut here---------------end--------------->8---
+</pre>
 
 For more commands refer to the eclim docs and source code.
