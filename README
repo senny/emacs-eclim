@@ -1,5 +1,4 @@
-OVERVIEW
-========
+h2. OVERVIEW
 
 Eclim is an Eclipse plugin which exposes Eclipse features through a
 server interface.  When this server is started, the command line utility
@@ -7,8 +6,7 @@ eclim can be used to issue requests to that server.
 
 Eclim can be found at http://eclim.sourceforge.net/.
 
-INSTALLATION
-============
+h2. INSTALLATION
 
 Get the installer for your platform from the Eclim downloads page and
 follow those instructions.  After the install procedure, you should have
@@ -26,8 +24,7 @@ $ECLIPSE_HOME/plugins/org.eclim_1.4.5/bin/eclim $*
 
 into your PATH.
 
-USAGE
-=====
+h2. USAGE
 
 To start using eclim, first you have to start the eclimd server process.
 Here are two possibilities:
