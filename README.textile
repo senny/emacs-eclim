@@ -12,8 +12,10 @@ Get the installer for your platform from the Eclim downloads page and
 follow those instructions.  After the install procedure, you should have
 the eclim and eclimd executables in
 
-  $ECLIPSE_HOME/eclimd
-  $ECLIPSE_HOME/plugins/org.eclim_1.4.5/bin/eclim
+<pre>
+$ECLIPSE_HOME/eclimd
+$ECLIPSE_HOME/plugins/org.eclim_1.4.5/bin/eclim
+</pre>
 
 It might be convenient to drop a shellscript like
 
