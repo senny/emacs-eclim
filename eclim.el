@@ -110,6 +110,25 @@ saved."
   (mapcar (lambda (line) (nreverse (split-string line " *- *" nil)))
           (eclim--call-process "project_list")))
 
+(defun eclim/java-complete ()
+  (interactive)
+  (message (eclim--call-process "java_complete"
+                                "-p" (eclim--project-name)
+                                "-f" (file-relative-name buffer-file-name (eclim--project-dir))
+                                "-e" "utf-8"
+                                "-l" "standard"
+                                "-o" (number-to-string (1- (point))))))
+
+(defun eclim-open-project ()
+  (interactive)
+  (let* ((project (ido-completing-read "Project: "
+                                       (mapcar (lambda (row) (nth 2 row)) (eclim/project-list))))
+         (path (cdr (assoc project (mapcar (lambda (row) (cons (nth 2 row) (nth 0 row))) (eclim/project-list))))))
+    (find-file path)))
+
+(defun eclim-complete ()
+  (interactive))
+
 ;;** The minor mode and its keymap
 
 (defvar eclim-mode-map
