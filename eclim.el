@@ -69,8 +69,8 @@ saved."
   (goto-char (point-max))
   (let (lines)
     (while (= 0 (forward-line -1))
-      (push (buffer-substring-no-properties (line-beginning-position)
-                                            (line-end-position))
+      (push (replace-in-string (buffer-substring-no-properties (line-beginning-position)
+                                                               (line-end-position)) "" "")
             lines))
     lines))
 
@@ -103,8 +103,23 @@ saved."
 (defun eclim--project-name ()
   (or eclim--project-name
       (setq eclim--project-name
-            (car (cddr (assoc (eclim--project-dir)
-                              (eclim/project-list)))))))
+            (let* ((project-list (eclim/project-list))
+                   (downcase-project-list (mapcar (lambda (project)
+                                                    (list
+                                                     (downcase (first project))
+                                                     (second project)
+                                                     (third project))) project-list))
+                   (sensitive-match (car (cddr (assoc (eclim--project-dir) project-list))))
+                   (insensitive-match (car (cddr (assoc (downcase (eclim--project-dir)) downcase-project-list)))))
+              (or sensitive-match insensitive-match)))))
+
+(defun eclim/ant-target-list ()
+  (eclim--call-process "ant_targets" "-p" (eclim--project-name) "-f" "build.xml"))
+
+(defun eclim/ant-validate ()
+  (mapcar (lambda (line)
+            (split-string line "|"))
+          (eclim--call-process "ant_validate" "-p" (eclim--project-name) "-f" "build.xml")))
 
 (defun eclim/project-list ()
   (mapcar (lambda (line) (nreverse (split-string line " *- *" nil)))
@@ -124,7 +139,18 @@ saved."
   (let* ((project (ido-completing-read "Project: "
                                        (mapcar (lambda (row) (nth 2 row)) (eclim/project-list))))
          (path (cdr (assoc project (mapcar (lambda (row) (cons (nth 2 row) (nth 0 row))) (eclim/project-list))))))
-    (find-file path)))
+    (ido-find-file-in-dir path)))
+
+(defun eclim-ant-run ()
+  (interactive)
+  (let* ((ant-targets (eclim/ant-target-list))
+         (selected-target (ido-completing-read "Target: " ant-targets)))
+    ;; TODO: run ant in shell
+    ))
+
+(defun eclim-ant-validate ()
+  (interactive)
+  (message (eclim/ant-validate)))
 
 (defun eclim-complete ()
   (interactive))
