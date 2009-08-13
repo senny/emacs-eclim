@@ -113,26 +113,49 @@ saved."
                    (insensitive-match (car (cddr (assoc (downcase (eclim--project-dir)) downcase-project-list)))))
               (or sensitive-match insensitive-match)))))
 
+(defun eclim--temp-buffer ()
+  (set-buffer (get-buffer-create "*eclim-temporary-buffer*"))
+  (delete-region (point-min) (point-max)))
+
+(defun eclim--byte-offset ()
+  (interactive)
+  (+ (position-bytes (point))
+     (how-many "\n" (point-min) (point))))
+;; (let ((file (buffer-file-name))
+;;       (current-location (point)))
+;;   (save-excursion
+;;     (eclim--temp-buffer)
+;;     (insert-file-literally file)
+;;     (goto-char current-location)
+;;     (message (number-to-string (position-bytes (point)))))))
+
+(defun eclim--ant-buildfile-name ()
+  "build.xml")
+
+(defun eclim--ant-buildfile-path ()
+  (concat (eclim--project-dir) "/" (eclim-ant-buildfile-name)))
+
 (defun eclim/ant-target-list ()
-  (eclim--call-process "ant_targets" "-p" (eclim--project-name) "-f" "build.xml"))
+  (eclim--call-process "ant_targets" "-p" (eclim--project-name) "-f" (eclim--ant-buildfile-name)))
 
 (defun eclim/ant-validate ()
   (mapcar (lambda (line)
             (split-string line "|"))
-          (eclim--call-process "ant_validate" "-p" (eclim--project-name) "-f" "build.xml")))
+          (eclim--call-process "ant_validate" "-p" (eclim--project-name) "-f" (eclim--ant-buildfile-name))))
 
 (defun eclim/project-list ()
   (mapcar (lambda (line) (nreverse (split-string line " *- *" nil)))
           (eclim--call-process "project_list")))
 
 (defun eclim/java-complete ()
-  (interactive)
-  (message (eclim--call-process "java_complete"
-                                "-p" (eclim--project-name)
-                                "-f" (file-relative-name buffer-file-name (eclim--project-dir))
-                                "-e" "utf-8"
-                                "-l" "standard"
-                                "-o" (number-to-string (1- (point))))))
+  (mapcar (lambda (line)
+            (split-string line "|"))
+         (eclim--call-process "java_complete"
+                               "-p" (eclim--project-name)
+                               "-f" (file-relative-name buffer-file-name (eclim--project-dir))
+                               "-e" "iso-8859-1"
+                               "-l" "standard"
+                               "-o" (number-to-string (eclim--byte-offset)))))
 
 (defun eclim-open-project ()
   (interactive)
@@ -153,7 +176,8 @@ saved."
   (message (eclim/ant-validate)))
 
 (defun eclim-complete ()
-  (interactive))
+  (interactive)
+  (message (eclim/java-complete)))
 
 ;;** The minor mode and its keymap
 
