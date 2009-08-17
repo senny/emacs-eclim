@@ -18,6 +18,7 @@
 ;;; Contributors
 ;;
 ;;  - Nikolaj Schumacher <bugs * nschum de>
+;;  - Yves Senn <yves senn * gmx ch>
 ;;
 ;;; Conventions
 ;;
@@ -126,33 +127,9 @@ saved."
   (delete-region (point-min) (point-max)))
 
 (defun eclim--byte-offset ()
-  (interactive)
+  ;; TODO: replace ugly newline-counting with a serious solution
   (+ (position-bytes (point))
      (how-many "\n" (point-min) (point))))
-;; (let ((file (buffer-file-name))
-;;       (current-location (point)))
-;;   (save-excursion
-;;     (eclim--temp-buffer)
-;;     (insert-file-literally file)
-;;     (goto-char current-location)
-;;     (message (number-to-string (position-bytes (point)))))))
-
-(defun eclim--ant-buildfile-name ()
-  "build.xml")
-
-(defun eclim--ant-buildfile-path ()
-  (concat (eclim--project-dir) "/" (eclim-ant-buildfile-name)))
-
-(defun eclim--check-nature (nature)
-  (let ((natures (or eclim--project-natures-cache
-                     (setq eclim--project-natures-cache))))
-    (when (not (assoc-string nature natures)) (error (concat "invalid project nature: " nature)))))
-
-(defun eclim--check-project (project)
-  (let ((projects (or eclim--projects-cache
-                      (setq eclim--projects-cache (mapcar 'third (eclim/project-list))))))
-    (when (not (assoc-string project projects)) (error (concat "invalid project: " project)))))
-
 
 (defun company-eclim--candidates (prefix)
   (interactive "d")
@@ -183,91 +160,6 @@ saved."
   ;; TODO: implement the family option
   (eclim--call-process "jobs"))
 
-(defun eclim/ant-target-list ()
-  (eclim--call-process "ant_targets" "-p" (eclim--project-name) "-f" (eclim--ant-buildfile-name)))
-
-(defun eclim/ant-validate ()
-  (mapcar (lambda (line)
-            (split-string line "|"))
-          (eclim--call-process "ant_validate" "-p" (eclim--project-name) "-f" (eclim--ant-buildfile-name))))
-
-(defun eclim/project-list ()
-  (mapcar (lambda (line) (nreverse (split-string line " *- *" nil)))
-          (eclim--call-process "project_list")))
-
-(defun eclim/java-complete ()
-  (mapcar (lambda (line)
-            (split-string line "|"))
-          (eclim--call-process "java_complete"
-                               "-p" (eclim--project-name)
-                               "-f" (file-relative-name buffer-file-name (eclim--project-dir))
-                               "-e" "iso-8859-1"
-                               "-l" "standard"
-                               "-o" (number-to-string (eclim--byte-offset)))))
-(defun eclim/project-import (folder)
-  (eclim--call-process "project_import" "-f" folder))
-
-(defun eclim/project-create (folder natures name &optional depends)
-  ;; TODO: allow multiple natures
-  (eclim--check-nature natures)
-  (eclim--call-process "project_create" "-f" folder "-n" natures "-p" name))
-
-(defun eclim/project-delete (project)
-  (eclim--check-project project)
-  (eclim--call-process "project_delete" "-p" project))
-
-(defun eclim/project-open (project)
-  (eclim--check-project project)
-  (eclim--call-process "project_open" "-p" project))
-
-(defun eclim/project-close (project)
-  (eclim--check-project project)
-  (eclim--call-process "project_close" "-p" project))
-
-(defun eclim/project-info (project)
-  (eclim--check-project project)
-  (eclim--call-process "project_info" "-p" project))
-
-(defun eclim/project-settings (project)
-  (eclim--check-project project)
-  ;; TODO: make the output useable
-  (eclim--call-process "project_settings" "-p" project))
-
-(defun eclim/project-setting (project setting)
-  (eclim--check-project project)
-  ;; TODO: make the output useable
-  (eclim--call-process "project_setting" "-p" project "-s" setting))
-
-(defun eclim/project-nature-add (project nature)
-  (eclim--check-project project)
-  (eclim--check-nature nature)
-  (eclim--call-process "project_nature_add" "-p" project "-n" nature))
-
-(defun eclim/project-nature-remove (project nature)
-  (eclim--check-project project)
-  (eclim--check-nature nature)
-  (eclim--call-process "project_nature_remove" "-p" project "-n" nature))
-
-(defun eclim/project-natures (project)
-  (eclim--check-project project)
-  (eclim--call-process "project_natures" "-p" project))
-
-(defun eclim/project-refresh (project)
-  (eclim--check-project project)
-  (eclim--call-process "project_refresh" "-p" project))
-
-(defun eclim/project-refresh-file (project file)
-  (eclim--check-project project)
-  (eclim--call-process "project_refresh_file" "-p" project "-f" file))
-
-(defun eclim/project-update (project)
-  (eclim--check-project project)
-  ;; TODO: add buildfile and settings options
-  (eclim--call-process "project_update" "-p" project))
-
-(defun eclim/project-nature-aliases ()
-  (eclim--call-process "project_nature_aliases"))
-
 (defun eclim/locate-file (pattern scope &optional project)
   ;; TODO: add optional project parameter
   (mapcar (lambda (line)
@@ -279,17 +171,6 @@ saved."
                                        (mapcar (lambda (row) (nth 2 row)) (eclim/project-list))))
          (path (cdr (assoc project (mapcar (lambda (row) (cons (nth 2 row) (nth 0 row))) (eclim/project-list))))))
     (ido-find-file-in-dir path)))
-
-(defun eclim-ant-run ()
-  (interactive)
-  (let* ((ant-targets (eclim/ant-target-list))
-         (selected-target (ido-completing-read "Target: " ant-targets)))
-    ;; TODO: run ant in shell
-    ))
-
-(defun eclim-ant-validate ()
-  (interactive)
-  (message (eclim/ant-validate)))
 
 (defun eclim-complete ()
   (interactive)
@@ -332,3 +213,8 @@ saved."
     (kill-local-variable 'eclim--project-dir)
     (kill-local-variable 'eclim--project-name)))
 
+(require 'eclim-project)
+(require 'eclim-java)
+(require 'eclim-ant)
+
+(provide 'eclim)
