@@ -176,6 +176,13 @@ saved."
   (let ((completion-ignore-case nil))
     (all-completions prefix (mapcar 'car company-eclim--doc))))
 
+(defun eclim/workspace-dir ()
+  (car (eclim--call-process "workspace_dir")))
+
+(defun eclim/jobs (&optional family)
+  ;; TODO: implement the family option
+  (eclim--call-process "jobs"))
+
 (defun eclim/ant-target-list ()
   (eclim--call-process "ant_targets" "-p" (eclim--project-name) "-f" (eclim--ant-buildfile-name)))
 
@@ -260,6 +267,11 @@ saved."
 
 (defun eclim/project-nature-aliases ()
   (eclim--call-process "project_nature_aliases"))
+
+(defun eclim/locate-file (pattern scope &optional project)
+  ;; TODO: add optional project parameter
+  (mapcar (lambda (line)
+            (split-string line "|")) (eclim--call-process "locate_file" "-p" pattern "-s" scope)))
 
 (defun eclim-open-project ()
   (interactive)
