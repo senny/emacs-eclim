@@ -65,6 +65,9 @@ saved."
 (defvar eclim--project-name nil)
 (make-variable-buffer-local 'eclim--project-name)
 
+(defvar eclim--project-natures-cache nil)
+(defvar eclim--projects-cache nil)
+
 (defun eclim--buffer-lines ()
   (goto-char (point-max))
   (let (lines)
@@ -82,6 +85,8 @@ saved."
     (display-buffer errbuf t)))
 
 (defun eclim--call-process (&rest args)
+  (message (apply 'concat eclim-executable " -command " (mapcar (lambda (arg)
+                                                                  (concat " " arg)) args)))
   (let ((coding-system-for-read 'utf-8))
     (with-temp-buffer
       (if (= 0 (apply 'call-process eclim-executable nil t nil
@@ -113,6 +118,9 @@ saved."
                    (insensitive-match (car (cddr (assoc (downcase (eclim--project-dir)) downcase-project-list)))))
               (or sensitive-match insensitive-match)))))
 
+(defun eclim--project-current-file ()
+  (file-relative-name buffer-file-name (eclim--project-dir)))
+
 (defun eclim--temp-buffer ()
   (set-buffer (get-buffer-create "*eclim-temporary-buffer*"))
   (delete-region (point-min) (point-max)))
@@ -135,6 +143,39 @@ saved."
 (defun eclim--ant-buildfile-path ()
   (concat (eclim--project-dir) "/" (eclim-ant-buildfile-name)))
 
+(defun eclim--check-nature (nature)
+  (let ((natures (or eclim--project-natures-cache
+                     (setq eclim--project-natures-cache))))
+    (when (not (assoc-string nature natures)) (error (concat "invalid project nature: " nature)))))
+
+(defun eclim--check-project (project)
+  (let ((projects (or eclim--projects-cache
+                      (setq eclim--projects-cache (mapcar 'third (eclim/project-list))))))
+    (when (not (assoc-string project projects)) (error (concat "invalid project: " project)))))
+
+
+(defun company-eclim--candidates (prefix)
+  (interactive "d")
+  (let ((project-file (eclim--project-current-file))
+        (project-name (eclim--project-name)))
+    (when eclim-auto-save
+      (save-buffer)
+      ;; FIXME: Sometimes this isn't finished when we complete.
+      (company-eclim--call-process "java_src_update"
+                                   "-p" (eclim--project-name)
+                                   "-f" project-file))
+    (setq company-eclim--doc
+          (mapcar (lambda (line)
+                    (cdr (split-string line "|" nil)))
+                  (eclim--call-process
+                   "java_complete" "-p" (eclim--project-name)
+                   "-f" project-file
+                   "-o" (number-to-string (eclim--byte-offset))
+                   "-e" "utf-8"
+                   "-l" "standard"))))
+  (let ((completion-ignore-case nil))
+    (all-completions prefix (mapcar 'car company-eclim--doc))))
+
 (defun eclim/ant-target-list ()
   (eclim--call-process "ant_targets" "-p" (eclim--project-name) "-f" (eclim--ant-buildfile-name)))
 
@@ -150,12 +191,75 @@ saved."
 (defun eclim/java-complete ()
   (mapcar (lambda (line)
             (split-string line "|"))
-         (eclim--call-process "java_complete"
+          (eclim--call-process "java_complete"
                                "-p" (eclim--project-name)
                                "-f" (file-relative-name buffer-file-name (eclim--project-dir))
                                "-e" "iso-8859-1"
                                "-l" "standard"
                                "-o" (number-to-string (eclim--byte-offset)))))
+(defun eclim/project-import (folder)
+  (eclim--call-process "project_import" "-f" folder))
+
+(defun eclim/project-create (folder natures name &optional depends)
+  ;; TODO: allow multiple natures
+  (eclim--check-nature natures)
+  (eclim--call-process "project_create" "-f" folder "-n" natures "-p" name))
+
+(defun eclim/project-delete (project)
+  (eclim--check-project project)
+  (eclim--call-process "project_delete" "-p" project))
+
+(defun eclim/project-open (project)
+  (eclim--check-project project)
+  (eclim--call-process "project_open" "-p" project))
+
+(defun eclim/project-close (project)
+  (eclim--check-project project)
+  (eclim--call-process "project_close" "-p" project))
+
+(defun eclim/project-info (project)
+  (eclim--check-project project)
+  (eclim--call-process "project_info" "-p" project))
+
+(defun eclim/project-settings (project)
+  (eclim--check-project project)
+  ;; TODO: make the output useable
+  (eclim--call-process "project_settings" "-p" project))
+
+(defun eclim/project-setting (project setting)
+  (eclim--check-project project)
+  ;; TODO: make the output useable
+  (eclim--call-process "project_setting" "-p" project "-s" setting))
+
+(defun eclim/project-nature-add (project nature)
+  (eclim--check-project project)
+  (eclim--check-nature nature)
+  (eclim--call-process "project_nature_add" "-p" project "-n" nature))
+
+(defun eclim/project-nature-remove (project nature)
+  (eclim--check-project project)
+  (eclim--check-nature nature)
+  (eclim--call-process "project_nature_remove" "-p" project "-n" nature))
+
+(defun eclim/project-natures (project)
+  (eclim--check-project project)
+  (eclim--call-process "project_natures" "-p" project))
+
+(defun eclim/project-refresh (project)
+  (eclim--check-project project)
+  (eclim--call-process "project_refresh" "-p" project))
+
+(defun eclim/project-refresh-file (project file)
+  (eclim--check-project project)
+  (eclim--call-process "project_refresh_file" "-p" project "-f" file))
+
+(defun eclim/project-update (project)
+  (eclim--check-project project)
+  ;; TODO: add buildfile and settings options
+  (eclim--call-process "project_update" "-p" project))
+
+(defun eclim/project-nature-aliases ()
+  (eclim--call-process "project_nature_aliases"))
 
 (defun eclim-open-project ()
   (interactive)
@@ -178,6 +282,23 @@ saved."
 (defun eclim-complete ()
   (interactive)
   (message (eclim/java-complete)))
+
+(defun company-eclim (command &optional arg &rest ignored)
+  "A `company-mode' back-end for eclim completion"
+  (interactive)
+  (case command
+    ('prefix (and (derived-mode-p 'java-mode 'jde-mode)
+                  buffer-file-name
+                  eclim-executable
+                  (eclim--project-name)
+                  (not (company-in-string-or-comment))
+                  (or (company-grab-symbol) 'stop)))
+
+    ('candidates (progn
+                   (message (company-eclim--candidates arg))))
+    ('meta (cadr (assoc arg company-eclim--doc)))
+    ('no-cache (equal arg ""))
+    ))
 
 ;;** The minor mode and its keymap
 
