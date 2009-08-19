@@ -27,6 +27,15 @@
 
 ;;* Eclim Project
 
+(defvar eclim-project-mode-hook nil)
+
+(defvar eclim-project-mode-map
+  (let ((map (make-keymap)))
+    (suppress-keymap map t)
+    (define-key map (kbd "o") 'eclim-project-open)
+    (define-key map (kbd "c") 'eclim-project-close)
+    (define-key map (kbd "q") 'quit-window)
+    map))
 
 (defun eclim--check-nature (nature)
   (let ((natures (or eclim--project-natures-cache
@@ -37,6 +46,27 @@
   (let ((projects (or eclim--projects-cache
                       (setq eclim--projects-cache (mapcar 'third (eclim/project-list))))))
     (when (not (assoc-string project projects)) (error (concat "invalid project: " project)))))
+
+(defun eclim--project-mode-init ()
+  (switch-to-buffer (get-buffer-create "*eclim: projects*"))
+  (eclim--project-mode)
+  (eclim--project-buffer-refresh))
+
+(defun eclim--project-mode ()
+  "Manage all your eclim projects one buffer"
+  (kill-all-local-variables)
+  (buffer-disable-undo)
+  (setq major-mode 'eclim-project-mode
+        mode-name "eclim/project"
+        mode-line-process ""
+        truncate-lines t
+        line-move-visual nil
+        buffer-read-only t
+        default-directory (eclim/workspace-dir))
+  (use-local-map eclim-project-mode-map)
+  (run-mode-hooks 'eclim-project-mode-hook))
+
+(defun eclim--project-buffer-refresh ())
 
 (defun eclim/project-list ()
   (mapcar (lambda (line) (nreverse (split-string line " *- *" nil)))
@@ -105,5 +135,14 @@
 
 (defun eclim/project-nature-aliases ()
   (eclim--call-process "project_nature_aliases"))
+
+(defun eclim-project-open ()
+  (interactive)
+  (eclim/project-open))
+
+(defun eclim-manage-projects ()
+  (interactive)
+  (eclim--project-mode-init))
+
 
 (provide 'eclim-project)
