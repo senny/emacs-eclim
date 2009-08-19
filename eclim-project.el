@@ -66,7 +66,12 @@
   (use-local-map eclim-project-mode-map)
   (run-mode-hooks 'eclim-project-mode-hook))
 
-(defun eclim--project-buffer-refresh ())
+(defun eclim--project-buffer-refresh ()
+  (erase-buffer)
+  (let ((inhibit-read-only t))
+    (dolist (project (eclim/project-list))
+      (insert (third project))
+      (insert "\n"))))
 
 (defun eclim/project-list ()
   (mapcar (lambda (line) (nreverse (split-string line " *- *" nil)))
