@@ -119,6 +119,9 @@ saved."
                    (insensitive-match (car (cddr (assoc (downcase (eclim--project-dir)) downcase-project-list)))))
               (or sensitive-match insensitive-match)))))
 
+(defun eclim--string-strip (content)
+  (replace-regexp-in-string "\s*$" "" content))
+
 (defun eclim--project-current-file ()
   (file-relative-name buffer-file-name (eclim--project-dir)))
 

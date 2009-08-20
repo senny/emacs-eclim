@@ -32,6 +32,7 @@
 (defvar eclim-project-mode-map
   (let ((map (make-keymap)))
     (suppress-keymap map t)
+    (define-key map (kbd "m") 'eclim-project-mark-current)
     (define-key map (kbd "o") 'eclim-project-open)
     (define-key map (kbd "c") 'eclim-project-close)
     (define-key map (kbd "q") 'quit-window)
@@ -40,12 +41,23 @@
 (defun eclim--check-nature (nature)
   (let ((natures (or eclim--project-natures-cache
                      (setq eclim--project-natures-cache))))
-    (when (not (assoc-string nature natures)) (error (concat "invalid project nature: " nature)))))
+    (when (not (assoc-string nature natures))
+      (error (concat "invalid project nature: " nature)))))
 
 (defun eclim--check-project (project)
   (let ((projects (or eclim--projects-cache
                       (setq eclim--projects-cache (mapcar 'third (eclim/project-list))))))
-    (when (not (assoc-string project projects)) (error (concat "invalid project: " project)))))
+    (when (not (assoc-string project projects))
+      (error (concat "invalid project: " project)))))
+
+(defun eclim--project-read ()
+  (interactive)
+  (if (eq major-mode
+          'eclim-project-mode)
+      (progn
+        (or (eclim--project-get-marked)
+            (eclim--project-current-line)))
+    ()))
 
 (defun eclim--project-mode-init ()
   (switch-to-buffer (get-buffer-create "*eclim: projects*"))
@@ -63,15 +75,56 @@
         line-move-visual nil
         buffer-read-only t
         default-directory (eclim/workspace-dir))
+  (hl-line-mode t)
   (use-local-map eclim-project-mode-map)
   (run-mode-hooks 'eclim-project-mode-hook))
 
 (defun eclim--project-buffer-refresh ()
-  (erase-buffer)
-  (let ((inhibit-read-only t))
+  (let ((inhibit-read-only t)
+        (line-number (line-number-at-pos)))
+    (erase-buffer)
     (dolist (project (eclim/project-list))
-      (insert (third project))
-      (insert "\n"))))
+      (eclim--insert-project project))
+    (goto-line line-number)))
+
+(defun eclim--insert-project (project)
+  (let ((name (truncate-string-to-width (third project) 30 0 nil t))
+        (status (second project))
+        (path (first project)))
+    (insert (format "  | %-6s | %-30s | %s" status name path))
+    (insert "\n")))
+
+(defun eclim--project-insert-mark-current (mark face)
+  (let ((inhibit-read-only t))
+    (save-excursion
+      (beginning-of-line)
+      (delete-char 1)
+      (insert mark)
+      (put-text-property (- (point) 1) (point) 'face face))))
+
+(defun eclim--project-get-marked ()
+  (interactive)
+  (let ((marked-projects '()))
+    (save-excursion
+      (beginning-of-buffer)
+      (while (re-search-forward "*" nil t)
+        (push (eclim--project-current-line) marked-projects)))
+    marked-projects))
+
+(defun eclim--project-column-start (column)
+  (save-excursion
+    (+ (re-search-forward "|" nil t (- column 1)) 1)))
+
+(defun eclim--project-column-end (column)
+  (save-excursion
+    (- (re-search-forward "|" nil t column) 1)))
+
+(defun eclim--project-current-line ()
+  (save-excursion
+    (beginning-of-line)
+    (eclim--string-strip (buffer-substring-no-properties
+                          (eclim--project-column-start 3)
+                          (eclim--project-column-end 3)))))
 
 (defun eclim/project-list ()
   (mapcar (lambda (line) (nreverse (split-string line " *- *" nil)))
@@ -94,6 +147,7 @@
   (eclim--call-process "project_open" "-p" project))
 
 (defun eclim/project-close (project)
+  (message (concat "CLOSING: " project))
   (eclim--check-project project)
   (eclim--call-process "project_close" "-p" project))
 
@@ -141,9 +195,24 @@
 (defun eclim/project-nature-aliases ()
   (eclim--call-process "project_nature_aliases"))
 
-(defun eclim-project-open ()
+(defun eclim-project-open (projects)
+  (interactive (list (eclim--project-read)))
+  (when (not (listp projects)) (set 'projects (list projects)))
+  (dolist (project projects)
+    (eclim/project-open project))
+  (eclim--project-buffer-refresh))
+
+(defun eclim-project-close (projects)
+  (interactive (list (eclim--project-read)))
+  (when (not (listp projects)) (set 'projects (list projects)))
+  (dolist (project projects)
+    (eclim/project-close project))
+  (eclim--project-buffer-refresh))
+
+(defun eclim-project-mark-current ()
   (interactive)
-  (eclim/project-open))
+  (eclim--project-insert-mark-current "*" 'dired-mark)
+  (forward-line 1))
 
 (defun eclim-manage-projects ()
   (interactive)
