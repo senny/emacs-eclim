@@ -29,12 +29,19 @@
 
 (defvar eclim-project-mode-hook nil)
 
-(defvar eclim-project-mode-map
+(setq eclim-project-mode-map
   (let ((map (make-keymap)))
     (suppress-keymap map t)
     (define-key map (kbd "m") 'eclim-project-mark-current)
+    (define-key map (kbd "M") 'eclim-project-mark-all)
+    (define-key map (kbd "u") 'eclim-project-unmark-current)
+    (define-key map (kbd "U") 'eclim-project-unmark-all)
     (define-key map (kbd "o") 'eclim-project-open)
     (define-key map (kbd "c") 'eclim-project-close)
+    (define-key map (kbd "i") 'eclim-project-info)
+    ;; TODO: find a better shortcut for updating
+    (define-key map (kbd "p") 'eclim-project-update)
+    (define-key map (kbd "r") 'eclim-project-mode-refresh)
     (define-key map (kbd "q") 'quit-window)
     map))
 
@@ -62,7 +69,8 @@
 (defun eclim--project-mode-init ()
   (switch-to-buffer (get-buffer-create "*eclim: projects*"))
   (eclim--project-mode)
-  (eclim--project-buffer-refresh))
+  (eclim--project-buffer-refresh)
+  (beginning-of-buffer))
 
 (defun eclim--project-mode ()
   "Manage all your eclim projects one buffer"
@@ -88,19 +96,27 @@
     (goto-line line-number)))
 
 (defun eclim--insert-project (project)
+  ;; TODO: remove fixed whitespace size and insert dynamic columns
   (let ((name (truncate-string-to-width (third project) 30 0 nil t))
         (status (second project))
         (path (first project)))
     (insert (format "  | %-6s | %-30s | %s" status name path))
     (insert "\n")))
 
-(defun eclim--project-insert-mark-current (mark face)
+(defun eclim--project-insert-mark-current (face)
   (let ((inhibit-read-only t))
     (save-excursion
       (beginning-of-line)
       (delete-char 1)
-      (insert mark)
+      (insert "*")
       (put-text-property (- (point) 1) (point) 'face face))))
+
+(defun eclim--project-remove-mark-current ()
+  (let ((inhibit-read-only t))
+    (save-excursion
+      (beginning-of-line)
+      (delete-char 1)
+      (insert " "))))
 
 (defun eclim--project-get-marked ()
   (interactive)
@@ -195,6 +211,18 @@
 (defun eclim/project-nature-aliases ()
   (eclim--call-process "project_nature_aliases"))
 
+(defun eclim-project-mode-refresh ()
+  (interactive)
+  (eclim--project-buffer-refresh)
+  (message "projects refreshed..."))
+
+(defun eclim-project-update (projects)
+  (interactive (list (eclim--project-read)))
+  (when (not (listp projects)) (set 'projects (list projects)))
+  (dolist (project projects)
+    (eclim/project-update project))
+  (eclim--project-buffer-refresh))
+
 (defun eclim-project-open (projects)
   (interactive (list (eclim--project-read)))
   (when (not (listp projects)) (set 'projects (list projects)))
@@ -211,8 +239,47 @@
 
 (defun eclim-project-mark-current ()
   (interactive)
-  (eclim--project-insert-mark-current "*" 'dired-mark)
+  (eclim--project-insert-mark-current 'dired-mark)
   (forward-line 1))
+
+(defun eclim-project-mark-all ()
+  (interactive)
+  (save-excursion
+    (beginning-of-buffer)
+    (loop do (eclim--project-insert-mark-current 'dired-mark)
+          until (not (forward-line 1)))))
+
+(defun eclim-project-unmark-current ()
+  (interactive)
+  (eclim--project-remove-mark-current)
+  (forward-line 1))
+
+(defun eclim-project-unmark-all ()
+  (interactive)
+  (save-excursion
+    (beginning-of-buffer)
+    (loop do (eclim--project-remove-mark-current)
+          until (not (forward-line 1)))))
+
+(defun eclim-project-info (project)
+  (interactive (list (eclim--project-current-line)))
+  (let ((old-buffer (current-buffer))
+        (project-info "")
+        (project-settings ""))
+    (switch-to-buffer (get-buffer-create "*eclim: info*"))
+    (insert (dolist (line (eclim/project-info project) project-info)
+              (set 'project-info (concat project-info line "\n"))))
+    (insert "\n\nSETTINGS:\n")
+    (insert (dolist (line (eclim/project-settings project) project-settings)
+              (set 'project-settings (concat project-settings line "\n"))))
+    (local-set-key (kbd "q") (lambda ()
+                               (interactive)
+                               (kill-buffer)))
+
+    (beginning-of-buffer)
+    (setq major-mode 'special-mode
+          mode-name "eclim/project-info"
+          buffer-read-only t)))
 
 (defun eclim-manage-projects ()
   (interactive)
