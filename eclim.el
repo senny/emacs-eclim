@@ -168,16 +168,11 @@ saved."
   (mapcar (lambda (line)
             (split-string line "|")) (eclim--call-process "locate_file" "-p" pattern "-s" scope)))
 
-(defun eclim-open-project ()
-  (interactive)
-  (let* ((project (ido-completing-read "Project: "
-                                       (mapcar (lambda (row) (nth 2 row)) (eclim/project-list))))
-         (path (cdr (assoc project (mapcar (lambda (row) (cons (nth 2 row) (nth 0 row))) (eclim/project-list))))))
-    (ido-find-file-in-dir path)))
-
 (defun eclim-complete ()
   (interactive)
-  (message (eclim/java-complete)))
+  (insert (or
+           (ido-completing-read "Completions: " (mapcar 'second (eclim/java-complete)))
+           "")))
 
 (defun company-eclim (command &optional arg &rest ignored)
   "A `company-mode' back-end for eclim completion"
@@ -200,7 +195,8 @@ saved."
 
 (defvar eclim-mode-map
   (let ((map (make-sparse-keymap)))
-    )
+    (define-key map (kbd "C-e SPC") 'eclim-complete)
+    map)
   "The keymap used in `eclim-mode'.")
 
 (define-minor-mode eclim-mode
@@ -211,8 +207,10 @@ saved."
   (if eclim-mode
       (progn
         ;; Set project dir and name.
-        (eclim--project-dir)
-        (eclim--project-name))
+        ;; TODO: activate this mechanism somehow
+        ;; (eclim--project-dir)
+        ;; (eclim--project-name))
+        )
     (kill-local-variable 'eclim--project-dir)
     (kill-local-variable 'eclim--project-name)))
 
