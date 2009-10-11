@@ -134,7 +134,7 @@ saved."
   ;; TODO: replace ugly newline-counting with a serious solution
 ;;;   (+ (position-bytes (point))
 ;;;      (how-many "\n" (point-min) (point))))
-  (position-bytes (point)))
+  (position-bytes (1- (point))))
 
 (defun company-eclim--candidates (prefix)
   (interactive "d")
@@ -143,9 +143,9 @@ saved."
     (when eclim-auto-save
       (save-buffer)
       ;; FIXME: Sometimes this isn't finished when we complete.
-      (company-eclim--call-process "java_src_update"
-                                   "-p" (eclim--project-name)
-                                   "-f" project-file))
+      (eclim--call-process "java_src_update"
+			   "-p" (eclim--project-name)
+			   "-f" project-file))
     (setq company-eclim--doc
           (mapcar (lambda (line)
                     (cdr (split-string line "|" nil)))
@@ -187,8 +187,8 @@ saved."
                   (not (company-in-string-or-comment))
                   (or (company-grab-symbol) 'stop)))
 
-    ('candidates (progn
-                   (message (company-eclim--candidates arg))))
+    ('candidates (company-eclim--candidates arg))
+;;                   (message (company-eclim--candidates arg))))
     ('meta (cadr (assoc arg company-eclim--doc)))
     ('no-cache (equal arg ""))
     ))
