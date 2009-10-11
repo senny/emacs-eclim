@@ -102,9 +102,10 @@ saved."
   "Return this file's project root directory."
   (or eclim--project-dir
       (setq eclim--project-dir
-            (directory-file-name
-             (expand-file-name
-              (locate-dominating-file buffer-file-name ".project"))))))
+	    (directory-file-name
+	     (file-name-directory
+	      (expand-file-name
+	       (locate-dominating-file buffer-file-name ".project")))))))
 
 (defun eclim--project-name ()
   (or eclim--project-name
@@ -131,8 +132,9 @@ saved."
 
 (defun eclim--byte-offset ()
   ;; TODO: replace ugly newline-counting with a serious solution
-  (+ (position-bytes (point))
-     (how-many "\n" (point-min) (point))))
+;;;   (+ (position-bytes (point))
+;;;      (how-many "\n" (point-min) (point))))
+  (position-bytes (point)))
 
 (defun company-eclim--candidates (prefix)
   (interactive "d")
