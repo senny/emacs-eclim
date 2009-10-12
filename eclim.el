@@ -73,8 +73,9 @@ saved."
   (goto-char (point-max))
   (let (lines)
     (while (= 0 (forward-line -1))
-      (push (replace-in-string (buffer-substring-no-properties (line-beginning-position)
-                                                               (line-end-position)) "" "")
+      (push (replace-regexp-in-string "^M" ""
+				      (buffer-substring-no-properties (line-beginning-position)
+								      (line-end-position)))
             lines))
     lines))
 
