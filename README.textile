@@ -1,14 +1,17 @@
-h2. OVERVIEW
+h2. Overview
 
 Eclim is an Eclipse plugin which exposes Eclipse features through a
 server interface.  When this server is started, the command line utility
 eclim can be used to issue requests to that server.
 
-Eclim can be found at http://eclim.sourceforge.net/.
+Emacs-eclim uses the eclim server to integrate eclipse with
+emacs. This project wants to bring some of the invaluable features
+from eclipse to emacs.
 
-h2. INSTALLATION
+h2. Installation
 
-Get the installer for your platform from the Eclim downloads page and
+Get the installer for your platform from the Eclim downloads page:
+http://eclim.sourceforge.net/ and
 follow those instructions.  After the install procedure, you should have
 the eclim and eclimd executables in
 
@@ -26,7 +29,7 @@ $ECLIPSE_HOME/plugins/org.eclim_1.4.5/bin/eclim $*
 
 into your PATH.
 
-h2. USAGE
+h2. Usage
 
 To start using eclim, first you have to start the eclimd server process.
 Here are two possibilities:
@@ -42,4 +45,7 @@ Here are two possibilities:
 
 h2. Contributing
 
-The project is pretty new and needs a lot of work. If you have some spare time and want to help us improve java development on emacs, just fork the project and send me a pull-request, once you want me to merge it back into the repository.
+The project is pretty new and needs a lot of work. If you have some
+spare time and want to help us improve java development on emacs, just
+fork the project and send me a pull-request, once you want me to merge
+it back into the repository.
