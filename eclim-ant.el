@@ -32,7 +32,7 @@
   "build.xml")
 
 (defun eclim--ant-buildfile-path ()
-  (concat (eclim--project-dir) "/" (eclim-ant-buildfile-name)))
+  (file-name-directory (concat (eclim--project-dir) "/" (eclim--ant-buildfile-name))))
 
 (defun eclim/ant-target-list ()
   (eclim--call-process "ant_targets" "-p" (eclim--project-name) "-f" (eclim--ant-buildfile-name)))
@@ -49,8 +49,8 @@
 (defun eclim-ant-run ()
   (interactive)
   (let* ((ant-targets (eclim/ant-target-list))
-         (selected-target (ido-completing-read "Target: " ant-targets)))
-    ;; TODO: run ant in shell
-    ))
+         (selected-target (ido-completing-read "Target: " ant-targets))
+         (default-directory (eclim--ant-buildfile-path)))
+    (compile (concat "ant " selected-target))))
 
 (provide 'eclim-ant)
