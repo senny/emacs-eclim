@@ -40,26 +40,6 @@ Here are two possibilities:
 
              Show View -> Other -> Eclim -> eclimd
 
-Now you can issue commands via eclim.  As a starter, let's see which
-projects are in the current workspace.  The output should look like
-that:
+h2. Contributing
 
-<pre>
-% eclim -command project_list                       
-GraBaJa            - closed - /home/horn/uni/repos/grabaja
-GretlTest          - closed - /home/horn/workspace/GretlTest
-JDT                - closed - /home/horn/workspace/JDT
-SCLTest            - closed - /home/horn/workspace/SCLTest
-eclim              - closed - /home/horn/repos/eclim
-greqlscript        - closed - /home/horn/uni/repos/greqlscript
-gretl              - open   - /home/horn/uni/repos/gretl
-jgStreetMap        - closed - /home/horn/uni/repos/jgstreetmap
-jgralab            - open   - /home/horn/uni/repos/jgralab
-jgwnl              - closed - /home/horn/uni/repos/jgwnl
-rsleditor          - closed - /home/horn/uni/repos/rsleditor
-sclschema          - closed - /home/horn/uni/repos/sclschema
-sidiffadapter      - closed - /home/horn/uni/repos/sidiffadapter
-swank              - closed - /home/horn/workspace/swank
-</pre>
-
-For more commands refer to the eclim docs and source code.
+The project is pretty new and needs a lot of work. If you have some spare time and want to help us improve java development on emacs, just fork the project and send me a pull-request, once you want me to merge it back into the repository.
