@@ -88,7 +88,7 @@ saved."
 
 (defun eclim--call-process (&rest args)
   (message (apply 'concat eclim-executable " -command " (mapcar (lambda (arg)
-                                                                  (concat " " arg)) args)))
+                                                         (concat " " arg)) args)))
   (let ((coding-system-for-read 'utf-8))
     (with-temp-buffer
       (if (= 0 (apply 'call-process eclim-executable nil t nil

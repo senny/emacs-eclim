@@ -28,8 +28,11 @@
 
 ;;* Eclim Ant
 
+(defvar eclim-ant-directory ""
+  "The directory where the project buildfiles are located")
+
 (defun eclim--ant-buildfile-name ()
-  "build.xml")
+  (concat (file-name-as-directory eclim-ant-directory) "build.xml"))
 
 (defun eclim--ant-buildfile-path ()
   (file-name-directory (concat (eclim--project-dir) "/" (eclim--ant-buildfile-name))))
@@ -42,15 +45,21 @@
             (split-string line "|"))
           (eclim--call-process "ant_validate" "-p" (eclim--project-name) "-f" (eclim--ant-buildfile-name))))
 
+(defun eclim--ant-read-target ()
+  (ido-completing-read "Target: " (eclim/ant-target-list)))
+
 (defun eclim-ant-validate ()
   (interactive)
-  (message (eclim/ant-validate)))
+  (message (eclim/ant-validate))
+  ;; TODO: display the error messages to the user
+  )
 
-(defun eclim-ant-run ()
-  (interactive)
-  (let* ((ant-targets (eclim/ant-target-list))
-         (selected-target (ido-completing-read "Target: " ant-targets))
-         (default-directory (eclim--ant-buildfile-path)))
-    (compile (concat "ant " selected-target))))
+(defun eclim-ant-run (target)
+  "run a specified ant target in the scope of the current project. If
+the function is called interactively the users is presented with a
+  list of all available ant targets."
+  (interactive (list (eclim--ant-read-target)))
+  (let ((default-directory (eclim--ant-buildfile-path)))
+    (compile (concat "ant " target))))
 
 (provide 'eclim-ant)
