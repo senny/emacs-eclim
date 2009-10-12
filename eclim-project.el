@@ -29,25 +29,28 @@
 
 (defvar eclim-project-mode-hook nil)
 
-;; TODO: change setq to defvar (setq is only for development)
-(setq eclim-project-mode-map
-      (let ((map (make-keymap)))
-        (suppress-keymap map t)
-        (define-key map (kbd "m") 'eclim-project-mark-current)
-        (define-key map (kbd "M") 'eclim-project-mark-all)
-        (define-key map (kbd "u") 'eclim-project-unmark-current)
-        (define-key map (kbd "U") 'eclim-project-unmark-all)
-        (define-key map (kbd "o") 'eclim-project-open)
-        (define-key map (kbd "c") 'eclim-project-close)
-        (define-key map (kbd "i") 'eclim-project-info)
-        (define-key map (kbd "g") 'eclim-project-goto)
-        ;; TODO: find a better shortcut for updating
-        (define-key map (kbd "p") 'eclim-project-update)
-        (define-key map (kbd "r") 'eclim-project-mode-refresh)
-        (define-key map (kbd "q") 'quit-window)
-        map))
+(defvar eclim-project-mode-map
+  (let ((map (make-keymap)))
+    (suppress-keymap map t)
+    (define-key map (kbd "m") 'eclim-project-mark-current)
+    (define-key map (kbd "M") 'eclim-project-mark-all)
+    (define-key map (kbd "u") 'eclim-project-unmark-current)
+    (define-key map (kbd "U") 'eclim-project-unmark-all)
+    (define-key map (kbd "o") 'eclim-project-open)
+    (define-key map (kbd "c") 'eclim-project-close)
+    (define-key map (kbd "i") 'eclim-project-info)
+    (define-key map (kbd "g") 'eclim-project-goto)
+    ;; TODO: find a better shortcut for updating
+    (define-key map (kbd "p") 'eclim-project-update)
+    (define-key map (kbd "r") 'eclim-project-mode-refresh)
+    (define-key map (kbd "q") 'quit-window)
+    map))
 
 (define-key eclim-mode-map (kbd "C-e g") 'eclim-project-goto)
+
+(defun eclim--project-clear-cache ()
+  (setq eclim--project-natures-cache nil)
+  (setq eclim--projects-cache nil))
 
 (defun eclim--check-nature (nature)
   (let ((natures (or eclim--project-natures-cache
@@ -157,7 +160,7 @@
 
 (defun eclim/project-create (folder natures name &optional depends)
   ;; TODO: allow multiple natures
-  (eclim--check-nature natures)
+  ;; (eclim--check-nature natures)
   (eclim--call-process "project_create" "-f" folder "-n" natures "-p" name))
 
 (defun eclim/project-delete (project)
