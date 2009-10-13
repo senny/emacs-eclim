@@ -88,7 +88,7 @@ saved."
 
 (defun eclim--call-process (&rest args)
   (message (apply 'concat eclim-executable " -command " (mapcar (lambda (arg)
-                                                         (concat " " arg)) args)))
+								  (concat " " arg)) args)))
   (let ((coding-system-for-read 'utf-8))
     (with-temp-buffer
       (if (= 0 (apply 'call-process eclim-executable nil t nil
@@ -137,16 +137,19 @@ saved."
 ;;;      (how-many "\n" (point-min) (point))))
   (position-bytes (1- (point))))
 
+(defun eclim--java-src-update ()
+  (when eclim-auto-save
+    (save-buffer)
+    ;; FIXME: Sometimes this isn't finished when we complete.
+    (eclim--call-process "java_src_update"
+			 "-p" (eclim--project-name)
+			 "-f" (eclim--project-current-file))))
+
 (defun company-eclim--candidates (prefix)
   (interactive "d")
   (let ((project-file (eclim--project-current-file))
         (project-name (eclim--project-name)))
-    (when eclim-auto-save
-      (save-buffer)
-      ;; FIXME: Sometimes this isn't finished when we complete.
-      (eclim--call-process "java_src_update"
-			   "-p" (eclim--project-name)
-			   "-f" project-file))
+    (eclim--java-src-update)
     (setq company-eclim--doc
           (mapcar (lambda (line)
                     (cdr (split-string line "|" nil)))
@@ -171,11 +174,16 @@ saved."
   (mapcar (lambda (line)
             (split-string line "|")) (eclim--call-process "locate_file" "-p" pattern "-s" scope)))
 
+(defun eclim--choices-prompt (prompt choices)
+  "Displays a prompt and lets the user choose between a list of choices."
+  (or
+   (ido-completing-read (concat prompt ": ") choices)
+   ""))
+
 (defun eclim-complete ()
   (interactive)
-  (insert (or
-           (ido-completing-read "Completions: " (mapcar 'second (eclim/java-complete)))
-           "")))
+  (insert
+   (eclim--choices-prompt "Completions" (mapcar 'second (eclim/java-complete)))))
 
 (defun company-eclim (command &optional arg &rest ignored)
   "A `company-mode' back-end for eclim completion"
@@ -189,7 +197,7 @@ saved."
                   (or (company-grab-symbol) 'stop)))
 
     ('candidates (company-eclim--candidates arg))
-;;                   (message (company-eclim--candidates arg))))
+    ;;                   (message (company-eclim--candidates arg))))
     ('meta (cadr (assoc arg company-eclim--doc)))
     ('no-cache (equal arg ""))
     ))

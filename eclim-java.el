@@ -46,7 +46,7 @@
                        "-p" project
                        "-f" (eclim--project-current-file)))
 
-(defun eclim--word-at-point ()
+(defun eclim--java-identifier-at-point ()
   "Returns a string containing the word positioned under the
   cursor. Not exactly the perfect solution for picking out java
   tokens, but will have to do."
@@ -57,13 +57,43 @@
       (forward-word 1)
       (buffer-substring-no-properties p (point)))))
 
+(defun eclim--java-organize-imports (imports-order)
+  "Organize the import statements in the current file."
+  ;; TODO: this is code I lifted directly from one of my other
+  ;; projects. It doesn't care about the specified sort order and
+  ;; should probably be replaced.
+  (let ((p 0))
+    (save-excursion
+      (goto-char 0)
+      (search-forward-regexp "^import")
+      (beginning-of-line)
+      (let ((p0 (point)))
+	(loop do (setq p (search-forward-regexp "^import" (buffer-end 1) t)) while p)
+	(end-of-line)
+	(forward-line)
+	(sort-regexp-fields nil "^import \\(static \\)?\\(.*\\)$" "\\2"
+			    p0 (point))))))
+
+(defun eclim--java-insert-import (import-statement imports-order)
+  "Inserts an import statement at the corrent place in the current
+file."
+  ;; TODO: this is a pretty naive implementation that doesn't take
+  ;; comments at the beginning of the file into account
+  (save-excursion
+    (goto-char 0)
+    (forward-line)
+    (forward-line)
+    (insert "import " import-statement ";\n"))
+  (eclim--java-organize-imports imports-order))
+
 (defun eclim-java-import ()
   "Reads the token at the point and calls eclim to resolve it to
 a java type that can be imported."
   (interactive)
-  (let* ((pattern (eclim--word-at-point))
+  (let* ((pattern (eclim--java-identifier-at-point))
 	 (imports (eclim/java-import (eclim--project-name) pattern)))
-    imports))
+    (eclim--java-insert-import (eclim--choices-prompt "Import" imports)
+			       (eclim/java-import-order (eclim--project-name)))))
 
 (defun eclim-java-import-missing ()
   (interactive)
