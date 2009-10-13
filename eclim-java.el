@@ -35,6 +35,19 @@
                        "-p" project
                        "-f" (eclim--project-current-file)))
 
+(defun eclim/java-impl (project file &optional offset encoding type superType methods)
+  (eclim--check-project project)
+  (eclim--call-process "java_impl" "-p" project "-f" file))
+
+(defun eclim-java-implement ()
+  (interactive)
+  ;; TODO: present the user with more fine grain control over the selection of methods
+  (let* ((response (eclim/java-impl (eclim--project-name) (eclim--project-current-file)))
+         (methods (remove-if-not (lambda (element) (string-match "(.*)" element))
+                                 response)))
+    (insert (ido-completing-read "Signature: " methods) " {}")
+    (backward-char)))
+
 (defun eclim-java-import-missing ()
   (interactive)
   (let ((imports (eclim/java-import-missing (eclim--project-name))))
