@@ -166,10 +166,14 @@ saved."
   ;; TODO: implement the family option
   (eclim--call-process "jobs"))
 
-(defun eclim/locate-file (pattern scope &optional project)
-  ;; TODO: add optional project parameter
-  (mapcar (lambda (line)
-            (split-string line "|")) (eclim--call-process "locate_file" "-p" pattern "-s" scope)))
+(defun eclim/problems (project)
+  (eclim--check-project project)
+  (eclim--call-process "problems" "-p" project))
+
+(defun eclim-problems ()
+  (interactive)
+  ;; TODO display the errors in a formatted list
+  (message (eclim/problems (eclim--project-name))))
 
 (defun eclim-complete ()
   (interactive)
