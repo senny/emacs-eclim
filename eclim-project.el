@@ -220,10 +220,26 @@
 (defun eclim/project-nature-aliases ()
   (eclim--call-process "project_nature_aliases"))
 
+(defun eclim/project-file-locate (project pattern)
+  (eclim--check-project project)
+  (eclim--call-process "locate_file" "-p" pattern "-s" "project" "-n" project))
+
 (defun eclim-project-mode-refresh ()
   (interactive)
   (eclim--project-buffer-refresh)
   (message "projects refreshed..."))
+
+(defun eclim-project-file-locate (pattern)
+  (interactive "MPattern: ")
+  ;; TODO: the search command returns strange results
+  (let ((matches (eclim/project-file-locate (eclim--project-name) pattern)))
+    (when (get-buffer "*eclim-find*") (kill-buffer "*eclim-find*"))
+    (pop-to-buffer "*eclim-find*" t)
+    (insert "searching for: " pattern "..." "\n\n")
+    (dolist (match matches)
+      (when match
+        (insert (second (split-string match "|")) ":0:")))
+    (grep-mode)))
 
 (defun eclim-project-update (projects)
   (interactive (list (eclim--project-read)))
