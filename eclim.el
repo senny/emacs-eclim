@@ -132,10 +132,10 @@ saved."
   (delete-region (point-min) (point-max)))
 
 (defun eclim--byte-offset ()
-  ;; TODO: replace ugly newline-counting with a serious solution
-;;;   (+ (position-bytes (point))
-;;;      (how-many "\n" (point-min) (point))))
-  (position-bytes (1- (point))))
+  ;; TODO: restricted the ugly newline counting to dos buffers => remove it all the way later
+  (let ((current-offset (position-bytes (1- (point)))))
+    (when (string-match "dos" (symbol-name buffer-file-coding-system))
+      (setq current-offset (+ current-offset (how-many "\n" (point-min) (point)))))))
 
 (defun eclim--java-src-update ()
   (when eclim-auto-save
