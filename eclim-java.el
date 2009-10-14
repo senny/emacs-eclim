@@ -100,10 +100,21 @@
      (remove-duplicates
       (sort-imports imports-order (sort imports #'string-lessp) '()) '()))))
 
-(defun eclim--java-organize-imports (imports-order)
-  "Organize the import statements in the current file."
+(defun eclim--java-organize-imports (imports-order &optional additional-imports)
+  "Organize the import statements in the current file according
+  to IMPORTS-ORDER. If the optional parameter ADDITIONAL-IMPORTS
+  is supplied, these import statements will be added to the
+  rest."
   (save-excursion
-    (let ((imports '()))
+    (flet ((write-imports (imports last-import-first-part)
+			  (when imports
+			    (let ((first-part (first (eclim--java-package-components (first imports)))))
+			      (if (and last-import-first-part
+				       (not (equal last-import-first-part first-part)))
+				  (newline))
+			      (insert (format "import %s;\n" (first imports)))
+			      (write-imports (rest imports) first-part)))))
+    (let ((imports additional-imports))
       (goto-char 0)
       (while (search-forward-regexp "^\s*import \\(.*\\);" nil t)
 	(push (match-string-no-properties 1) imports)
@@ -111,37 +122,7 @@
 	(kill-line))
       (delete-blank-lines)
       (newline)
-      (dolist (import (eclim--java-sort-imports imports imports-order))
-	(insert (format "import %s;\n" import))))))
-
-(defun eclim--java-organize-imports (imports-order)
-
-  ;; TODO: this is code I lifted directly from one of my other
-  ;; projects. It doesn't care about the specified sort order and
-  ;; should probably be replaced.
-  (let ((p 0))
-    (save-excursion
-      (goto-char 0)
-      (search-forward-regexp "^import")
-      (beginning-of-line)
-      (let ((p0 (point)))
-	(loop do (setq p (search-forward-regexp "^import" (buffer-end 1) t)) while p)
-	(end-of-line)
-	(forward-line)
-	(sort-regexp-fields nil "^import \\(static \\)?\\(.*\\)$" "\\2"
-			    p0 (point))))))
-
-(defun eclim--java-insert-import (import-statement imports-order)
-  "Inserts an import statement at the corrent place in the current
-file."
-  ;; TODO: this is a pretty naive implementation that doesn't take
-  ;; comments at the beginning of the file into account
-  (save-excursion
-    (goto-char 0)
-    (forward-line)
-    (forward-line)
-    (insert "import " import-statement ";\n"))
-  (eclim--java-organize-imports imports-order))
+      (write-imports (eclim--java-sort-imports imports imports-order) nil)))))
 
 (defun eclim-java-import ()
   "Reads the token at the point and calls eclim to resolve it to
@@ -149,8 +130,8 @@ a java type that can be imported."
   (interactive)
   (let* ((pattern (eclim--java-identifier-at-point))
 	 (imports (eclim/java-import (eclim--project-name) pattern)))
-    (eclim--java-insert-import (eclim--choices-prompt "Import" imports)
-			       (eclim/java-import-order (eclim--project-name)))))
+    (eclim--java-organize-imports (eclim/java-import-order (eclim--project-name))
+				  (list (eclim--choices-prompt "Import" imports)))))
 
 (defun eclim-java-import-missing ()
   (interactive)
