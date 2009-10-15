@@ -140,7 +140,7 @@ saved."
 (defun eclim--java-src-update ()
   (when eclim-auto-save
     (save-buffer)
-    ;; FIXME: Sometimes this isn't finished when we complete.
+    ;; TODO: Sometimes this isn't finished when we complete.
     (eclim--call-process "java_src_update"
 			 "-p" (eclim--project-name)
 			 "-f" (eclim--project-current-file))))
@@ -177,8 +177,10 @@ saved."
 
 (defun eclim-complete ()
   (interactive)
+  (when eclim-auto-save (save-buffer))
+  (let ((symbol (eclim--java-identifier-at-point)))
   (insert
-   (eclim--choices-prompt "Completions" (mapcar 'second (eclim/java-complete)))))
+   (replace-regexp-in-string (concat "^" symbol) "" (eclim--choices-prompt "Completions" (mapcar 'second (eclim/java-complete)))))))
 
 (defun company-eclim (command &optional arg &rest ignored)
   "A `company-mode' back-end for eclim completion"
