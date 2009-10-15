@@ -140,7 +140,7 @@ saved."
 (defun eclim--java-src-update ()
   (when eclim-auto-save
     (save-buffer)
-    ;; FIXME: Sometimes this isn't finished when we complete.
+    ;; TODO: Sometimes this isn't finished when we complete.
     (eclim--call-process "java_src_update"
 			 "-p" (eclim--project-name)
 			 "-f" (eclim--project-current-file))))
@@ -169,15 +169,6 @@ saved."
   ;; TODO: implement the family option
   (eclim--call-process "jobs"))
 
-(defun eclim/problems (project)
-  (eclim--check-project project)
-  (eclim--call-process "problems" "-p" project))
-
-(defun eclim-problems ()
-  (interactive)
-  ;; TODO display the errors in a formatted list
-  (message (eclim/problems (eclim--project-name))))
-
 (defun eclim--choices-prompt (prompt choices)
   "Displays a prompt and lets the user choose between a list of choices."
   (or
@@ -186,8 +177,10 @@ saved."
 
 (defun eclim-complete ()
   (interactive)
+  (when eclim-auto-save (save-buffer))
+  (let ((symbol (eclim--java-identifier-at-point)))
   (insert
-   (eclim--choices-prompt "Completions" (mapcar 'second (eclim/java-complete)))))
+   (replace-regexp-in-string (concat "^" symbol) "" (eclim--choices-prompt "Completions" (mapcar 'second (eclim/java-complete)))))))
 
 (defun company-eclim (command &optional arg &rest ignored)
   "A `company-mode' back-end for eclim completion"
