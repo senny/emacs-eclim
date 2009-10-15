@@ -175,12 +175,47 @@ saved."
    (ido-completing-read (concat prompt ": ") choices)
    ""))
 
+(defun eclim-complete-1 (completion-list)
+  (let* ((window (get-buffer-window "*Completions*" 0))
+         (c (eclim--java-identifier-at-point))
+         (beg (car c))
+         (word (cdr c))
+         (compl (try-completion word
+                                completion-list)))
+    (if (and (eq last-command this-command)
+             window (window-live-p window) (window-buffer window)
+             (buffer-name (window-buffer window)))
+        ;; If this command was repeated, and there's a fresh completion window
+        ;; with a live buffer, and this command is repeated, scroll that
+        ;; window.
+        (with-current-buffer (window-buffer window)
+          (if (pos-visible-in-window-p (point-max) window)
+              (set-window-start window (point-min))
+            (save-selected-window
+              (select-window window)
+              (scroll-up))))
+      (cond
+       ((null compl)
+        (message "No completions."))
+       ((stringp compl)
+        (if (string= word compl)
+            ;; Show completion buffer
+            (let ((list (all-completions word completion-list)))
+              (setq list (sort list 'string<))
+              (with-output-to-temp-buffer "*Completions*"
+                (display-completion-list list word)))
+          ;; Complete
+          (delete-region beg (point))
+          (insert compl)
+          ;; close completion buffer if there's one
+          (let ((win (get-buffer-window "*Completions*" 0)))
+            (if win (quit-window nil win)))))
+       (t (message "That's the only possible completion."))))))
+
 (defun eclim-complete ()
   (interactive)
   (when eclim-auto-save (save-buffer))
-  (let ((symbol (eclim--java-identifier-at-point)))
-  (insert
-   (replace-regexp-in-string (concat "^" symbol) "" (eclim--choices-prompt "Completions" (mapcar 'second (eclim/java-complete)))))))
+  (eclim-complete-1 (mapcar 'second (eclim/java-complete))))
 
 (defun company-eclim (command &optional arg &rest ignored)
   "A `company-mode' back-end for eclim completion"
@@ -196,8 +231,7 @@ saved."
     ('candidates (company-eclim--candidates arg))
     ;;                   (message (company-eclim--candidates arg))))
     ('meta (cadr (assoc arg company-eclim--doc)))
-    ('no-cache (equal arg ""))
-    ))
+    ('no-cache (equal arg ""))))
 
 ;;** The minor mode and its keymap
 
