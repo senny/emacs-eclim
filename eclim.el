@@ -73,9 +73,9 @@ saved."
   (goto-char (point-max))
   (let (lines)
     (while (= 0 (forward-line -1))
-      (push (replace-regexp-in-string "^M" ""
-				      (buffer-substring-no-properties (line-beginning-position)
-								      (line-end-position)))
+      (push (replace-regexp-in-string "" ""
+                                      (buffer-substring-no-properties (line-beginning-position)
+                                                                      (line-end-position)))
             lines))
     lines))
 
@@ -88,7 +88,7 @@ saved."
 
 (defun eclim--call-process (&rest args)
   (message (apply 'concat eclim-executable " -command " (mapcar (lambda (arg)
-								  (concat " " arg)) args)))
+                                                                  (concat " " arg)) args)))
   (let ((coding-system-for-read 'utf-8))
     (with-temp-buffer
       (if (= 0 (apply 'call-process eclim-executable nil t nil
@@ -103,10 +103,10 @@ saved."
   "Return this file's project root directory."
   (or eclim--project-dir
       (setq eclim--project-dir
-	    (directory-file-name
-	     (file-name-directory
-	      (expand-file-name
-	       (locate-dominating-file buffer-file-name ".project")))))))
+            (directory-file-name
+             (file-name-directory
+              (expand-file-name
+               (locate-dominating-file buffer-file-name ".project")))))))
 
 (defun eclim--project-name ()
   (or eclim--project-name
@@ -142,8 +142,8 @@ saved."
     (save-buffer)
     ;; TODO: Sometimes this isn't finished when we complete.
     (eclim--call-process "java_src_update"
-			 "-p" (eclim--project-name)
-			 "-f" (eclim--project-current-file))))
+                         "-p" (eclim--project-name)
+                         "-f" (eclim--project-current-file))))
 
 (defun company-eclim--candidates (prefix)
   (interactive "d")
@@ -179,8 +179,8 @@ saved."
   (interactive)
   (when eclim-auto-save (save-buffer))
   (let ((symbol (eclim--java-identifier-at-point)))
-  (insert
-   (replace-regexp-in-string (concat "^" symbol) "" (eclim--choices-prompt "Completions" (mapcar 'second (eclim/java-complete)))))))
+    (insert
+     (replace-regexp-in-string (concat "^" symbol) "" (eclim--choices-prompt "Completions" (mapcar 'second (eclim/java-complete)))))))
 
 (defun company-eclim (command &optional arg &rest ignored)
   "A `company-mode' back-end for eclim completion"
