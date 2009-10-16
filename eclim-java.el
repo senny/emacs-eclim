@@ -92,13 +92,26 @@
 			    (if (null imports) result
 			      (let ((f (first imports))
 				    (n (first (rest imports))))
-				(if (or (eclim--java-wildcard-includes-p f n)
-					(equal f n))
-				    (remove-duplicates (cons f (rest (rest imports))) result)
-				  (remove-duplicates (rest imports) (cons f result)))))))
+				(if (null n) (cons f result)
+				  (if (or (eclim--java-wildcard-includes-p f n)
+					  (equal f n))
+				      (remove-duplicates (cons f (rest (rest imports))) result)
+				    (remove-duplicates (rest imports) (cons f result))))))))
     (reverse 
      (remove-duplicates
       (sort-imports imports-order (sort imports #'string-lessp) '()) '()))))
+
+(defun eclim--java-extract-imports ()
+  "Extracts (by removing) import statements of a java
+file. Returns a list of the extracted imports."
+  (let ((imports '()))
+    (goto-char 0)
+    (while (search-forward-regexp "^\s*import \\(.*\\);" nil t)
+      (push (match-string-no-properties 1) imports)
+      (beginning-of-line)
+      (kill-line))
+    (delete-blank-lines)
+    imports))
 
 (defun eclim--java-organize-imports (imports-order &optional additional-imports)
   "Organize the import statements in the current file according
@@ -114,15 +127,9 @@
 				  (newline))
 			      (insert (format "import %s;\n" (first imports)))
 			      (write-imports (rest imports) first-part)))))
-    (let ((imports additional-imports))
-      (goto-char 0)
-      (while (search-forward-regexp "^\s*import \\(.*\\);" nil t)
-	(push (match-string-no-properties 1) imports)
-	(beginning-of-line)
-	(kill-line))
-      (delete-blank-lines)
-      (newline)
-      (write-imports (eclim--java-sort-imports imports imports-order) nil)))))
+      (let ((imports (append (eclim--java-extract-imports) additional-imports)))
+	(newline)
+	(write-imports (eclim--java-sort-imports imports imports-order) nil)))))
 
 (defun eclim-java-import ()
   "Reads the token at the point and calls eclim to resolve it to
