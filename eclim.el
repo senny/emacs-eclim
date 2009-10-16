@@ -74,8 +74,8 @@ saved."
   (let (lines)
     (while (= 0 (forward-line -1))
       (push (replace-regexp-in-string "" ""
-                                      (buffer-substring-no-properties (line-beginning-position)
-                                                                      (line-end-position)))
+				      (buffer-substring-no-properties (line-beginning-position)
+								      (line-end-position)))
             lines))
     lines))
 
@@ -88,7 +88,7 @@ saved."
 
 (defun eclim--call-process (&rest args)
   (message (apply 'concat eclim-executable " -command " (mapcar (lambda (arg)
-                                                                  (concat " " arg)) args)))
+								  (concat " " arg)) args)))
   (let ((coding-system-for-read 'utf-8))
     (with-temp-buffer
       (if (= 0 (apply 'call-process eclim-executable nil t nil
@@ -103,10 +103,10 @@ saved."
   "Return this file's project root directory."
   (or eclim--project-dir
       (setq eclim--project-dir
-            (directory-file-name
-             (file-name-directory
-              (expand-file-name
-               (locate-dominating-file buffer-file-name ".project")))))))
+	    (directory-file-name
+	     (file-name-directory
+	      (expand-file-name
+	       (locate-dominating-file buffer-file-name ".project")))))))
 
 (defun eclim--project-name ()
   (or eclim--project-name
@@ -117,6 +117,8 @@ saved."
                                                      (downcase (first project))
                                                      (second project)
                                                      (third project))) project-list))
+                   ;; (message (concat "PROJECT: " (eclim--project-dir)))
+                   ;; (message (concat "LIST: " (concat project-list)))
                    (sensitive-match (car (cddr (assoc (eclim--project-dir) project-list))))
                    (insensitive-match (car (cddr (assoc (downcase (eclim--project-dir)) downcase-project-list)))))
               (or sensitive-match insensitive-match)))))
@@ -142,8 +144,8 @@ saved."
     (save-buffer)
     ;; TODO: Sometimes this isn't finished when we complete.
     (eclim--call-process "java_src_update"
-                         "-p" (eclim--project-name)
-                         "-f" (eclim--project-current-file))))
+			 "-p" (eclim--project-name)
+			 "-f" (eclim--project-current-file))))
 
 (defun company-eclim--candidates (prefix)
   (interactive "d")
@@ -175,12 +177,47 @@ saved."
    (ido-completing-read (concat prompt ": ") choices)
    ""))
 
+(defun eclim-complete-1 (completion-list)
+  (let* ((window (get-buffer-window "*Completions*" 0))
+         (c (eclim--java-identifier-at-point))
+         (beg (car c))
+         (word (cdr c))
+         (compl (try-completion word
+                                completion-list)))
+    (if (and (eq last-command this-command)
+             window (window-live-p window) (window-buffer window)
+             (buffer-name (window-buffer window)))
+        ;; If this command was repeated, and there's a fresh completion window
+        ;; with a live buffer, and this command is repeated, scroll that
+        ;; window.
+        (with-current-buffer (window-buffer window)
+          (if (pos-visible-in-window-p (point-max) window)
+              (set-window-start window (point-min))
+            (save-selected-window
+              (select-window window)
+              (scroll-up))))
+      (cond
+       ((null compl)
+        (message "No completions."))
+       ((stringp compl)
+        (if (string= word compl)
+            ;; Show completion buffer
+            (let ((list (all-completions word completion-list)))
+              (setq list (sort list 'string<))
+              (with-output-to-temp-buffer "*Completions*"
+                (display-completion-list list word)))
+          ;; Complete
+          (delete-region beg (point))
+          (insert compl)
+          ;; close completion buffer if there's one
+          (let ((win (get-buffer-window "*Completions*" 0)))
+            (if win (quit-window nil win)))))
+       (t (message "That's the only possible completion."))))))
+
 (defun eclim-complete ()
   (interactive)
   (when eclim-auto-save (save-buffer))
-  (let ((symbol (eclim--java-identifier-at-point)))
-    (insert
-     (replace-regexp-in-string (concat "^" symbol) "" (eclim--choices-prompt "Completions" (mapcar 'second (eclim/java-complete)))))))
+  (eclim-complete-1 (mapcar 'second (eclim/java-complete))))
 
 (defun company-eclim (command &optional arg &rest ignored)
   "A `company-mode' back-end for eclim completion"
@@ -196,14 +233,13 @@ saved."
     ('candidates (company-eclim--candidates arg))
     ;;                   (message (company-eclim--candidates arg))))
     ('meta (cadr (assoc arg company-eclim--doc)))
-    ('no-cache (equal arg ""))
-    ))
+    ('no-cache (equal arg ""))))
 
 ;;** The minor mode and its keymap
 
 (defvar eclim-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "C-e SPC") 'eclim-complete)
+    (define-key map (kbd "M-TAB") 'eclim-complete)
     map)
   "The keymap used in `eclim-mode'.")
 
