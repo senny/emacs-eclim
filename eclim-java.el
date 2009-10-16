@@ -1,3 +1,4 @@
+(require 'cl)
 (require 'json)
 
 (defun eclim/java-complete ()
@@ -159,8 +160,6 @@ user if necessary."
 						 (list 
 						  (eclim--choices-prompt (concat "Missing type '" (cdr (assoc 'type unused)) "'")
 									 candidates)))))))))
-							
-
 
 (defun eclim-java-remove-unused-imports ()
   (interactive)
