@@ -108,7 +108,8 @@
 
 (defun eclim--java-extract-imports ()
   "Extracts (by removing) import statements of a java
-file. Returns a list of the extracted imports."
+file. Returns a list of the extracted imports. Tries to leave the
+cursor at a suitable point for re-inserting new import statements."
   (let ((imports '()))
     (goto-char 0)
     (while (search-forward-regexp "^\s*import \\(.*\\);" nil t)
@@ -116,6 +117,11 @@ file. Returns a list of the extracted imports."
       (beginning-of-line)
       (kill-line))
     (delete-blank-lines)
+    (if (null imports) 
+	(progn 
+	  (end-of-line)
+	  (newline)
+	  (newline)))
     imports))
 
 (defun eclim--java-organize-imports (imports-order &optional additional-imports)
