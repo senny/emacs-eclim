@@ -1,3 +1,4 @@
+(require 'json)
 
 (defun eclim/java-complete ()
   (mapcar (lambda (line)
@@ -67,6 +68,9 @@
   (let ((w (string-width string)))
     (equal (substring-no-properties string (- w (string-width prefix)) w) prefix)))
 
+(defun vector-to-list (vec)
+  (loop for i across vec collect i))
+
 (defun eclim--java-package-components (package)
   "Returns the components of a Java package statement."
   (split-string package "\\."))
@@ -91,7 +95,7 @@
 	 (remove-duplicates (imports result)
 			    (if (null imports) result
 			      (let ((f (first imports))
-				    (n (first (rest imports))))
+				    (n (second imports)))
 				(if (null n) (cons f result)
 				  (if (or (eclim--java-wildcard-includes-p f n)
 					  (equal f n))
@@ -139,10 +143,19 @@ a java type that can be imported."
 				  (list (eclim--choices-prompt "Import" imports)))))
 
 (defun eclim-java-import-missing ()
+  "Checks the current file for missing imports and prompts the
+user if necessary."
   (interactive)
-  (let ((imports (eclim/java-import-missing (eclim--project-name))))
-    ;; TODO: display user selection for the missing imports
-    ))
+  (let ((imports-order (eclim/java-import-order (eclim--project-name))))
+    (loop for unused across
+	  (json-read-from-string 
+	   (replace-regexp-in-string "'" "\"" 
+				     (first (eclim/java-import-missing (eclim--project-name)))))
+	  do (eclim--java-organize-imports imports-order
+					   (list 
+					    (eclim--choices-prompt (concat "Missing type '" (cdr (assoc 'type unused)) "'")
+								   (vector-to-list (cdr (assoc 'imports unused)))))))))
+
 
 (defun eclim-java-remove-unused-imports ()
   (interactive)
