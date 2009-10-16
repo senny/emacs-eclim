@@ -151,10 +151,15 @@ user if necessary."
 	  (json-read-from-string 
 	   (replace-regexp-in-string "'" "\"" 
 				     (first (eclim/java-import-missing (eclim--project-name)))))
-	  do (eclim--java-organize-imports imports-order
-					   (list 
-					    (eclim--choices-prompt (concat "Missing type '" (cdr (assoc 'type unused)) "'")
-								   (vector-to-list (cdr (assoc 'imports unused)))))))))
+	  do (let* ((candidates (vector-to-list (cdr (assoc 'imports unused))))
+		    (len (length candidates)))
+	       (if (= len 0) nil
+		 (eclim--java-organize-imports imports-order
+					       (if (= len 1) candidates
+						 (list 
+						  (eclim--choices-prompt (concat "Missing type '" (cdr (assoc 'type unused)) "'")
+									 candidates)))))))))
+							
 
 
 (defun eclim-java-remove-unused-imports ()
