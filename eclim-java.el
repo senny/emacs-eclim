@@ -72,28 +72,28 @@ the string from BEG to (point)."
   "Returns true if PACKAGE is included in the WILDCARD import statement."
   (if (not (string-endswith-p wildcard ".*")) nil
     (equal (butlast (eclim--java-package-components wildcard))
-	   (butlast (eclim--java-package-components package)))))
+           (butlast (eclim--java-package-components package)))))
 
 (defun eclim--java-sort-imports (imports imports-order)
   "Sorts a list of imports according to a given sort order, removing duplicates."
   (flet ((sort-imports (imports-order imports result)
-		       (cond ((null imports) result)
-			     ((null imports-order)
-			      (sort-imports nil nil (append result imports)))
-			     (t 
-			      (flet ((matches-prefix (x) (string-startswith-p x (first imports-order))))
-				(sort-imports (rest imports-order)
-					      (remove-if #'matches-prefix imports)
-					      (append result (remove-if-not #'matches-prefix imports)))))))
-	 (remove-duplicates (imports result)
-			    (if (null imports) result
-			      (let ((f (first imports))
-				    (n (first (rest imports))))
-				(if (or (eclim--java-wildcard-includes-p f n)
-					(equal f n))
-				    (remove-duplicates (cons f (rest (rest imports))) result)
-				  (remove-duplicates (rest imports) (cons f result)))))))
-    (reverse 
+                       (cond ((null imports) result)
+                             ((null imports-order)
+                              (sort-imports nil nil (append result imports)))
+                             (t
+                              (flet ((matches-prefix (x) (string-startswith-p x (first imports-order))))
+                                (sort-imports (rest imports-order)
+                                              (remove-if #'matches-prefix imports)
+                                              (append result (remove-if-not #'matches-prefix imports)))))))
+         (remove-duplicates (imports result)
+                            (if (null imports) result
+                              (let ((f (first imports))
+                                    (n (first (rest imports))))
+                                (if (or (eclim--java-wildcard-includes-p f n)
+                                        (equal f n))
+                                    (remove-duplicates (cons f (rest (rest imports))) result)
+                                  (remove-duplicates (rest imports) (cons f result)))))))
+    (reverse
      (remove-duplicates
       (sort-imports imports-order (sort imports #'string-lessp) '()) '()))))
 
@@ -104,31 +104,31 @@ the string from BEG to (point)."
   rest."
   (save-excursion
     (flet ((write-imports (imports last-import-first-part)
-			  (when imports
-			    (let ((first-part (first (eclim--java-package-components (first imports)))))
-			      (if (and last-import-first-part
-				       (not (equal last-import-first-part first-part)))
-				  (newline))
-			      (insert (format "import %s;\n" (first imports)))
-			      (write-imports (rest imports) first-part)))))
-    (let ((imports additional-imports))
-      (goto-char 0)
-      (while (search-forward-regexp "^\s*import \\(.*\\);" nil t)
-	(push (match-string-no-properties 1) imports)
-	(beginning-of-line)
-	(kill-line))
-      (delete-blank-lines)
-      (newline)
-      (write-imports (eclim--java-sort-imports imports imports-order) nil)))))
+                          (when imports
+                            (let ((first-part (first (eclim--java-package-components (first imports)))))
+                              (if (and last-import-first-part
+                                       (not (equal last-import-first-part first-part)))
+                                  (newline))
+                              (insert (format "import %s;\n" (first imports)))
+                              (write-imports (rest imports) first-part)))))
+      (let ((imports additional-imports))
+        (goto-char 0)
+        (while (search-forward-regexp "^\s*import \\(.*\\);" nil t)
+          (push (match-string-no-properties 1) imports)
+          (beginning-of-line)
+          (kill-line))
+        (delete-blank-lines)
+        (newline)
+        (write-imports (eclim--java-sort-imports imports imports-order) nil)))))
 
 (defun eclim-java-import ()
   "Reads the token at the point and calls eclim to resolve it to
 a java type that can be imported."
   (interactive)
   (let* ((pattern (cdr (eclim--java-identifier-at-point)))
-	 (imports (eclim/java-import (eclim--project-name) pattern)))
+         (imports (eclim/java-import (eclim--project-name) pattern)))
     (eclim--java-organize-imports (eclim/java-import-order (eclim--project-name))
-				  (list (eclim--choices-prompt "Import" imports)))))
+                                  (list (eclim--choices-prompt "Import" imports)))))
 
 (defun eclim-java-import-missing ()
   (interactive)
@@ -154,5 +154,11 @@ a java type that can be imported."
                                  response)))
     (insert (ido-completing-read "Signature: " methods) " {}")
     (backward-char)))
+
+(defun eclim--java-symbol-remove-prefix (name)
+  ;; TODO extract prefixes into global variable
+  (if (string-match "\\(s_\\|m_\\)\\(.*\\)" name)
+      (match-string 2 name)
+    name))
 
 (provide 'eclim-java)
