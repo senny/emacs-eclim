@@ -122,13 +122,11 @@ file. Returns a list of the extracted imports."
     (flet ((write-imports (imports last-import-first-part)
 			  (when imports
 			    (let ((first-part (first (eclim--java-package-components (first imports)))))
-			      (if (and last-import-first-part
-				       (not (equal last-import-first-part first-part)))
+			      (if (not (equal last-import-first-part first-part))
 				  (newline))
 			      (insert (format "import %s;\n" (first imports)))
 			      (write-imports (rest imports) first-part)))))
       (let ((imports (append (eclim--java-extract-imports) additional-imports)))
-	(newline)
 	(write-imports (eclim--java-sort-imports imports imports-order) nil)))))
 
 (defun eclim-java-import ()
