@@ -224,6 +224,15 @@
   (eclim--check-project project)
   (eclim--call-process "locate_file" "-p" pattern "-s" "project" "-n" project))
 
+(defun eclim/project-problems (project)
+  (eclim--check-project project)
+  (eclim--call-process "problems" "-p" project))
+
+(defun eclim-project-problems ()
+  (interactive)
+  ;; TODO display the errors in a formatted list
+  (message (eclim/problems (eclim--project-name))))
+
 (defun eclim-project-mode-refresh ()
   (interactive)
   (eclim--project-buffer-refresh)
