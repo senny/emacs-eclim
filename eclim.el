@@ -60,6 +60,14 @@ saved."
   :type '(choice (const :tag "Off" nil)
                  (const :tag "On" t)))
 
+(defcustom eclim-use-yasnippet t
+  "Determines whether the eclim snippets get turned on or off"
+  :group 'eclim
+  :type '(choice (const :tag "Off" nil)
+                 (const :tag "On" t)))
+
+(defvar eclim--snippet-directory (concat (file-name-directory load-file-name) "snippets"))
+
 (defvar eclim--project-dir nil)
 (make-variable-buffer-local 'eclim--project-dir)
 
@@ -246,7 +254,7 @@ saved."
 (define-minor-mode eclim-mode
   "An interface to the Eclipse IDE."
   nil
-  "Eclim"
+  " Eclim"
   eclim-mode-map
   (if eclim-mode
       (progn
@@ -254,6 +262,8 @@ saved."
         ;; TODO: activate this mechanism somehow
         ;; (eclim--project-dir)
         ;; (eclim--project-name))
+        (when (and (featurep 'yasnippet) eclim-use-yasnippet)
+          (yas/load-directory eclim--snippet-directory))
         )
     (kill-local-variable 'eclim--project-dir)
     (kill-local-variable 'eclim--project-name)))
