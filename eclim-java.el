@@ -50,15 +50,12 @@
                        "-f" (eclim--project-current-file)))
 
 (defun eclim--java-identifier-at-point ()
-  "Returns a string containing the word positioned under the
-  cursor. Not exactly the perfect solution for picking out java
-  tokens, but will have to do."
-  (save-excursion
-    (forward-char)
-    (backward-word 1)
-    (let ((p (point)))
-      (forward-word 1)
-      (buffer-substring-no-properties p (point)))))
+  "Returns a cons cell (BEG . START) where BEG is the start
+buffer position of the token/identifier at point, and START is
+the string from BEG to (point)."
+  (let ((beg (save-excursion
+               (+ 1 (or (re-search-backward "[.,-/+( ]" nil t) 0)))))
+    (cons beg (buffer-substring-no-properties beg (point)))))
 
 (defun string-startswith-p (string prefix)
   ;; TODO: there is probably already a library function that does this
@@ -80,7 +77,7 @@
   "Returns true if PACKAGE is included in the WILDCARD import statement."
   (if (not (string-endswith-p wildcard ".*")) nil
     (equal (butlast (eclim--java-package-components wildcard))
-	   (butlast (eclim--java-package-components package)))))
+           (butlast (eclim--java-package-components package)))))
 
 (defun eclim--java-sort-imports (imports imports-order)
   "Sorts a list of imports according to a given sort order, removing duplicates."
@@ -144,10 +141,10 @@ cursor at a suitable point for re-inserting new import statements."
   "Reads the token at the point and calls eclim to resolve it to
 a java type that can be imported."
   (interactive)
-  (let* ((pattern (eclim--java-identifier-at-point))
-	 (imports (eclim/java-import (eclim--project-name) pattern)))
+  (let* ((pattern (cdr (eclim--java-identifier-at-point)))
+         (imports (eclim/java-import (eclim--project-name) pattern)))
     (eclim--java-organize-imports (eclim/java-import-order (eclim--project-name))
-				  (list (eclim--choices-prompt "Import" imports)))))
+                                  (list (eclim--choices-prompt "Import" imports)))))
 
 (defun eclim-java-import-missing ()
   "Checks the current file for missing imports and prompts the
@@ -185,5 +182,11 @@ user if necessary."
                                  response)))
     (insert (ido-completing-read "Signature: " methods) " {}")
     (backward-char)))
+
+(defun eclim--java-symbol-remove-prefix (name)
+  ;; TODO extract prefixes into global variable
+  (if (string-match "\\(s_\\|m_\\)\\(.*\\)" name)
+      (match-string 2 name)
+    name))
 
 (provide 'eclim-java)

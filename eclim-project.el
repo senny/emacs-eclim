@@ -46,7 +46,7 @@
     (define-key map (kbd "q") 'quit-window)
     map))
 
-(define-key eclim-mode-map (kbd "C-e g") 'eclim-project-goto)
+(define-key eclim-mode-map (kbd "C-c C-e g") 'eclim-project-goto)
 
 (defun eclim--project-clear-cache ()
   (setq eclim--project-natures-cache nil)
