@@ -117,11 +117,12 @@ cursor at a suitable point for re-inserting new import statements."
 	  (newline)))
     imports))
 
-(defun eclim--java-organize-imports (imports-order &optional additional-imports)
+(defun eclim--java-organize-imports (imports-order &optional additional-imports unused-imports)
   "Organize the import statements in the current file according
   to IMPORTS-ORDER. If the optional parameter ADDITIONAL-IMPORTS
   is supplied, these import statements will be added to the
-  rest."
+  rest. Imports listed in the optional parameter UNUSED-IMPORTS
+  will be removed."
   (save-excursion
     (flet ((write-imports (imports last-import-first-part)
 			  (when imports
@@ -130,7 +131,8 @@ cursor at a suitable point for re-inserting new import statements."
 				  (newline))
 			      (insert (format "import %s;\n" (first imports)))
 			      (write-imports (rest imports) first-part)))))
-      (let ((imports (append (eclim--java-extract-imports) additional-imports)))
+      (let ((imports (remove-if (lambda (x) (member x unused-imports))
+		     (append (eclim--java-extract-imports) additional-imports))))
 	(write-imports (eclim--java-sort-imports imports imports-order) nil)))))
 
 (defun eclim-java-import ()
@@ -162,9 +164,9 @@ user if necessary."
 
 (defun eclim-java-remove-unused-imports ()
   (interactive)
-  (let ((unused (eclim/java-import-unused (eclim--project-name))))
-    ;; TODO: display user selection for the missing imports
-    ))
+  (let ((imports-order (eclim/java-import-order (eclim--project-name)))
+	(unused (eclim/java-import-unused (eclim--project-name))))
+    (eclim--java-organize-imports imports-order nil unused)))
 
 (defun eclim/java-impl (project file &optional offset encoding type superType methods)
   (eclim--check-project project)
