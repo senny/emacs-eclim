@@ -66,9 +66,6 @@ the string from BEG to (point)."
   (let ((w (string-width string)))
     (equal (substring-no-properties string (- w (string-width prefix)) w) prefix)))
 
-(defun vector-to-list (vec)
-  (loop for i across vec collect i))
-
 (defun eclim--java-package-components (package)
   "Returns the components of a Java package statement."
   (split-string package "\\."))
@@ -155,7 +152,7 @@ user if necessary."
 	  (json-read-from-string 
 	   (replace-regexp-in-string "'" "\"" 
 				     (first (eclim/java-import-missing (eclim--project-name)))))
-	  do (let* ((candidates (vector-to-list (cdr (assoc 'imports unused))))
+	  do (let* ((candidates (append (cdr (assoc 'imports unused)) nil))
 		    (len (length candidates)))
 	       (if (= len 0) nil
 		 (eclim--java-organize-imports imports-order
