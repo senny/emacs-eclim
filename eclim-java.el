@@ -1,4 +1,3 @@
-(require 'cl)
 (require 'json)
 
 (defun eclim/java-complete ()
