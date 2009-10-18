@@ -117,19 +117,20 @@ saved."
 	       (locate-dominating-file buffer-file-name ".project")))))))
 
 (defun eclim--project-name ()
-  (or eclim--project-name
-      (setq eclim--project-name
-            (let* ((project-list (eclim/project-list))
-                   (downcase-project-list (mapcar (lambda (project)
-                                                    (list
-                                                     (downcase (first project))
-                                                     (second project)
-                                                     (third project))) project-list))
-                   ;; (message (concat "PROJECT: " (eclim--project-dir)))
-                   ;; (message (concat "LIST: " (concat project-list)))
-                   (sensitive-match (car (cddr (assoc (eclim--project-dir) project-list))))
-                   (insensitive-match (car (cddr (assoc (downcase (eclim--project-dir)) downcase-project-list)))))
-              (or sensitive-match insensitive-match)))))
+  (when buffer-file-name
+    (or eclim--project-name
+	(setq eclim--project-name
+	      (let* ((project-list (eclim/project-list))
+		     (downcase-project-list (mapcar (lambda (project)
+						      (list
+						       (downcase (first project))
+						       (second project)
+						       (third project))) project-list))
+		     ;; (message (concat "PROJECT: " (eclim--project-dir)))
+		     ;; (message (concat "LIST: " (concat project-list)))
+		     (sensitive-match (car (cddr (assoc (eclim--project-dir) project-list))))
+		     (insensitive-match (car (cddr (assoc (downcase (eclim--project-dir)) downcase-project-list)))))
+		(or sensitive-match insensitive-match))))))
 
 (defun eclim--string-strip (content)
   (replace-regexp-in-string "\s*$" "" content))
