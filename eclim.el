@@ -221,11 +221,11 @@ saved."
     (eclim--java-src-update)
     (setq company-eclim--doc  (eclim/java-complete)))
   (let ((completion-ignore-case nil))
-    (all-completions prefix (mapcar 'eclim--complection-candidate-class company-eclim--doc))))
+    (all-completions prefix (mapcar 'eclim--completion-candidate-class company-eclim--doc))))
 
 (defun company-eclim--find-candidate (class)
   (find class company-eclim--doc 
-	:key #'eclim--complection-candidate-class
+	:key #'eclim--completion-candidate-class
 	:test #'string=))
 
 (defun company-eclim (command &optional arg &rest ignored)
