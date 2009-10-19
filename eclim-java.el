@@ -93,6 +93,11 @@ the string from BEG to (point)."
     (equal (butlast (eclim--java-package-components wildcard))
            (butlast (eclim--java-package-components package)))))
 
+(defun eclim--java-ignore-import-p (import)
+  "Return true if this IMPORT should be ignored by the import
+  functions."
+  (string-match "^java\.lang\.[A-Z][^\.]*$" import))
+
 (defun eclim--java-sort-imports (imports imports-order)
   "Sorts a list of imports according to a given sort order, removing duplicates."
   (flet ((sort-imports (imports-order imports result)
@@ -149,8 +154,10 @@ cursor at a suitable point for re-inserting new import statements."
 				  (newline))
 			      (insert (format "import %s;\n" (first imports)))
 			      (write-imports (rest imports) first-part)))))
-      (let ((imports (remove-if (lambda (x) (member x unused-imports))
-		     (append (eclim--java-extract-imports) additional-imports))))
+      (let ((imports 
+	     (remove-if #'eclim--java-ignore-import-p 
+			(remove-if (lambda (x) (member x unused-imports))
+				   (append (eclim--java-extract-imports) additional-imports)))))
 	(write-imports (eclim--java-sort-imports imports imports-order) nil)))))
 
 (defun eclim-java-import ()
