@@ -10,6 +10,24 @@
                                "-l" "standard"
                                "-o" (number-to-string (eclim--byte-offset)))))
 
+(defun eclim--completion-candidate-type (candidate)
+  "Returns the type of a candidate."
+  (first candidate))
+
+(defun eclim--completion-candidate-class (candidate)
+  "Returns the class name of a candidate."
+  (second candidate))
+
+(defun eclim--completion-candidate-doc (candidate)
+  "Returns the documentation for a candidate."
+  (third candidate))
+
+(defun eclim--completion-candidate-package (candidate)
+  "Returns the package name of a candidate."
+  (let ((doc (eclim--completion-candidate-doc candidate)))
+    (when (string-match "\\(.*\\)\s-\s\\(.*\\)" doc)
+      (match-string 2 doc))))
+
 (defun eclim/java-classpath (project)
   (eclim--check-project project)
   (eclim--call-process "java_classpath" "-p" project))

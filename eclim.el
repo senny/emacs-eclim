@@ -212,42 +212,22 @@ saved."
   (when eclim-auto-save (save-buffer))
   (eclim-complete-1 (mapcar 'second (eclim/java-complete))))
 
+;; company-eclim replacement code
+
 (defun company-eclim--candidates (prefix)
   (interactive "d")
   (let ((project-file (eclim--project-current-file))
         (project-name (eclim--project-name)))
     (eclim--java-src-update)
-    (setq company-eclim--doc
-          (mapcar (lambda (line)
-		    (let ((data (split-string line "|" nil)))
-		      (append (rest data) (list (first data)))))
-                  (eclim--call-process
-                   "java_complete" "-p" (eclim--project-name)
-                   "-f" project-file
-                   "-o" (number-to-string (eclim--byte-offset))
-                   "-e" "utf-8"
-                   "-l" "standard"))))
+    (setq company-eclim--doc  (eclim/java-complete)))
   (let ((completion-ignore-case nil))
-    (all-completions prefix (mapcar 'first company-eclim--doc))))
+    (all-completions prefix (mapcar 'eclim--complection-candidate-class company-eclim--doc))))
 
-(defun company-eclim--candidate-class (candidate)
-  "Returns the class name of a candidate."
-  (first candidate))
+(defun company-eclim--find-candidate (class)
+  (find class company-eclim--doc 
+	:key #'eclim--complection-candidate-class
+	:test #'string=))
 
-(defun company-eclim--candidate-doc (candidate)
-  "Returns the documentation for a candidate."
-  (second candidate))
-
-(defun company-eclim--candidate-type (candidate)
-  "Returns the type of a candidate."
-  (third candidate))
-
-(defun company-eclim--candidate-package (candidate)
-  "Returns the package name of a candidate."
-  (let ((doc (company-eclim--candidate-doc candidate)))
-    (when (string-match "\\(.*\\)\s-\s\\(.*\\)" doc)
-      (match-string 2 doc))))
-    
 (defun company-eclim (command &optional arg &rest ignored)
   "A `company-mode' back-end for eclim completion"
   (interactive)
@@ -259,19 +239,19 @@ saved."
                   (not (company-in-string-or-comment))
                   (or (company-grab-symbol) 'stop)))
     ('candidates (company-eclim--candidates arg))
-    ('meta (company-eclim--candidate-doc (assoc arg company-eclim--doc)))
+    ('meta (eclim--completion-candidate-doc (company-eclim--find-candidate arg)))
     ('no-cache (equal arg ""))))
 
 (defun company-eclim--completion-finished (arg)
   "Post-completion hook after running company-mode completions."
-  (let ((candidate (assoc arg company-eclim--doc)))
-    (if (equal "c" (third candidate))
+  (let ((candidate (company-eclim--find-candidate arg)))
+    (if (string= "c" (eclim--completion-candidate-type candidate))
 	;; If this is a class, then insert an import statement
 	(eclim--java-organize-imports
 	 (eclim/java-import-order (eclim--project-name)) 
 	 (list 
-	  (concat (company-eclim--candidate-package candidate) "." 
-		  (company-eclim--candidate-class candidate)))))))
+	  (concat (eclim--completion-candidate-package candidate) "." 
+		  (eclim--completion-candidate-class candidate)))))))
 
 (add-hook 'company-completion-finished-hook
 	  'company-eclim--completion-finished)
