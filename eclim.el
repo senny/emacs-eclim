@@ -224,9 +224,7 @@ saved."
     (all-completions prefix (mapcar 'eclim--completion-candidate-class company-eclim--doc))))
 
 (defun company-eclim--find-candidate (class)
-  (find class company-eclim--doc 
-	:key #'eclim--completion-candidate-class
-	:test #'string=))
+  (nth company-selection company-eclim--doc))
 
 (defun company-eclim (command &optional arg &rest ignored)
   "A `company-mode' back-end for eclim completion"
