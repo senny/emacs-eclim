@@ -126,8 +126,6 @@ saved."
 						       (downcase (first project))
 						       (second project)
 						       (third project))) project-list))
-		     ;; (message (concat "PROJECT: " (eclim--project-dir)))
-		     ;; (message (concat "LIST: " (concat project-list)))
 		     (sensitive-match (car (cddr (assoc (eclim--project-dir) project-list))))
 		     (insensitive-match (car (cddr (assoc (downcase (eclim--project-dir)) downcase-project-list)))))
 		(or sensitive-match insensitive-match))))))
@@ -163,6 +161,15 @@ saved."
 (defun eclim/jobs (&optional family)
   ;; TODO: implement the family option
   (eclim--call-process "jobs"))
+
+(defun eclim/problems (project)
+  (eclim--check-project project)
+  (eclim--call-process "problems" "-p" project))
+
+(defun eclim-problems ()
+  (interactive)
+  ;; TODO display the errors in a formatted list
+  (message (eclim/problems (eclim--project-name))))
 
 (defun eclim--choices-prompt (prompt choices)
   "Displays a prompt and lets the user choose between a list of choices."
@@ -278,6 +285,9 @@ saved."
         )
     (kill-local-variable 'eclim--project-dir)
     (kill-local-variable 'eclim--project-name)))
+
+(define-globalized-minor-mode global-eclim-mode eclim-mode
+  (lambda () (eclim-mode 1)))
 
 (require 'eclim-project)
 (require 'eclim-java)

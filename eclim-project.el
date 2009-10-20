@@ -32,6 +32,7 @@
 (defvar eclim-project-mode-map
   (let ((map (make-keymap)))
     (suppress-keymap map t)
+    (define-key map (kbd "N") 'eclim-project-create)
     (define-key map (kbd "m") 'eclim-project-mark-current)
     (define-key map (kbd "M") 'eclim-project-mark-all)
     (define-key map (kbd "u") 'eclim-project-unmark-current)
@@ -39,14 +40,19 @@
     (define-key map (kbd "o") 'eclim-project-open)
     (define-key map (kbd "c") 'eclim-project-close)
     (define-key map (kbd "i") 'eclim-project-info)
+    (define-key map (kbd "I") 'eclim-project-import)
     (define-key map (kbd "g") 'eclim-project-goto)
+    (define-key map (kbd "D") 'eclim-project-delete)
     ;; TODO: find a better shortcut for updating
     (define-key map (kbd "p") 'eclim-project-update)
     (define-key map (kbd "r") 'eclim-project-mode-refresh)
+    (define-key map (kbd "R") 'eclim-project-rename)
     (define-key map (kbd "q") 'quit-window)
     map))
 
+
 (define-key eclim-mode-map (kbd "C-c C-e g") 'eclim-project-goto)
+(define-key eclim-mode-map (kbd "C-c C-e p") 'eclim-manage-projects)
 
 (defun eclim--project-clear-cache ()
   (setq eclim--project-natures-cache nil)
@@ -96,6 +102,7 @@
   (run-mode-hooks 'eclim-project-mode-hook))
 
 (defun eclim--project-buffer-refresh ()
+  (eclim--project-clear-cache)
   (when (eq major-mode 'eclim-project-mode)
     (let ((inhibit-read-only t)
           (line-number (line-number-at-pos)))
@@ -156,15 +163,18 @@
           (eclim--call-process "project_list")))
 
 (defun eclim/project-import (folder)
+  (eclim--project-clear-cache)
   (eclim--call-process "project_import" "-f" folder))
 
 (defun eclim/project-create (folder natures name &optional depends)
   ;; TODO: allow multiple natures
   ;; (eclim--check-nature natures)
+  (eclim--project-clear-cache)
   (eclim--call-process "project_create" "-f" folder "-n" natures "-p" name))
 
 (defun eclim/project-delete (project)
   (eclim--check-project project)
+  (eclim--project-clear-cache)
   (eclim--call-process "project_delete" "-p" project))
 
 (defun eclim/project-open (project)
@@ -224,14 +234,42 @@
   (eclim--check-project project)
   (eclim--call-process "locate_file" "-p" pattern "-s" "project" "-n" project))
 
-(defun eclim/project-problems (project)
+(defun eclim/project-links (project)
   (eclim--check-project project)
-  (eclim--call-process "problems" "-p" project))
+  (eclim--call-process "project_links" "-p" project))
 
-(defun eclim-project-problems ()
-  (interactive)
-  ;; TODO display the errors in a formatted list
-  (message (eclim/problems (eclim--project-name))))
+(defun eclim/project-rename (project new-name)
+  (eclim--check-project project)
+  (eclim--call-process "project_rename" "-p" project "-n" new-name))
+
+(defun eclim-project-rename (project name)
+  (interactive (let ((project-name (eclim--project-read t)))
+                 (list project-name (read-string (concat "Rename <" project-name "> To: ")))))
+  (message (first (eclim/project-rename project name)))
+  (eclim--project-buffer-refresh))
+
+(defun eclim-project-delete (projects)
+  (interactive (list (eclim--project-read)))
+  (when (not (listp projects)) (set 'projects (list projects)))
+  (dolist (project projects)
+    (when (yes-or-no-p (concat "Delete Project: <" project"> "))
+      (message (first (eclim/project-delete project)))))
+  (eclim--project-buffer-refresh))
+
+(defun eclim-project-create (name path nature)
+  (interactive (list (read-string "Name: ")
+                     (expand-file-name (read-directory-name "Project Directory: "))
+                     (eclim--project-nature-read)))
+  (message (first (eclim/project-create path nature name)))
+  (eclim--project-buffer-refresh))
+
+(defun eclim-project-import (folder)
+  (interactive "DProject Directory: ")
+  (message (first (eclim/project-import folder)))
+  (eclim--project-buffer-refresh))
+
+(defun eclim--project-nature-read ()
+  (ido-completing-read "Type: " (eclim/project-nature-aliases)))
 
 (defun eclim-project-mode-refresh ()
   (interactive)
@@ -300,9 +338,8 @@
   (let ((path (cdr (assoc project (mapcar (lambda (row) (cons (nth 2 row) (nth 0 row))) (eclim/project-list))))))
     (ido-find-file-in-dir path)))
 
-
 (defun eclim-project-info (project)
-  (interactive (list (eclim--project-current-line)))
+  (interactive (list (eclim--project-read t)))
   (let ((old-buffer (current-buffer))
         (project-info "")
         (project-settings ""))
@@ -323,6 +360,7 @@
 
 (defun eclim-manage-projects ()
   (interactive)
+  (eclim--project-clear-cache)
   (eclim--project-mode-init))
 
 
