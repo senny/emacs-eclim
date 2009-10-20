@@ -40,6 +40,7 @@
     (define-key map (kbd "c") 'eclim-project-close)
     (define-key map (kbd "i") 'eclim-project-info)
     (define-key map (kbd "g") 'eclim-project-goto)
+    (define-key map (kbd "D") 'eclim-project-delete)
     ;; TODO: find a better shortcut for updating
     (define-key map (kbd "p") 'eclim-project-update)
     (define-key map (kbd "r") 'eclim-project-mode-refresh)
@@ -96,6 +97,7 @@
   (run-mode-hooks 'eclim-project-mode-hook))
 
 (defun eclim--project-buffer-refresh ()
+  (eclim--project-clear-cache)
   (when (eq major-mode 'eclim-project-mode)
     (let ((inhibit-read-only t)
           (line-number (line-number-at-pos)))
@@ -161,10 +163,12 @@
 (defun eclim/project-create (folder natures name &optional depends)
   ;; TODO: allow multiple natures
   ;; (eclim--check-nature natures)
+  (eclim--project-clear-cache)
   (eclim--call-process "project_create" "-f" folder "-n" natures "-p" name))
 
 (defun eclim/project-delete (project)
   (eclim--check-project project)
+  (eclim--project-clear-cache)
   (eclim--call-process "project_delete" "-p" project))
 
 (defun eclim/project-open (project)
@@ -224,14 +228,25 @@
   (eclim--check-project project)
   (eclim--call-process "locate_file" "-p" pattern "-s" "project" "-n" project))
 
-(defun eclim/project-problems (project)
-  (eclim--check-project project)
-  (eclim--call-process "problems" "-p" project))
+(defun eclim/project-links (project)
+  (eclim--call-process "project_links" "-p" project))
 
-(defun eclim-project-problems ()
-  (interactive)
-  ;; TODO display the errors in a formatted list
-  (message (eclim/problems (eclim--project-name))))
+(defun eclim-project-delete (projects)
+  (interactive (list (eclim--project-read)))
+  (when (not (listp projects)) (set 'projects (list projects)))
+  (dolist (project projects)
+    (when (yes-or-no-p (concat "Delete Project: <" project"> "))
+      (eclim/project-delete project)))
+  (eclim--project-buffer-refresh))
+
+(defun eclim-project-create (name path nature)
+  (interactive (list (read-string "Name: ")
+                     (expand-file-name (read-directory-name "Project Directory: "))
+                     (eclim--project-nature-read)))
+  (eclim/project-create path nature name))
+
+(defun eclim--project-nature-read ()
+  (ido-completing-read "Type: " (eclim/project-nature-aliases)))
 
 (defun eclim-project-mode-refresh ()
   (interactive)
@@ -323,6 +338,7 @@
 
 (defun eclim-manage-projects ()
   (interactive)
+  (eclim--project-clear-cache)
   (eclim--project-mode-init))
 
 

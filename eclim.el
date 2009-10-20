@@ -162,6 +162,15 @@ saved."
   ;; TODO: implement the family option
   (eclim--call-process "jobs"))
 
+(defun eclim/problems (project)
+  (eclim--check-project project)
+  (eclim--call-process "problems" "-p" project))
+
+(defun eclim-problems ()
+  (interactive)
+  ;; TODO display the errors in a formatted list
+  (message (eclim/problems (eclim--project-name))))
+
 (defun eclim--choices-prompt (prompt choices)
   "Displays a prompt and lets the user choose between a list of choices."
   (or
