@@ -13,7 +13,7 @@ from eclipse to emacs.
 1. download the emacs-eclim source code
 1. add the following code to your emacs startup script
 
-        (add-to-list 'load-path (expand-file-name "~/coding/git/emacs-eclim/"))
+        (add-to-list 'load-path (expand-file-name "/path/to/emacs-eclim/"))
         (require 'eclim)
 
         (setq eclim-auto-save t)
