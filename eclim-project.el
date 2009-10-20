@@ -32,7 +32,7 @@
 (defvar eclim-project-mode-map
   (let ((map (make-keymap)))
     (suppress-keymap map t)
-    (define-key map (kbd "n") 'eclim-project-create)
+    (define-key map (kbd "N") 'eclim-project-create)
     (define-key map (kbd "m") 'eclim-project-mark-current)
     (define-key map (kbd "M") 'eclim-project-mark-all)
     (define-key map (kbd "u") 'eclim-project-unmark-current)
@@ -40,6 +40,7 @@
     (define-key map (kbd "o") 'eclim-project-open)
     (define-key map (kbd "c") 'eclim-project-close)
     (define-key map (kbd "i") 'eclim-project-info)
+    (define-key map (kbd "I") 'eclim-project-import)
     (define-key map (kbd "g") 'eclim-project-goto)
     (define-key map (kbd "D") 'eclim-project-delete)
     ;; TODO: find a better shortcut for updating
@@ -49,7 +50,9 @@
     (define-key map (kbd "q") 'quit-window)
     map))
 
+
 (define-key eclim-mode-map (kbd "C-c C-e g") 'eclim-project-goto)
+(define-key eclim-mode-map (kbd "C-c C-e p") 'eclim-manage-projects)
 
 (defun eclim--project-clear-cache ()
   (setq eclim--project-natures-cache nil)
@@ -335,9 +338,8 @@
   (let ((path (cdr (assoc project (mapcar (lambda (row) (cons (nth 2 row) (nth 0 row))) (eclim/project-list))))))
     (ido-find-file-in-dir path)))
 
-
 (defun eclim-project-info (project)
-  (interactive (list (eclim--project-current-line)))
+  (interactive (list (eclim--project-read t)))
   (let ((old-buffer (current-buffer))
         (project-info "")
         (project-settings ""))
