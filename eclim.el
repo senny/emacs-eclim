@@ -126,8 +126,6 @@ saved."
 						       (downcase (first project))
 						       (second project)
 						       (third project))) project-list))
-		     ;; (message (concat "PROJECT: " (eclim--project-dir)))
-		     ;; (message (concat "LIST: " (concat project-list)))
 		     (sensitive-match (car (cddr (assoc (eclim--project-dir) project-list))))
 		     (insensitive-match (car (cddr (assoc (downcase (eclim--project-dir)) downcase-project-list)))))
 		(or sensitive-match insensitive-match))))))
