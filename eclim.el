@@ -288,6 +288,9 @@ saved."
     (kill-local-variable 'eclim--project-dir)
     (kill-local-variable 'eclim--project-name)))
 
+(define-globalized-minor-mode global-eclim-mode eclim-mode
+  (lambda () (eclim-mode 1)))
+
 (require 'eclim-project)
 (require 'eclim-java)
 (require 'eclim-ant)
