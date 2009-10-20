@@ -32,6 +32,7 @@
 (defvar eclim-project-mode-map
   (let ((map (make-keymap)))
     (suppress-keymap map t)
+    (define-key map (kbd "n") 'eclim-project-create)
     (define-key map (kbd "m") 'eclim-project-mark-current)
     (define-key map (kbd "M") 'eclim-project-mark-all)
     (define-key map (kbd "u") 'eclim-project-unmark-current)
@@ -44,6 +45,7 @@
     ;; TODO: find a better shortcut for updating
     (define-key map (kbd "p") 'eclim-project-update)
     (define-key map (kbd "r") 'eclim-project-mode-refresh)
+    (define-key map (kbd "R") 'eclim-project-rename)
     (define-key map (kbd "q") 'quit-window)
     map))
 
@@ -158,6 +160,7 @@
           (eclim--call-process "project_list")))
 
 (defun eclim/project-import (folder)
+  (eclim--project-clear-cache)
   (eclim--call-process "project_import" "-f" folder))
 
 (defun eclim/project-create (folder natures name &optional depends)
@@ -229,21 +232,38 @@
   (eclim--call-process "locate_file" "-p" pattern "-s" "project" "-n" project))
 
 (defun eclim/project-links (project)
+  (eclim--check-project project)
   (eclim--call-process "project_links" "-p" project))
+
+(defun eclim/project-rename (project new-name)
+  (eclim--check-project project)
+  (eclim--call-process "project_rename" "-p" project "-n" new-name))
+
+(defun eclim-project-rename (project name)
+  (interactive (let ((project-name (eclim--project-read t)))
+                 (list project-name (read-string (concat "Rename <" project-name "> To: ")))))
+  (message (first (eclim/project-rename project name)))
+  (eclim--project-buffer-refresh))
 
 (defun eclim-project-delete (projects)
   (interactive (list (eclim--project-read)))
   (when (not (listp projects)) (set 'projects (list projects)))
   (dolist (project projects)
     (when (yes-or-no-p (concat "Delete Project: <" project"> "))
-      (eclim/project-delete project)))
+      (message (first (eclim/project-delete project)))))
   (eclim--project-buffer-refresh))
 
 (defun eclim-project-create (name path nature)
   (interactive (list (read-string "Name: ")
                      (expand-file-name (read-directory-name "Project Directory: "))
                      (eclim--project-nature-read)))
-  (eclim/project-create path nature name))
+  (message (first (eclim/project-create path nature name)))
+  (eclim--project-buffer-refresh))
+
+(defun eclim-project-import (folder)
+  (interactive "DProject Directory: ")
+  (message (first (eclim/project-import folder)))
+  (eclim--project-buffer-refresh))
 
 (defun eclim--project-nature-read ()
   (ido-completing-read "Type: " (eclim/project-nature-aliases)))
