@@ -140,7 +140,7 @@ saved."
   (set-buffer (get-buffer-create "*eclim-temporary-buffer*"))
   (delete-region (point-min) (point-max)))
 
-(defun eclim--byte-offset ()
+(defun eclim--byte-offset (&optional text)
   ;; TODO: restricted the ugly newline counting to dos buffers => remove it all the way later
   (let ((current-offset (position-bytes (1- (point)))))
     (if (string-match "dos" (symbol-name buffer-file-coding-system))
