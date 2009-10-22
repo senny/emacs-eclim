@@ -1,16 +1,12 @@
 ;; company-emacs-eclim.el -- a company-mode backend that replaces company-eclim
 ;;
-;;
+;; 
 
 (require 'eclim-java)
 (require 'company)
 
 (defvar company-emacs-eclim--doc nil)
 (make-variable-buffer-local 'company-emacs-eclim--doc)
-
-(setq company-frontends '(company-pseudo-tooltip-unless-just-one-frontend 
-			  company-echo-metadata-frontend
-			  company-preview-frontend))
 
 (defun company-emacs-eclim--candidates (prefix)
   (interactive "d")
@@ -42,9 +38,9 @@
 
 (defun company-emacs-eclim--delete-backward (delim)
   (let ((end (point))
-	(start (search-backward delim)))
-    (delete-region start end)))
-
+	(start (search-backward delim company-point t)))
+    (when start
+      (delete-region start end))))
 
 (defun company-emacs-eclim--completion-finished (arg)
   "Post-completion hook after running company-mode completions."
