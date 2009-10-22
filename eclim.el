@@ -250,6 +250,5 @@ saved."
 (require 'eclim-project)
 (require 'eclim-java)
 (require 'eclim-ant)
-(require 'company-emacs-eclim)
 
 (provide 'eclim)
