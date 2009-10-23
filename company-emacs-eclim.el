@@ -60,6 +60,23 @@
     (when start
       (delete-region start end))))
 
+(defun company-emacs-eclim--generic-args (candidate)
+  "If the doc string for this CANDIDATE is a generic arg list,
+  return a list of the arguments, otherwise return nil."
+  nil)
+
+(defun company-emacs-eclim--method-call (candidate)
+  "If the doc string for this CANDIDATE is a method call argument
+  list, return a list of CONS pairs representing the type and
+  name of each argument."
+  (let ((doc (eclim--completion-candidate-doc candidate)))
+    (if (string-match "\\(.*\\)(\\(.*\\))" doc)
+	(mapcar (lambda (e) (split-string e " ")) 
+		(split-string (match-string 2 doc) ", ")))))
+
+;; TODO: hantera Generic args (List<E, ..>)
+;; TODO: hantera funktionsanrop (fun(Type arg1, Type arg2, ..))
+;; TODO: hantera override/implementation av metoder
 (defun company-emacs-eclim--completion-finished (arg)
   "Post-completion hook after running company-mode completions."
   (let ((candidate (company-emacs-eclim--find-candidate arg)))
@@ -73,8 +90,15 @@
 	     (list 
 	      (concat (eclim--completion-candidate-package candidate) "." 
 		      (eclim--completion-candidate-class candidate)))))
-	;; Otherwise, just delete the doc string
-	(company-emacs-eclim--delete-backward " : ")))))
+	;; Otherwise, check if this is a method call
+	(let ((call-args (company-emacs-eclim--method-call candidate)))
+	  (if call-args
+	      (progn
+		(company-emacs-eclim--delete-backward "(")
+		(insert "(")
+		(insert ")"))
+	    ;; Otherwise, just delete the doc string
+	    (company-emacs-eclim--delete-backward " : ")))))))
 
 (add-hook 'company-completion-finished-hook
 	  'company-emacs-eclim--completion-finished)
