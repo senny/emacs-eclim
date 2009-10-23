@@ -219,50 +219,6 @@ saved."
   (when eclim-auto-save (save-buffer))
   (eclim-complete-1 (mapcar 'second (eclim/java-complete))))
 
-;; company-eclim replacement code
-
-(defun company-eclim--candidates (prefix)
-  (interactive "d")
-  (let ((project-file (eclim--project-current-file))
-        (project-name (eclim--project-name)))
-    (eclim--java-src-update)
-    (setq company-eclim--doc  (eclim/java-complete)))
-  (let ((completion-ignore-case nil))
-    (all-completions prefix (mapcar 'eclim--completion-candidate-class company-eclim--doc))))
-
-(defun company-eclim--find-candidate (class)
-  (find class company-eclim--doc 
-	:key #'eclim--completion-candidate-class
-	:test #'string=))
-
-(defun company-eclim (command &optional arg &rest ignored)
-  "A `company-mode' back-end for eclim completion"
-  (interactive)
-  (case command
-    ('prefix (and (derived-mode-p 'java-mode 'jde-mode)
-                  buffer-file-name
-                  eclim-executable
-                  (eclim--project-name)
-                  (not (company-in-string-or-comment))
-                  (or (company-grab-symbol) 'stop)))
-    ('candidates (company-eclim--candidates arg))
-    ('meta (eclim--completion-candidate-doc (company-eclim--find-candidate arg)))
-    ('no-cache (equal arg ""))))
-
-(defun company-eclim--completion-finished (arg)
-  "Post-completion hook after running company-mode completions."
-  (let ((candidate (company-eclim--find-candidate arg)))
-    (if (string= "c" (eclim--completion-candidate-type candidate))
-	;; If this is a class, then insert an import statement
-	(eclim--java-organize-imports
-	 (eclim/java-import-order (eclim--project-name)) 
-	 (list 
-	  (concat (eclim--completion-candidate-package candidate) "." 
-		  (eclim--completion-candidate-class candidate)))))))
-
-(add-hook 'company-completion-finished-hook
-	  'company-eclim--completion-finished)
-
 ;;** The minor mode and its keymap
 
 (defvar eclim-mode-map
