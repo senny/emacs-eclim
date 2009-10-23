@@ -77,13 +77,18 @@ saved."
 (defvar eclim--project-natures-cache nil)
 (defvar eclim--projects-cache nil)
 
+(defvar eclim--file-coding-system-mapping
+  '(("undecided-dos" . "iso-8859-1")
+    ("dos" . "iso-8859-1")
+    ("undecided-unix" . "unix")))
+
 (defun eclim--buffer-lines ()
   (goto-char (point-max))
   (let (lines)
     (while (= 0 (forward-line -1))
       (push (replace-regexp-in-string "" ""
-				      (buffer-substring-no-properties (line-beginning-position)
-								      (line-end-position)))
+                                      (buffer-substring-no-properties (line-beginning-position)
+                                                                      (line-end-position)))
             lines))
     lines))
 
@@ -96,7 +101,7 @@ saved."
 
 (defun eclim--call-process (&rest args)
   (message (apply 'concat eclim-executable " -command " (mapcar (lambda (arg)
-								  (concat " " arg)) args)))
+                                                                  (concat " " arg)) args)))
   (let ((coding-system-for-read 'utf-8))
     (with-temp-buffer
       (if (= 0 (apply 'call-process eclim-executable nil t nil
@@ -111,24 +116,24 @@ saved."
   "Return this file's project root directory."
   (or eclim--project-dir
       (setq eclim--project-dir
-	    (directory-file-name
-	     (file-name-directory
-	      (expand-file-name
-	       (locate-dominating-file buffer-file-name ".project")))))))
+            (directory-file-name
+             (file-name-directory
+              (expand-file-name
+               (locate-dominating-file buffer-file-name ".project")))))))
 
 (defun eclim--project-name ()
   (when buffer-file-name
     (or eclim--project-name
-	(setq eclim--project-name
-	      (let* ((project-list (eclim/project-list))
-		     (downcase-project-list (mapcar (lambda (project)
-						      (list
-						       (downcase (first project))
-						       (second project)
-						       (third project))) project-list))
-		     (sensitive-match (car (cddr (assoc (eclim--project-dir) project-list))))
-		     (insensitive-match (car (cddr (assoc (downcase (eclim--project-dir)) downcase-project-list)))))
-		(or sensitive-match insensitive-match))))))
+        (setq eclim--project-name
+              (let* ((project-list (eclim/project-list))
+                     (downcase-project-list (mapcar (lambda (project)
+                                                      (list
+                                                       (downcase (first project))
+                                                       (second project)
+                                                       (third project))) project-list))
+                     (sensitive-match (car (cddr (assoc (eclim--project-dir) project-list))))
+                     (insensitive-match (car (cddr (assoc (downcase (eclim--project-dir)) downcase-project-list)))))
+                (or sensitive-match insensitive-match))))))
 
 (defun eclim--string-strip (content)
   (replace-regexp-in-string "\s*$" "" content))
@@ -143,17 +148,25 @@ saved."
 (defun eclim--byte-offset (&optional text)
   ;; TODO: restricted the ugly newline counting to dos buffers => remove it all the way later
   (let ((current-offset (position-bytes (1- (point)))))
+    (when (not current-offset) (setq current-offset 0))
     (if (string-match "dos" (symbol-name buffer-file-coding-system))
-	(+ current-offset (how-many "\n" (point-min) (point)))
+        (+ current-offset (how-many "\n" (point-min) (point)))
       current-offset)))
+
+(defun eclim--current-encoding ()
+  (let* ((coding-system (symbol-name buffer-file-coding-system))
+         (mapped-coding-system (cdr (assoc
+                                     coding-system
+                                     eclim--file-coding-system-mapping))))
+    (if mapped-coding-system mapped-coding-system coding-system)))
 
 (defun eclim--java-src-update ()
   (when eclim-auto-save
     (save-buffer)
     ;; TODO: Sometimes this isn't finished when we complete.
     (eclim--call-process "java_src_update"
-			 "-p" (eclim--project-name)
-			 "-f" (eclim--project-current-file))))
+                         "-p" (eclim--project-name)
+                         "-f" (eclim--project-current-file))))
 
 (defun eclim/workspace-dir ()
   (car (eclim--call-process "workspace_dir")))
@@ -234,10 +247,6 @@ saved."
   eclim-mode-map
   (if eclim-mode
       (progn
-        ;; Set project dir and name.
-        ;; TODO: activate this mechanism somehow
-        ;; (eclim--project-dir)
-        ;; (eclim--project-name))
         (when (and (featurep 'yasnippet) eclim-use-yasnippet)
           (yas/load-directory eclim--snippet-directory))
         )

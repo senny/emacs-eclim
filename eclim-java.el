@@ -2,6 +2,15 @@
 
 (define-key eclim-mode-map (kbd "C-c C-e s") 'eclim-java-method-signature-at-point)
 (define-key eclim-mode-map (kbd "C-c C-e d") 'eclim-javadoc-insert-at-point)
+(define-key eclim-mode-map (kbd "C-c C-e i") 'eclim-java-import-missing)
+;; TODO: find better binding for implement
+(define-key eclim-mode-map (kbd "C-c C-e z") 'eclim-java-implement)
+
+(defvar eclim-java-field-prefixes "\\(s_\\|m_\\)\\(.*\\)"
+  "this variable contains a regular expression matching the java field
+  prefixes. The prefixes get removed when using yasnippet to generate
+  getter and setter methods. This variable allows you to have field
+  names lik 'm_username' and get method names like 'setUsername' and 'getUsername'")
 
 (defun eclim/java-complete ()
   (mapcar (lambda (line)
@@ -72,6 +81,13 @@
 (defun eclim/javadoc-comment (project file offset)
   (eclim--call-process "javadoc_comment" "-p" project "-f" file "-o" offset))
 
+(defun eclim/java-hierarchy (project file offset encoding)
+  (eclim--call-process "java_hierarchy"
+                       "-p" project
+                       "-f" file
+                       "-o" (number-to-string offset)
+                       "-e" encoding))
+
 (defun eclim/java-search-by-file (project file offset length &optional context type)
   ;;TODO implement context and type
   (mapcar (lambda (line)
@@ -82,14 +98,27 @@
                                "-o" offset
                                "-l" length)))
 
-(defun eclim-java-search ()
-  (interactive)
-  (message (eclim/java-search
-            (eclim--project-name)
-            "project"
-            "references"
-            "class"
-            "PFMailHeader")))
+(defun eclim-java-hierarchy (project file offset encoding)
+  ;; TODO: link the class names to files
+  (interactive (list (eclim--project-name)
+                     (eclim--project-current-file)
+                     (eclim--byte-offset)
+                     (eclim--current-encoding)))
+  (pop-to-buffer "*eclim: hierarchy*" t)
+  (special-mode)
+  (let ((buffer-read-only nil))
+    (erase-buffer)
+    (eclim--java-insert-hierarchy-node
+     (json-read-from-string
+      (replace-regexp-in-string "'" "\""
+                                (car (eclim/java-hierarchy project file offset encoding))))
+     0)))
+
+(defun eclim--java-insert-hierarchy-node (node level)
+  (insert (format (concat "%-"(number-to-string (* level 2)) "s=> %s\n") "" (cdr (assoc 'name node))))
+  (let ((children (cdr (assoc 'children node))))
+    (loop for child across children do
+          (eclim--java-insert-hierarchy-node child (+ level 1)))))
 
 (defun eclim-java-method-signature-at-point ()
   (interactive)
@@ -252,8 +281,7 @@ user if necessary."
     (backward-char)))
 
 (defun eclim--java-symbol-remove-prefix (name)
-  ;; TODO extract prefixes into global variable
-  (if (string-match "\\(s_\\|m_\\)\\(.*\\)" name)
+  (if (string-match eclim-java-field-prefixes name)
       (match-string 2 name)
     name))
 
