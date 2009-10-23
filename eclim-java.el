@@ -3,6 +3,7 @@
 (define-key eclim-mode-map (kbd "C-c C-e s") 'eclim-java-method-signature-at-point)
 (define-key eclim-mode-map (kbd "C-c C-e d") 'eclim-javadoc-insert-at-point)
 (define-key eclim-mode-map (kbd "C-c C-e i") 'eclim-java-import-missing)
+(define-key eclim-mode-map (kbd "C-c C-e h") 'eclim-java-hierarchy)
 ;; TODO: find better binding for implement
 (define-key eclim-mode-map (kbd "C-c C-e z") 'eclim-java-implement)
 
