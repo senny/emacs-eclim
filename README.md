@@ -18,7 +18,7 @@ from eclipse to emacs.
 
         (setq eclim-auto-save t)
         (global-eclim-mode)
-   
+
 ## Usage
 To get started just lunch the eclim executable that the placed in your
 Eclipse installation directory.

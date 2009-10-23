@@ -60,6 +60,7 @@ the function is called interactively the users is presented with a
   list of all available ant targets."
   (interactive (list (eclim--ant-read-target)))
   (let ((default-directory (eclim--ant-buildfile-path)))
+    ;; TODO: use the right version of java to execute ant
     (compile (concat "ant " target))))
 
 (provide 'eclim-ant)
