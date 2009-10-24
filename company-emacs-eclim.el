@@ -67,12 +67,19 @@
 
 (defun company-emacs-eclim--method-call (candidate)
   "If the doc string for this CANDIDATE is a method call argument
-  list, return a list of CONS pairs representing the type and
+  list, return a list of lists representing the type and
   name of each argument."
   (let ((doc (eclim--completion-candidate-doc candidate)))
     (if (string-match "\\(.*\\)(\\(.*\\))" doc)
 	(mapcar (lambda (e) (split-string e " ")) 
-		(split-string (match-string 2 doc) ", ")))))
+		(split-string (match-string 2 doc) ", " t)))))
+
+(defun join-list (lst glue)
+  (cond ((null lst) nil)
+	((null (rest lst)) lst)
+	(t
+	 (cons (first lst)
+	       (cons glue (join-list (rest lst) glue))))))
 
 ;; TODO: hantera Generic args (List<E, ..>)
 ;; TODO: hantera funktionsanrop (fun(Type arg1, Type arg2, ..))
@@ -95,8 +102,15 @@
 	  (if call-args
 	      (progn
 		(company-emacs-eclim--delete-backward "(")
-		(insert "(")
-		(insert ")"))
+		(yas/expand-snippet (point) (point)
+				    (apply 'concat 
+					   (append (list "(")
+						   (join-list
+						    (loop for arg in call-args
+							  for i from 1
+							  collect (concat "${" (int-to-string i) ":" (first arg) " "(second arg) "}"))
+						    ", ")
+						    (list ")")))))
 	    ;; Otherwise, just delete the doc string
 	    (company-emacs-eclim--delete-backward " : ")))))))
 
