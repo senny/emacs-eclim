@@ -263,6 +263,7 @@ user if necessary."
 
 (defun eclim-java-remove-unused-imports ()
   (interactive)
+  (eclim--java-src-update)
   (let ((imports-order (eclim/java-import-order (eclim--project-name)))
         (unused (eclim/java-import-unused (eclim--project-name))))
     (eclim--java-organize-imports imports-order nil unused)))

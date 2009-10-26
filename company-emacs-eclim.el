@@ -19,16 +19,12 @@
 			      ((listp (first lst)) (cons (replace-recur elt rpl (first lst))
 							 (replace-recur elt rpl (rest lst))))
 			      (t (cons (if (equal (first lst) elt) rpl (first lst))
-				       (replace-recur elt rpl (rest lst))))))
-	 (find-recur (elt lst)
-		     (cond ((null lst) nil)
-			   ((listp (first lst)) (or (find-recur elt (first lst))
-						    (find-recur elt (rest lst))))
-			   ((equal (first lst) elt) t)
-			   (t (find-recur elt (rest lst))))))
-    (if (find-recur 'company-eclim company-backends)
-	(setq company-backends (replace-recur 'company-eclim 'company-emacs-eclim company-backends))
-      (push 'company-emacs-eclim company-backends))))
+				       (replace-recur elt rpl (rest lst)))))))
+    (let ((replaced (replace-recur 'company-eclim 'company-emacs-eclim company-backends)))
+      (setq company-backends
+	    (if (eq replaced company-backends)
+		(cons 'company-emacs-eclim company-backends)
+	      replaced)))))
 
 (defun company-emacs-eclim--candidates (prefix)
   (interactive "d")
@@ -64,6 +60,30 @@
     (when start
       (delete-region start end))))
 
+(defun company-emacs-eclim--generic-args (candidate)
+  "If the doc string for this CANDIDATE is a generic arg list,
+  return a list of the arguments, otherwise return nil."
+  nil)
+
+(defun company-emacs-eclim--method-call (candidate)
+  "If the doc string for this CANDIDATE is a method call argument
+  list, return a list of lists representing the type and
+  name of each argument."
+  (let ((doc (eclim--completion-candidate-doc candidate)))
+    (if (string-match "\\(.*\\)(\\(.*\\))" doc)
+	(mapcar (lambda (e) (split-string e " ")) 
+		(split-string (match-string 2 doc) ", " t)))))
+
+(defun join-list (lst glue)
+  (cond ((null lst) nil)
+	((null (rest lst)) lst)
+	(t
+	 (cons (first lst)
+	       (cons glue (join-list (rest lst) glue))))))
+
+;; TODO: hantera Generic args (List<E, ..>)
+;; TODO: hantera funktionsanrop (fun(Type arg1, Type arg2, ..))
+;; TODO: hantera override/implementation av metoder
 (defun company-emacs-eclim--completion-finished (arg)
   "Post-completion hook after running company-mode completions."
   (let ((candidate (company-emacs-eclim--find-candidate arg)))
@@ -77,8 +97,22 @@
 	     (list 
 	      (concat (eclim--completion-candidate-package candidate) "." 
 		      (eclim--completion-candidate-class candidate)))))
-	;; Otherwise, just delete the doc string
-	(company-emacs-eclim--delete-backward " : ")))))
+	;; Otherwise, check if this is a method call
+	(let ((call-args (company-emacs-eclim--method-call candidate)))
+	  (if call-args
+	      (progn
+		(company-emacs-eclim--delete-backward "(")
+		(yas/expand-snippet (point) (point)
+				    (apply 'concat 
+					   (append (list "(")
+						   (join-list
+						    (loop for arg in call-args
+							  for i from 1
+							  collect (concat "${" (int-to-string i) ":" (first arg) " "(second arg) "}"))
+						    ", ")
+						    (list ")")))))
+	    ;; Otherwise, just delete the doc string
+	    (company-emacs-eclim--delete-backward " : ")))))))
 
 (add-hook 'company-completion-finished-hook
 	  'company-emacs-eclim--completion-finished)
