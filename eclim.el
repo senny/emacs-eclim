@@ -80,7 +80,7 @@ saved."
 (defvar eclim--file-coding-system-mapping
   '(("undecided-dos" . "iso-8859-1")
     ("dos" . "iso-8859-1")
-    ("undecided-unix" . "unix")))
+    ("undecided-unix" . "iso-8859-1")))
 
 (defun eclim--buffer-lines ()
   (goto-char (point-max))

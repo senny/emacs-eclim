@@ -26,12 +26,32 @@
 		(cons 'company-emacs-eclim company-backends)
 	      replaced)))))
 
+(defun company-emacs-eclim--correct-completions (candidates)
+  "If we are lookup at a list of method call completions, check
+  if we have already typed part of this call."
+  (if (every (lambda (c) (string= "f" (eclim--completion-candidate-type c))) candidates)
+      ;; When completing a method call that have alread been completed
+      ;; up to the 'method(' point, eclim still reports the
+      ;; completions as 'method(arg1, arg2, ...)', which is not what
+      ;; company-mode expects. 
+      (let ((common (try-completion "" (mapcar 'eclim--completion-candidate-doc candidates))))
+	(save-excursion
+	  (if (search-backward common (- (point) (length common)) t)
+	      (mapcar (lambda (c)
+			(list 
+			 (eclim--completion-candidate-type c)
+			 (eclim--completion-candidate-class c)
+			 (substring (eclim--completion-candidate-doc c) (length common))))
+		      candidates)
+	    candidates)))
+    candidates))
+
 (defun company-emacs-eclim--candidates (prefix)
   (interactive "d")
   (let ((project-file (eclim--project-current-file))
         (project-name (eclim--project-name)))
     (eclim--java-src-update)
-    (setq company-emacs-eclim--doc  (eclim/java-complete)))
+    (setq company-emacs-eclim--doc  (company-emacs-eclim--correct-completions (eclim/java-complete))))
   (let ((completion-ignore-case nil))
     (all-completions prefix (mapcar 'eclim--completion-candidate-doc company-emacs-eclim--doc))))
 
@@ -56,7 +76,7 @@
 
 (defun company-emacs-eclim--delete-backward (delim)
   (let ((end (point))
-	(start (search-backward delim company-point t)))
+	(start (search-backward delim (- company-point 1) t)))
     (when start
       (delete-region start end))))
 
@@ -70,25 +90,28 @@
   list, return a list of lists representing the type and
   name of each argument."
   (let ((doc (eclim--completion-candidate-doc candidate)))
-    (if (string-match "\\(.*\\)(\\(.*\\))" doc)
+    (if (or (string-match "\\(.*\\)(\\(.*\\))" doc)
+	    (string-match "\\(\\)\\(.*\\))" doc))
 	(mapcar (lambda (e) (split-string e " ")) 
 		(split-string (match-string 2 doc) ", " t)))))
 
 (defun join-list (lst glue)
+  "Utility function; returns a list based on LST with GLUE
+inserted between each element."
   (cond ((null lst) nil)
 	((null (rest lst)) lst)
 	(t
 	 (cons (first lst)
 	       (cons glue (join-list (rest lst) glue))))))
 
-;; TODO: hantera Generic args (List<E, ..>)
-;; TODO: hantera funktionsanrop (fun(Type arg1, Type arg2, ..))
-;; TODO: hantera override/implementation av metoder
+;; TODO: handle Generic args (List<E, ..>)
+;; TODO: handle override/implementation of methods
 (defun company-emacs-eclim--completion-finished (arg)
   "Post-completion hook after running company-mode completions."
-  (let ((candidate (company-emacs-eclim--find-candidate arg)))
+  (let* ((candidate (company-emacs-eclim--find-candidate arg))
+	 (type (eclim--completion-candidate-type candidate)))
     (when candidate
-      (if (string= "c" (eclim--completion-candidate-type candidate))
+      (if (string= "c" type)
 	  (progn
 	    ;; If this is a class, then remove the doc string and insert an import statement
 	    (company-emacs-eclim--delete-backward " - ")
@@ -98,21 +121,20 @@
 	      (concat (eclim--completion-candidate-package candidate) "." 
 		      (eclim--completion-candidate-class candidate)))))
 	;; Otherwise, check if this is a method call
-	(let ((call-args (company-emacs-eclim--method-call candidate)))
-	  (if call-args
-	      (progn
-		(company-emacs-eclim--delete-backward "(")
-		(yas/expand-snippet (point) (point)
-				    (apply 'concat 
-					   (append (list "(")
-						   (join-list
-						    (loop for arg in call-args
-							  for i from 1
-							  collect (concat "${" (int-to-string i) ":" (first arg) " "(second arg) "}"))
-						    ", ")
-						    (list ")")))))
-	    ;; Otherwise, just delete the doc string
-	    (company-emacs-eclim--delete-backward " : ")))))))
+	(if (string= "f" type)
+	    (let ((call-args (company-emacs-eclim--method-call candidate)))
+	      (company-emacs-eclim--delete-backward "(")
+	      (yas/expand-snippet (point) (point)
+				  (apply 'concat 
+					 (append (list "(")
+						 (join-list
+						  (loop for arg in call-args
+							for i from 1
+							collect (concat "${" (int-to-string i) ":" (first arg) " "(second arg) "}"))
+						  ", ")
+						 (list ")")))))
+	  ;; Otherwise, just delete the doc string
+	  (company-emacs-eclim--delete-backward " : "))))))
 
 (add-hook 'company-completion-finished-hook
 	  'company-emacs-eclim--completion-finished)
