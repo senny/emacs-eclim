@@ -30,12 +30,13 @@
 
 (define-key eclim-mode-map (kbd "C-c C-e a r") 'eclim-ant-run)
 (define-key eclim-mode-map (kbd "C-c C-e a a") 'eclim-ant-run)
+(define-key eclim-mode-map (kbd "C-c C-e a c") 'eclim-ant-clear-cache)
 (define-key eclim-mode-map (kbd "C-c C-e a v") 'eclim-ant-validate)
 
 (defvar eclim-ant-directory ""
   "The directory where the project buildfiles are located")
 
-(defvar eclim--ant-target-cache (make-hash-table :test 'equal))
+(defvar eclim--ant-target-cache nil)
 
 (defun eclim--ant-buildfile-name ()
   (concat (file-name-as-directory eclim-ant-directory) "build.xml"))
@@ -47,7 +48,13 @@
   (eclim--check-project project)
   (eclim--call-process "ant_targets" "-p" project "-f" buildfile))
 
+(defun eclim-ant-clear-cache ()
+  (interactive)
+  (setq eclim--ant-target-cache nil))
+
 (defun eclim--ant-targets (project buildfile)
+  (when (null eclim--ant-target-cache)
+    (setq eclim--ant-target-cache (make-hash-table :test 'equal)))
   (or (gethash buildfile eclim--ant-target-cache)
       (puthash buildfile (eclim/ant-target-list project buildfile) eclim--ant-target-cache)))
 
