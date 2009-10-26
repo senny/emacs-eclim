@@ -117,7 +117,6 @@
                                "-l" length)))
 
 (defun eclim-java-hierarchy (project file offset encoding)
-  ;; TODO: link the class names to files
   (interactive (list (eclim--project-name)
                      (eclim--project-current-file)
                      (eclim--byte-offset)
