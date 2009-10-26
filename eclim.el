@@ -135,6 +135,20 @@ saved."
                      (insensitive-match (car (cddr (assoc (downcase (eclim--project-dir)) downcase-project-list)))))
                 (or sensitive-match insensitive-match))))))
 
+(defun eclim-find-file (path-to-file)
+  (if (not (string-match-p "!" path-to-file))
+      (find-file-other-window path-to-file)
+    (let* ((parts (split-string path-to-file "!"))
+           (archive-name (replace-regexp-in-string "^jar:file://" "" (first parts)))
+           (file-name (second parts)))
+      (find-file-other-window archive-name)
+      (beginning-of-buffer)
+      (re-search-forward (regexp-quote (replace-regexp-in-string "\\\\" "/" file-name)))
+      (let ((old-buffer (current-buffer)))
+        (archive-extract)
+        (beginning-of-buffer)
+        (kill-buffer old-buffer)))))
+
 (defun eclim--string-strip (content)
   (replace-regexp-in-string "\s*$" "" content))
 
