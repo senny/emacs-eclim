@@ -23,6 +23,12 @@
                                "-l" "standard"
                                "-o" (number-to-string (eclim--byte-offset)))))
 
+
+(defun eclim--java-symbol-remove-prefix (name)
+  (if (string-match eclim-java-field-prefixes name)
+      (match-string 2 name)
+    name))
+
 (defun eclim--completion-candidate-type (candidate)
   "Returns the type of a candidate."
   (first candidate))
@@ -280,10 +286,5 @@ user if necessary."
                                  response)))
     (insert (ido-completing-read "Signature: " methods) " {}")
     (backward-char)))
-
-(defun eclim--java-symbol-remove-prefix (name)
-  (if (string-match eclim-java-field-prefixes name)
-      (match-string 2 name)
-    name))
 
 (provide 'eclim-java)
