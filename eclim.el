@@ -259,5 +259,6 @@ saved."
 (require 'eclim-project)
 (require 'eclim-java)
 (require 'eclim-ant)
+(require 'eclim-maven)
 
 (provide 'eclim)
