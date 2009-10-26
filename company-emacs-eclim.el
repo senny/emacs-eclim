@@ -8,8 +8,8 @@
 (require 'eclim-java)
 (require 'company)
 
-(defvar company-emacs-eclim--doc nil)
-(make-variable-buffer-local 'company-emacs-eclim--doc)
+(defvar cee--doc nil)
+(make-variable-buffer-local 'cee--doc)
 
 (defun company-emacs-eclim-setup ()
   "Convenience function that adds company-emacs-eclim to the list
@@ -26,7 +26,7 @@
 		(cons 'company-emacs-eclim company-backends)
 	      replaced)))))
 
-(defun company-emacs-eclim--correct-completions (candidates)
+(defun cee--correct-completions (candidates)
   "If we are lookup at a list of method call completions, check
   if we have already typed part of this call."
   (if (every (lambda (c) (string= "f" (eclim--completion-candidate-type c))) candidates)
@@ -46,17 +46,17 @@
 	    candidates)))
     candidates))
 
-(defun company-emacs-eclim--candidates (prefix)
+(defun cee--candidates (prefix)
   (interactive "d")
   (let ((project-file (eclim--project-current-file))
         (project-name (eclim--project-name)))
     (eclim--java-src-update)
-    (setq company-emacs-eclim--doc  (company-emacs-eclim--correct-completions (eclim/java-complete))))
+    (setq cee--doc  (cee--correct-completions (eclim/java-complete))))
   (let ((completion-ignore-case nil))
-    (all-completions prefix (mapcar 'eclim--completion-candidate-doc company-emacs-eclim--doc))))
+    (all-completions prefix (mapcar 'eclim--completion-candidate-doc cee--doc))))
 
-(defun company-emacs-eclim--find-candidate (lookup)
-  (find lookup company-emacs-eclim--doc
+(defun cee--find-candidate (lookup)
+  (find lookup cee--doc
    	:key #'eclim--completion-candidate-doc
    	:test #'string=))
 
@@ -70,22 +70,22 @@
                   (eclim--project-name)
                   (not (company-in-string-or-comment))
                   (or (company-grab-symbol) 'stop)))
-    ('candidates (company-emacs-eclim--candidates arg))
-    ('meta (eclim--completion-candidate-doc (company-emacs-eclim--find-candidate arg)))
+    ('candidates (cee--candidates arg))
+    ('meta (eclim--completion-candidate-doc (cee--find-candidate arg)))
     ('no-cache (equal arg ""))))
 
-(defun company-emacs-eclim--delete-backward (delim)
+(defun cee--delete-backward (delim)
   (let ((end (point))
 	(start (search-backward delim (- company-point 1) t)))
     (when start
       (delete-region start end))))
 
-(defun company-emacs-eclim--generic-args (candidate)
+(defun cee--generic-args (candidate)
   "If the doc string for this CANDIDATE is a generic arg list,
   return a list of the arguments, otherwise return nil."
   nil)
 
-(defun company-emacs-eclim--method-call (candidate)
+(defun cee--method-call (candidate)
   "If the doc string for this CANDIDATE is a method call argument
   list, return a list of lists representing the type and
   name of each argument."
@@ -106,15 +106,15 @@ inserted between each element."
 
 ;; TODO: handle Generic args (List<E, ..>)
 ;; TODO: handle override/implementation of methods
-(defun company-emacs-eclim--completion-finished (arg)
+(defun cee--completion-finished (arg)
   "Post-completion hook after running company-mode completions."
-  (let* ((candidate (company-emacs-eclim--find-candidate arg))
+  (let* ((candidate (cee--find-candidate arg))
 	 (type (eclim--completion-candidate-type candidate)))
     (when candidate
       (if (string= "c" type)
 	  (progn
 	    ;; If this is a class, then remove the doc string and insert an import statement
-	    (company-emacs-eclim--delete-backward " - ")
+	    (cee--delete-backward " - ")
 	    (eclim--java-organize-imports
 	     (eclim/java-import-order (eclim--project-name)) 
 	     (list 
@@ -122,8 +122,8 @@ inserted between each element."
 		      (eclim--completion-candidate-class candidate)))))
 	;; Otherwise, check if this is a method call
 	(if (string= "f" type)
-	    (let ((call-args (company-emacs-eclim--method-call candidate)))
-	      (company-emacs-eclim--delete-backward "(")
+	    (let ((call-args (cee--method-call candidate)))
+	      (cee--delete-backward "(")
 	      (yas/expand-snippet (point) (point)
 				  (apply 'concat 
 					 (append (list "(")
@@ -134,9 +134,9 @@ inserted between each element."
 						  ", ")
 						 (list ")")))))
 	  ;; Otherwise, just delete the doc string
-	  (company-emacs-eclim--delete-backward " : "))))))
+	  (cee--delete-backward " : "))))))
 
 (add-hook 'company-completion-finished-hook
-	  'company-emacs-eclim--completion-finished)
+	  'cee--completion-finished)
 
 (provide 'company-emacs-eclim)
