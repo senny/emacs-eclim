@@ -28,8 +28,14 @@
 
 ;;* Eclim Ant
 
+(define-key eclim-mode-map (kbd "C-c C-e a r") 'eclim-ant-run)
+(define-key eclim-mode-map (kbd "C-c C-e a a") 'eclim-ant-run)
+(define-key eclim-mode-map (kbd "C-c C-e a v") 'eclim-ant-validate)
+
 (defvar eclim-ant-directory ""
   "The directory where the project buildfiles are located")
+
+(defvar eclim--ant-target-cache (make-hash-table :test 'equal))
 
 (defun eclim--ant-buildfile-name ()
   (concat (file-name-as-directory eclim-ant-directory) "build.xml"))
@@ -37,16 +43,21 @@
 (defun eclim--ant-buildfile-path ()
   (file-name-directory (concat (eclim--project-dir) "/" (eclim--ant-buildfile-name))))
 
-(defun eclim/ant-target-list ()
-  (eclim--call-process "ant_targets" "-p" (eclim--project-name) "-f" (eclim--ant-buildfile-name)))
+(defun eclim/ant-target-list (project buildfile)
+  (eclim--check-project project)
+  (eclim--call-process "ant_targets" "-p" project "-f" buildfile))
+
+(defun eclim--ant-targets (project buildfile)
+  (or (gethash buildfile eclim--ant-target-cache)
+      (puthash buildfile (eclim/ant-target-list project buildfile) eclim--ant-target-cache)))
 
 (defun eclim/ant-validate ()
   (mapcar (lambda (line)
             (split-string line "|"))
           (eclim--call-process "ant_validate" "-p" (eclim--project-name) "-f" (eclim--ant-buildfile-name))))
 
-(defun eclim--ant-read-target ()
-  (ido-completing-read "Target: " (eclim/ant-target-list)))
+(defun eclim--ant-read-target (project buildfile)
+  (ido-completing-read "Target: " (eclim--ant-targets project buildfile)))
 
 (defun eclim-ant-validate ()
   (interactive)
@@ -58,7 +69,8 @@
   "run a specified ant target in the scope of the current project. If
 the function is called interactively the users is presented with a
   list of all available ant targets."
-  (interactive (list (eclim--ant-read-target)))
+  (interactive (list (eclim--ant-read-target (eclim--project-name)
+                                             (eclim--ant-buildfile-name))))
   (let ((default-directory (eclim--ant-buildfile-path)))
     ;; TODO: use the right version of java to execute ant
     (compile (concat "ant " target))))
