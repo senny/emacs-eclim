@@ -29,22 +29,22 @@
 (defun cee--correct-completions (candidates)
   "If we are lookup at a list of method call completions, check
   if we have already typed part of this call."
-  (if (every (lambda (c) (string= "f" (eclim--completion-candidate-type c))) candidates)
-      ;; When completing a method call that have alread been completed
-      ;; up to the 'method(' point, eclim still reports the
-      ;; completions as 'method(arg1, arg2, ...)', which is not what
-      ;; company-mode expects. 
-      (let ((common (try-completion "" (mapcar 'eclim--completion-candidate-doc candidates))))
-	(save-excursion
-	  (if (search-backward common (- (point) (length common)) t)
-	      (mapcar (lambda (c)
-			(list 
-			 (eclim--completion-candidate-type c)
-			 (eclim--completion-candidate-class c)
-			 (substring (eclim--completion-candidate-doc c) (length common))))
-		      candidates)
-	    candidates)))
-    candidates))
+  (cond ((every (lambda (c) (string= "f" (eclim--completion-candidate-type c))) candidates)
+	 ;; When completing a method call that have alread been completed
+	 ;; up to the 'method(' point, eclim still reports the
+	 ;; completions as 'method(arg1, arg2, ...)', which is not what
+	 ;; company-mode expects. 
+	 (let ((common (try-completion "" (mapcar 'eclim--completion-candidate-doc candidates))))
+	   (save-excursion
+	     (if (search-backward common (- (point) (length common)) t)
+		 (mapcar (lambda (c)
+			   (list 
+			    (eclim--completion-candidate-type c)
+			    (eclim--completion-candidate-class c)
+			    (substring (eclim--completion-candidate-doc c) (length common))))
+			 candidates)
+	       candidates))))
+	(t candidates)))
 
 (defun cee--candidates (prefix)
   (interactive "d")
@@ -83,7 +83,13 @@
 (defun cee--generic-args (candidate)
   "If the doc string for this CANDIDATE is a generic arg list,
   return a list of the arguments, otherwise return nil."
-  nil)
+  (save-excursion
+    (let ((doc (eclim--completion-candidate-doc candidate)))
+      (if (string-match "\\(.*?<\\)\\(.*\\)>" doc)
+	  (let ((class (match-string 1 doc))
+		(args (match-string 2 doc)))
+	    (if (search-backward class 0 t)
+		(split-string args ",")))))))
 
 (defun cee--method-call (candidate)
   "If the doc string for this CANDIDATE is a method call argument
@@ -104,7 +110,6 @@ inserted between each element."
 	 (cons (first lst)
 	       (cons glue (join-list (rest lst) glue))))))
 
-;; TODO: handle Generic args (List<E, ..>)
 ;; TODO: handle override/implementation of methods
 (defun cee--completion-finished (arg)
   "Post-completion hook after running company-mode completions."
@@ -112,14 +117,27 @@ inserted between each element."
 	 (type (eclim--completion-candidate-type candidate)))
     (when candidate
       (if (string= "c" type)
-	  (progn
-	    ;; If this is a class, then remove the doc string and insert an import statement
-	    (cee--delete-backward " - ")
-	    (eclim--java-organize-imports
-	     (eclim/java-import-order (eclim--project-name)) 
-	     (list 
-	      (concat (eclim--completion-candidate-package candidate) "." 
-		      (eclim--completion-candidate-class candidate)))))
+	  ;; If this is a class, first check if this is a completion of generic argumends
+	  (let ((gen-args (cee--generic-args candidate)))
+	    (if gen-args 
+		(progn 
+		  (delete-region company-point (point))
+		  (yas/expand-snippet (point) (point)
+				      (apply 'concat 
+					     (append (join-list 
+						      (loop for arg in gen-args
+							    for i from 1
+							    collect (concat "${" (int-to-string i) ":" arg "}"))
+						      ", ")
+						     (list ">")))))
+	      (progn
+		;; otherwise, remove the doc string and insert an import statement
+		(cee--delete-backward " - ")
+		(eclim--java-organize-imports
+		 (eclim/java-import-order (eclim--project-name)) 
+		 (list 
+		  (concat (eclim--completion-candidate-package candidate) "." 
+			  (eclim--completion-candidate-class candidate)))))))
 	;; Otherwise, check if this is a method call
 	(if (string= "f" type)
 	    (let ((call-args (cee--method-call candidate)))
