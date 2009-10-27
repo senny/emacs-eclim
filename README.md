@@ -35,9 +35,9 @@ You have two possibilities to use the eclipse code completion mechanism inside e
    > to start the completion, call `eclim-emacs-complete`. This
    is bound to M-TAB by default.
 1. company-mode backend called: **company-emacs-eclim**
-   >To activate this backend, replace company-eclim with
-   company-emacs-eclim in the eclim-backends list, or call the
-   convenience function company-emacs-eclim-setup.
+   >To activate this backend, replace `company-eclim` with
+   `company-emacs-eclim` in the `eclim-backends` list, or call the
+   convenience function `company-emacs-eclim-setup`.
 
 #### organizing java imports
 Emacs eclim allows you to use the import capabilities from Eclipse. When you call `emacs-eclim-import-missing` the needed imports will be added automatically. If there are multiple classes with the same name, you can choose the right one from a provided list. 
