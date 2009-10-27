@@ -164,7 +164,7 @@
 
 (defun eclim/project-import (folder)
   (eclim--project-clear-cache)
-  (eclim--call-process "project_import" "-f" folder))
+  (eclim--call-process "project_import" "-f" (expand-file-name folder)))
 
 (defun eclim/project-create (folder natures name &optional depends)
   ;; TODO: allow multiple natures

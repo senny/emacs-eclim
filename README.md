@@ -24,24 +24,13 @@ To get started just lunch the eclim executable that the placed in your
 Eclipse installation directory.
 
 ### Projects
-The easiest way to manage your eclipse projects in emacs is to use the `eclim-manage-projects` command. This opens up a new buffer containing all the projects of your eclipse workspace. You can now use the following keys to modify your projects.
-
-- m => mark a project to perform an operation on multiple projects at once
-- M => mark all projects
-- u => unmark the current project
-- U => unmark all projects
-- o => open the project
-- c => close the project
-- i => display additional informations about the project
-- N => create a new project
-- D => delete the project
-- R => rename the project
-
-- r => refresh the project list
-- q => quit the project manager
+The easiest way to manage your eclipse projects in emacs is to use the `eclim-manage-projects` command. This opens up a new buffer containing all the projects of your eclipse workspace.
 
 ### Ant
 You can use the function `eclim-ant-run` to execute a given ant target from the current project. Be aware that emacs-eclim needs to be able to locate your build.xml file. You can use the `eclim-ant-directory` variable or overwrite the `eclim--ant-buildfile-name` function to customize how eclim locates your main buildfile.
+
+### Maven
+Beside Ant you can now run maven lifecycle phases or call a specific goal. This works in all your project files, as long as emacs-eclim recognizes the eclipse project file. To run a maven phase just call `eclim-maven-lifecycle-phase-run` or `eclim-maven-run` to enter the name of a goal.
 
 ## Contributing
 

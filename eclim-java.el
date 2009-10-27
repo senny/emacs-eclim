@@ -1,4 +1,5 @@
 (require 'json)
+(require 'decompile)
 
 (define-key eclim-mode-map (kbd "C-c C-e s") 'eclim-java-method-signature-at-point)
 (define-key eclim-mode-map (kbd "C-c C-e d") 'eclim-javadoc-insert-at-point)
@@ -22,6 +23,12 @@
                                "-e" "iso-8859-1"
                                "-l" "standard"
                                "-o" (number-to-string (eclim--byte-offset)))))
+
+
+(defun eclim--java-symbol-remove-prefix (name)
+  (if (string-match eclim-java-field-prefixes name)
+      (match-string 2 name)
+    name))
 
 (defun eclim--completion-candidate-type (candidate)
   "Returns the type of a candidate."
@@ -89,6 +96,16 @@
                        "-o" (number-to-string offset)
                        "-e" encoding))
 
+(defun eclim/java-search-by-type (pattern project type scope context)
+  (mapcar (lambda (line)
+            (split-string line "|" nil))
+          (eclim--call-process "java_search"
+                               "-p" pattern
+                               "-n" project
+                               "-t" type
+                               "-s" scope
+                               "-x" context)))
+
 (defun eclim/java-search-by-file (project file offset length &optional context type)
   ;;TODO implement context and type
   (mapcar (lambda (line)
@@ -100,7 +117,6 @@
                                "-l" length)))
 
 (defun eclim-java-hierarchy (project file offset encoding)
-  ;; TODO: link the class names to files
   (interactive (list (eclim--project-name)
                      (eclim--project-current-file)
                      (eclim--byte-offset)
@@ -110,16 +126,31 @@
   (let ((buffer-read-only nil))
     (erase-buffer)
     (eclim--java-insert-hierarchy-node
+     project
      (json-read-from-string
       (replace-regexp-in-string "'" "\""
                                 (car (eclim/java-hierarchy project file offset encoding))))
      0)))
 
-(defun eclim--java-insert-hierarchy-node (node level)
-  (insert (format (concat "%-"(number-to-string (* level 2)) "s=> %s\n") "" (cdr (assoc 'name node))))
+(defun eclim--java-insert-hierarchy-node (project node level)
+  (let ((declaration (cdr (assoc 'name node)))
+        (qualified-name (cdr (assoc 'qualified node))))
+    (insert (format (concat "%-"(number-to-string (* level 2)) "s=> ") ""))
+    (lexical-let ((file-path (first (first (eclim/java-search-by-type
+                                            qualified-name
+                                            project
+                                            "classOrInterface"
+                                            "project"
+                                            "declarations")))))
+      (insert-text-button declaration
+                          'follow-link t
+                          'help-echo qualified-name
+                          'action (lambda (&rest ignore)
+                                    (eclim-find-file file-path)))))
+  (newline)
   (let ((children (cdr (assoc 'children node))))
     (loop for child across children do
-          (eclim--java-insert-hierarchy-node child (+ level 1)))))
+          (eclim--java-insert-hierarchy-node project child (+ level 1)))))
 
 (defun eclim-java-method-signature-at-point ()
   (interactive)
@@ -280,10 +311,5 @@ user if necessary."
                                  response)))
     (insert (ido-completing-read "Signature: " methods) " {}")
     (backward-char)))
-
-(defun eclim--java-symbol-remove-prefix (name)
-  (if (string-match eclim-java-field-prefixes name)
-      (match-string 2 name)
-    name))
 
 (provide 'eclim-java)
