@@ -180,16 +180,9 @@ saved."
 
 (defun eclim--byte-offset ()
   ;; TODO: restricted the ugly newline counting to dos buffers => remove it all the way later
-  (let ((current-offset (position-bytes (1- (point))))
-        (current-file buffer-file-name)
-        (current-line (line-number-at-pos (point))))
+  (let ((current-offset (position-bytes (1- (point)))))
     (when (not current-offset) (setq current-offset 0))
     (if (string-match "dos" (symbol-name buffer-file-coding-system))
-        (save-excursion
-          (set-buffer (get-buffer-create "*eclim: temporary*"))
-          (erase-buffer)
-          (insert-file-contents-literally buffer-file-name)
-          (goto-line current-line))
         (+ current-offset (how-many "\n" (point-min) (point)))
       current-offset)))
 
@@ -230,47 +223,10 @@ saved."
    (ido-completing-read (concat prompt ": ") choices)
    ""))
 
-(defun eclim-complete-1 (completion-list)
-  (let* ((window (get-buffer-window "*Completions*" 0))
-         (c (eclim--java-identifier-at-point))
-         (beg (car c))
-         (word (cdr c))
-         (compl (try-completion word
-                                completion-list)))
-    (if (and (eq last-command this-command)
-             window (window-live-p window) (window-buffer window)
-             (buffer-name (window-buffer window)))
-        ;; If this command was repeated, and there's a fresh completion window
-        ;; with a live buffer, and this command is repeated, scroll that
-        ;; window.
-        (with-current-buffer (window-buffer window)
-          (if (pos-visible-in-window-p (point-max) window)
-              (set-window-start window (point-min))
-            (save-selected-window
-              (select-window window)
-              (scroll-up))))
-      (cond
-       ((null compl)
-        (message "No completions."))
-       ((stringp compl)
-        (if (string= word compl)
-            ;; Show completion buffer
-            (let ((list (all-completions word completion-list)))
-              (setq list (sort list 'string<))
-              (with-output-to-temp-buffer "*Completions*"
-                (display-completion-list list word)))
-          ;; Complete
-          (delete-region beg (point))
-          (insert compl)
-          ;; close completion buffer if there's one
-          (let ((win (get-buffer-window "*Completions*" 0)))
-            (if win (quit-window nil win)))))
-       (t (message "That's the only possible completion."))))))
-
 (defun eclim-complete ()
   (interactive)
-  (when eclim-auto-save (save-buffer))
-  (eclim-complete-1 (mapcar 'second (eclim/java-complete))))
+  ;; TODO build context sensitive completion mechanism
+  (eclim-java-complete))
 
 ;;** The minor mode and its keymap
 

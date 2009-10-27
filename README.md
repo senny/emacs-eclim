@@ -26,11 +26,33 @@ Eclipse installation directory.
 ### Projects
 The easiest way to manage your eclipse projects in emacs is to use the `eclim-manage-projects` command. This opens up a new buffer containing all the projects of your eclipse workspace.
 
+### Java
+
+#### code completion
+You have two possibilities to use the eclipse code completion mechanism inside emacs.
+
+1. standard completion using the **emacs \*completion\* buffer**
+   > to start the completion, call `eclim-emacs-complete`. This
+   is bound to M-TAB by default.
+1. company-mode backend called: **company-emacs-eclim**
+   >To activate this backend, replace company-eclim with
+   company-emacs-eclim in the eclim-backends list, or call the
+   convenience function company-emacs-eclim-setup.
+
+#### organizing java imports
+Emacs eclim allows you to use the import capabilities from Eclipse. When you call `emacs-eclim-import-missing` the needed imports will be added automatically. If there are multiple classes with the same name, you can choose the right one from a provided list. 
+
+#### class hierarchy
+You can display a hierarchy of the java class in the current buffer. Use the function `emacs-java-hierarchy` to open the hierarchy buffer. The elements in the buffer are linked to the corresponding source files. This does also work for compiled .class files inside JAR files. This feature uses JAD to decompile the java classes. Make sure you have the executable it in your PATH when you want to use it.
+
+#### override / implement methods
+With eclim you can easily choose the method you want to implement or override from a list. Just call `eclim-java-implement` to get a list of available method scaffolds.
+
 ### Ant
 You can use the function `eclim-ant-run` to execute a given ant target from the current project. Be aware that emacs-eclim needs to be able to locate your build.xml file. You can use the `eclim-ant-directory` variable or overwrite the `eclim--ant-buildfile-name` function to customize how eclim locates your main buildfile.
 
 ### Maven
-Beside Ant you can now run maven lifecycle phases or call a specific goal. This works in all your project files, as long as emacs-eclim recognizes the eclipse project file. To run a maven phase just call `eclim-maven-lifecycle-phase-run` or `eclim-maven-run` to enter the name of a goal.
+Beside Ant you can now run maven life-cycle phases or call a specific goal. This works in all your project files, as long as emacs-eclim recognizes the eclipse project file. To run a maven phase just call `eclim-maven-lifecycle-phase-run` or `eclim-maven-run` to enter the name of a goal.
 
 ## Contributing
 

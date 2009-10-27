@@ -317,4 +317,48 @@ user if necessary."
     (insert (ido-completing-read "Signature: " methods) " {}")
     (backward-char)))
 
+
+(defun eclim--java-complete-internal (completion-list)
+  (let* ((window (get-buffer-window "*Completions*" 0))
+         (c (eclim--java-identifier-at-point))
+         (beg (car c))
+         (word (cdr c))
+         (compl (try-completion word
+                                completion-list)))
+    (if (and (eq last-command this-command)
+             window (window-live-p window) (window-buffer window)
+             (buffer-name (window-buffer window)))
+        ;; If this command was repeated, and there's a fresh completion window
+        ;; with a live buffer, and this command is repeated, scroll that
+        ;; window.
+        (with-current-buffer (window-buffer window)
+          (if (pos-visible-in-window-p (point-max) window)
+              (set-window-start window (point-min))
+            (save-selected-window
+              (select-window window)
+              (scroll-up))))
+      (cond
+       ((null compl)
+        (message "No completions."))
+       ((stringp compl)
+        (if (string= word compl)
+            ;; Show completion buffer
+            (let ((list (all-completions word completion-list)))
+              (setq list (sort list 'string<))
+              (with-output-to-temp-buffer "*Completions*"
+                (display-completion-list list word)))
+          ;; Complete
+          (delete-region beg (point))
+          (insert compl)
+          ;; close completion buffer if there's one
+          (let ((win (get-buffer-window "*Completions*" 0)))
+            (if win (quit-window nil win)))))
+       (t (message "That's the only possible completion."))))))
+
+(defun eclim-java-complete ()
+  (interactive)
+  (when eclim-auto-save (save-buffer))
+  (eclim--java-complete-internal (mapcar 'second (eclim/java-complete))))
+
+
 (provide 'eclim-java)
