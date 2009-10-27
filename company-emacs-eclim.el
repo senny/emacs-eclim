@@ -8,8 +8,8 @@
 (require 'eclim-java)
 (require 'company)
 
-(defvar cee--doc nil)
-(make-variable-buffer-local 'cee--doc)
+(defvar cee--candidates nil)
+(make-variable-buffer-local 'cee--candidates)
 
 (defun company-emacs-eclim-setup ()
   "Convenience function that adds company-emacs-eclim to the list
@@ -51,12 +51,12 @@
   (let ((project-file (eclim--project-current-file))
         (project-name (eclim--project-name)))
     (eclim--java-src-update)
-    (setq cee--doc  (cee--correct-completions (eclim/java-complete))))
+    (setq cee--candidates  (cee--correct-completions (eclim/java-complete))))
   (let ((completion-ignore-case nil))
-    (all-completions prefix (mapcar 'eclim--completion-candidate-doc cee--doc))))
+    (all-completions prefix (mapcar 'eclim--completion-candidate-doc cee--candidates))))
 
 (defun cee--find-candidate (lookup)
-  (find lookup cee--doc
+  (find lookup cee--candidates
    	:key #'eclim--completion-candidate-doc
    	:test #'string=))
 
@@ -101,16 +101,34 @@
 	(mapcar (lambda (e) (split-string e " ")) 
 		(split-string (match-string 2 doc) ", " t)))))
 
-(defun join-list (lst glue)
+(defun cee--join-list (lst glue)
   "Utility function; returns a list based on LST with GLUE
 inserted between each element."
   (cond ((null lst) nil)
 	((null (rest lst)) lst)
 	(t
 	 (cons (first lst)
-	       (cons glue (join-list (rest lst) glue))))))
+	       (cons glue (cee--join-list (rest lst) glue))))))
+
+(defun cee--show-arg-list (start-delim args glue end-delim)
+  "Displays/inserts an argument list at point, using yasnippet if
+available."
+  (flet ((args-to-string (arg-list)
+			 (apply 'concat 
+				(append 
+				 (when start-delim (list start-delim))
+				 (cee--join-list arg-list glue)
+				 (when end-delim (list end-delim))))))
+    (if (and eclim-use-yasnippet (featurep 'yasnippet))
+	(yas/expand-snippet (point) (point)
+			    (args-to-string 
+			     (loop for arg in args
+				   for i from 1
+				   collect (concat "${" (int-to-string i) ":" arg "}"))))
+      (insert (args-to-string args)))))
 
 ;; TODO: handle override/implementation of methods
+;; TODO: handle constructor arguments
 (defun cee--completion-finished (arg)
   "Post-completion hook after running company-mode completions."
   (let* ((candidate (cee--find-candidate arg))
@@ -122,14 +140,7 @@ inserted between each element."
 	    (if gen-args 
 		(progn 
 		  (delete-region company-point (point))
-		  (yas/expand-snippet (point) (point)
-				      (apply 'concat 
-					     (append (join-list 
-						      (loop for arg in gen-args
-							    for i from 1
-							    collect (concat "${" (int-to-string i) ":" arg "}"))
-						      ", ")
-						     (list ">")))))
+		  (cee--show-arg-list nil gen-args ", " ">"))
 	      (progn
 		;; otherwise, remove the doc string and insert an import statement
 		(cee--delete-backward " - ")
@@ -142,15 +153,9 @@ inserted between each element."
 	(if (string= "f" type)
 	    (let ((call-args (cee--method-call candidate)))
 	      (cee--delete-backward "(")
-	      (yas/expand-snippet (point) (point)
-				  (apply 'concat 
-					 (append (list "(")
-						 (join-list
-						  (loop for arg in call-args
-							for i from 1
-							collect (concat "${" (int-to-string i) ":" (first arg) " "(second arg) "}"))
-						  ", ")
-						 (list ")")))))
+	      (cee--show-arg-list "("
+				  (mapcar (lambda (c) (concat (first c) " " (second c))) call-args)
+				  ", " ")"))
 	  ;; Otherwise, just delete the doc string
 	  (cee--delete-backward " : "))))))
 
