@@ -96,25 +96,19 @@
                        "-o" (number-to-string offset)
                        "-e" encoding))
 
-(defun eclim/java-search-by-type (pattern project type scope context)
+(defun eclim/java-search (&optional project file offset length pattern type context scope case-insensitive encoding)
   (mapcar (lambda (line)
             (split-string line "|" nil))
-          (eclim--call-process "java_search"
-                               "-p" pattern
-                               "-n" project
-                               "-t" type
-                               "-s" scope
-                               "-x" context)))
-
-(defun eclim/java-search-by-file (project file offset length &optional context type)
-  ;;TODO implement context and type
-  (mapcar (lambda (line)
-            (split-string line "|" nil))
-          (eclim--call-process "java_search"
-                               "-n" project
-                               "-f" file
-                               "-o" offset
-                               "-l" length)))
+          (apply 'eclim--call-process (eclim--build-command "java_search"
+                                                            "-n" project
+                                                            "-f" file
+                                                            "-o" offset
+                                                            "-l" length
+                                                            "-p" pattern
+                                                            "-t" type
+                                                            "-x" context
+                                                            "-s" scope
+                                                            "-i" case-insensitive))))
 
 (defun eclim-java-hierarchy (project file offset encoding)
   (interactive (list (eclim--project-name)
@@ -136,12 +130,13 @@
   (let ((declaration (cdr (assoc 'name node)))
         (qualified-name (cdr (assoc 'qualified node))))
     (insert (format (concat "%-"(number-to-string (* level 2)) "s=> ") ""))
-    (lexical-let ((file-path (first (first (eclim/java-search-by-type
-                                            qualified-name
+    (lexical-let ((file-path (first (first (eclim/java-search
                                             project
+                                            nil nil nil
+                                            qualified-name
                                             "classOrInterface"
-                                            "project"
-                                            "declarations")))))
+                                            "declarations"
+                                            "project")))))
       (insert-text-button declaration
                           'follow-link t
                           'help-echo qualified-name
@@ -152,13 +147,32 @@
     (loop for child across children do
           (eclim--java-insert-hierarchy-node project child (+ level 1)))))
 
+(defun eclim-java-references-at-point ()
+  (interactive)
+  (message (eclim/java-search
+            (eclim--project-name)
+            nil
+            nil
+            nil
+            (symbol-name (symbol-at-point))
+            "all"
+            "references"
+            "project"
+            ;; (eclim--project-current-file)
+            ;; (number-to-string (car (eclim--java-identifier-at-point)))
+            ;; (number-to-string (length (symbol-name (symbol-at-point)))) nil
+            ;; "all"
+            ;; nil
+            ;; "references"
+            "project")))
+
 (defun eclim-java-method-signature-at-point ()
   (interactive)
   ;; TODO: make this work when the cursor is in the argument list
   (save-excursion
     (re-search-backward "[. ]" nil t)
     (forward-char 1)
-    (let* ((signature (third (first (eclim/java-search-by-file
+    (let* ((signature (third (first (eclim/java-search
                                      (eclim--project-name)
                                      (eclim--project-current-file)
                                      (number-to-string (eclim--byte-offset))
@@ -175,18 +189,10 @@
   "Returns a cons cell (BEG . START) where BEG is the start
 buffer position of the token/identifier at point, and START is
 the string from BEG to (point)."
+  ;; TODO: make this work for dos buffers
   (let ((beg (save-excursion
-               (+ 1 (or (re-search-backward "[.,-/+( ]" nil t) 0)))))
+               (+ 1 (or (progn (re-search-backward "[.,-/+( ]" nil t) (eclim--byte-offset)) 0)))))
     (cons beg (buffer-substring-no-properties beg (point)))))
-
-(defun string-startswith-p (string prefix)
-  ;; TODO: there is probably already a library function that does this
-  (equal (substring-no-properties string 0 (string-width prefix)) prefix))
-
-(defun string-endswith-p (string prefix)
-  ;; TODO: there is probably already a library function that does this
-  (let ((w (string-width string)))
-    (equal (substring-no-properties string (- w (string-width prefix)) w) prefix)))
 
 (defun eclim--java-package-components (package)
   "Returns the components of a Java package statement."
