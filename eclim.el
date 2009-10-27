@@ -82,6 +82,15 @@ saved."
     ("dos" . "iso-8859-1")
     ("undecided-unix" . "iso-8859-1")))
 
+(defun string-startswith-p (string prefix)
+  ;; TODO: there is probably already a library function that does this
+  (equal (substring-no-properties string 0 (string-width prefix)) prefix))
+
+(defun string-endswith-p (string prefix)
+  ;; TODO: there is probably already a library function that does this
+  (let ((w (string-width string)))
+    (equal (substring-no-properties string (- w (string-width prefix)) w) prefix)))
+
 (defun eclim--buffer-lines ()
   (goto-char (point-max))
   (let (lines)
@@ -98,6 +107,16 @@ saved."
     (insert text)
     (setq buffer-read-only t)
     (display-buffer errbuf t)))
+
+(defun eclim--build-command (command &rest args)
+  (let ((i 0)
+        (arguments (list command)))
+    (while (< i (length args))
+      (when (nth (+ i 1) args)
+        (add-to-list 'arguments (nth i args) t)
+        (add-to-list 'arguments (nth (+ i 1) args) t))
+      (setq i (+ i 2)))
+    arguments))
 
 (defun eclim--call-process (&rest args)
   (message (apply 'concat eclim-executable " -command " (mapcar (lambda (arg)
@@ -159,11 +178,18 @@ saved."
   (set-buffer (get-buffer-create "*eclim-temporary-buffer*"))
   (delete-region (point-min) (point-max)))
 
-(defun eclim--byte-offset (&optional text)
+(defun eclim--byte-offset ()
   ;; TODO: restricted the ugly newline counting to dos buffers => remove it all the way later
-  (let ((current-offset (position-bytes (1- (point)))))
+  (let ((current-offset (position-bytes (1- (point))))
+        (current-file buffer-file-name)
+        (current-line (line-number-at-pos (point))))
     (when (not current-offset) (setq current-offset 0))
     (if (string-match "dos" (symbol-name buffer-file-coding-system))
+        (save-excursion
+          (set-buffer (get-buffer-create "*eclim: temporary*"))
+          (erase-buffer)
+          (insert-file-contents-literally buffer-file-name)
+          (goto-line current-line))
         (+ current-offset (how-many "\n" (point-min) (point)))
       current-offset)))
 
