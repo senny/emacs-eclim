@@ -47,6 +47,7 @@
 	(t candidates)))
 
 (defun cee--candidates (prefix)
+  "Calls eclim to get a list of matching completion candidates."
   (interactive "d")
   (let ((project-file (eclim--project-current-file))
         (project-name (eclim--project-name)))
@@ -55,7 +56,9 @@
   (let ((completion-ignore-case nil))
     (all-completions prefix (mapcar 'eclim--completion-candidate-doc cee--candidates))))
 
-(defun cee--find-candidate (lookup)
+(defun cee--lookup-candidate (lookup)
+  "Looks up the candidate record that matches the string inserted
+by company-mode in the list of eclim-matches."
   (find lookup cee--candidates
    	:key #'eclim--completion-candidate-doc
    	:test #'string=))
@@ -71,10 +74,13 @@
                   (not (company-in-string-or-comment))
                   (or (company-grab-symbol) 'stop)))
     ('candidates (cee--candidates arg))
-    ('meta (eclim--completion-candidate-doc (cee--find-candidate arg)))
+    ('meta (eclim--completion-candidate-doc (cee--lookup-candidate arg)))
     ('no-cache (equal arg ""))))
 
 (defun cee--delete-backward (delim)
+  "Delete text backwards from point up to and including the part
+of the buffer that matches DELIM. The search is bounded by
+COMPANY-POINT - 1."
   (let ((end (point))
 	(start (search-backward delim (- company-point 1) t)))
     (when start
@@ -131,7 +137,7 @@ available."
 ;; TODO: handle constructor arguments
 (defun cee--completion-finished (arg)
   "Post-completion hook after running company-mode completions."
-  (let* ((candidate (cee--find-candidate arg))
+  (let* ((candidate (cee--lookup-candidate arg))
 	 (type (eclim--completion-candidate-type candidate)))
     (when candidate
       (if (string= "c" type)
