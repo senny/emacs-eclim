@@ -8,8 +8,8 @@
 (require 'eclim-java)
 (require 'company)
 
-(defvar company-emacs-eclim--doc nil)
-(make-variable-buffer-local 'company-emacs-eclim--doc)
+(defvar cee--candidates nil)
+(make-variable-buffer-local 'cee--candidates)
 
 (defun company-emacs-eclim-setup ()
   "Convenience function that adds company-emacs-eclim to the list
@@ -26,37 +26,40 @@
 		(cons 'company-emacs-eclim company-backends)
 	      replaced)))))
 
-(defun company-emacs-eclim--correct-completions (candidates)
+(defun cee--correct-completions (candidates)
   "If we are lookup at a list of method call completions, check
   if we have already typed part of this call."
-  (if (every (lambda (c) (string= "f" (eclim--completion-candidate-type c))) candidates)
-      ;; When completing a method call that have alread been completed
-      ;; up to the 'method(' point, eclim still reports the
-      ;; completions as 'method(arg1, arg2, ...)', which is not what
-      ;; company-mode expects. 
-      (let ((common (try-completion "" (mapcar 'eclim--completion-candidate-doc candidates))))
-	(save-excursion
-	  (if (search-backward common (- (point) (length common)) t)
-	      (mapcar (lambda (c)
-			(list 
-			 (eclim--completion-candidate-type c)
-			 (eclim--completion-candidate-class c)
-			 (substring (eclim--completion-candidate-doc c) (length common))))
-		      candidates)
-	    candidates)))
-    candidates))
+  (cond ((every (lambda (c) (string= "f" (eclim--completion-candidate-type c))) candidates)
+	 ;; When completing a method call that have alread been completed
+	 ;; up to the 'method(' point, eclim still reports the
+	 ;; completions as 'method(arg1, arg2, ...)', which is not what
+	 ;; company-mode expects. 
+	 (let ((common (try-completion "" (mapcar 'eclim--completion-candidate-doc candidates))))
+	   (save-excursion
+	     (if (search-backward common (- (point) (length common)) t)
+		 (mapcar (lambda (c)
+			   (list 
+			    (eclim--completion-candidate-type c)
+			    (eclim--completion-candidate-class c)
+			    (substring (eclim--completion-candidate-doc c) (length common))))
+			 candidates)
+	       candidates))))
+	(t candidates)))
 
-(defun company-emacs-eclim--candidates (prefix)
+(defun cee--candidates (prefix)
+  "Calls eclim to get a list of matching completion candidates."
   (interactive "d")
   (let ((project-file (eclim--project-current-file))
         (project-name (eclim--project-name)))
     (eclim--java-src-update)
-    (setq company-emacs-eclim--doc  (company-emacs-eclim--correct-completions (eclim/java-complete))))
+    (setq cee--candidates  (cee--correct-completions (eclim/java-complete))))
   (let ((completion-ignore-case nil))
-    (all-completions prefix (mapcar 'eclim--completion-candidate-doc company-emacs-eclim--doc))))
+    (all-completions prefix (mapcar 'eclim--completion-candidate-doc cee--candidates))))
 
-(defun company-emacs-eclim--find-candidate (lookup)
-  (find lookup company-emacs-eclim--doc
+(defun cee--lookup-candidate (lookup)
+  "Looks up the candidate record that matches the string inserted
+by company-mode in the list of eclim-matches."
+  (find lookup cee--candidates
    	:key #'eclim--completion-candidate-doc
    	:test #'string=))
 
@@ -70,22 +73,31 @@
                   (eclim--project-name)
                   (not (company-in-string-or-comment))
                   (or (company-grab-symbol) 'stop)))
-    ('candidates (company-emacs-eclim--candidates arg))
-    ('meta (eclim--completion-candidate-doc (company-emacs-eclim--find-candidate arg)))
+    ('candidates (cee--candidates arg))
+    ('meta (eclim--completion-candidate-doc (cee--lookup-candidate arg)))
     ('no-cache (equal arg ""))))
 
-(defun company-emacs-eclim--delete-backward (delim)
+(defun cee--delete-backward (delim)
+  "Delete text backwards from point up to and including the part
+of the buffer that matches DELIM. The search is bounded by
+COMPANY-POINT - 1."
   (let ((end (point))
 	(start (search-backward delim (- company-point 1) t)))
     (when start
       (delete-region start end))))
 
-(defun company-emacs-eclim--generic-args (candidate)
+(defun cee--generic-args (candidate)
   "If the doc string for this CANDIDATE is a generic arg list,
   return a list of the arguments, otherwise return nil."
-  nil)
+  (save-excursion
+    (let ((doc (eclim--completion-candidate-doc candidate)))
+      (if (string-match "\\(.*?<\\)\\(.*\\)>" doc)
+	  (let ((class (match-string 1 doc))
+		(args (match-string 2 doc)))
+	    (if (search-backward class 0 t)
+		(split-string args ",")))))))
 
-(defun company-emacs-eclim--method-call (candidate)
+(defun cee--method-call (candidate)
   "If the doc string for this CANDIDATE is a method call argument
   list, return a list of lists representing the type and
   name of each argument."
@@ -95,48 +107,65 @@
 	(mapcar (lambda (e) (split-string e " ")) 
 		(split-string (match-string 2 doc) ", " t)))))
 
-(defun join-list (lst glue)
+(defun cee--join-list (lst glue)
   "Utility function; returns a list based on LST with GLUE
 inserted between each element."
   (cond ((null lst) nil)
 	((null (rest lst)) lst)
 	(t
 	 (cons (first lst)
-	       (cons glue (join-list (rest lst) glue))))))
+	       (cons glue (cee--join-list (rest lst) glue))))))
 
-;; TODO: handle Generic args (List<E, ..>)
+(defun cee--show-arg-list (start-delim args glue end-delim)
+  "Displays/inserts an argument list at point, using yasnippet if
+available."
+  (flet ((args-to-string (arg-list)
+			 (apply 'concat 
+				(append 
+				 (when start-delim (list start-delim))
+				 (cee--join-list arg-list glue)
+				 (when end-delim (list end-delim))))))
+    (if (and eclim-use-yasnippet (featurep 'yasnippet))
+	(yas/expand-snippet (point) (point)
+			    (args-to-string 
+			     (loop for arg in args
+				   for i from 1
+				   collect (concat "${" (int-to-string i) ":" arg "}"))))
+      (insert (args-to-string args)))))
+
 ;; TODO: handle override/implementation of methods
-(defun company-emacs-eclim--completion-finished (arg)
+;; TODO: handle constructor arguments
+(defun cee--completion-finished (arg)
   "Post-completion hook after running company-mode completions."
-  (let* ((candidate (company-emacs-eclim--find-candidate arg))
+  (let* ((candidate (cee--lookup-candidate arg))
 	 (type (eclim--completion-candidate-type candidate)))
     (when candidate
       (if (string= "c" type)
-	  (progn
-	    ;; If this is a class, then remove the doc string and insert an import statement
-	    (company-emacs-eclim--delete-backward " - ")
-	    (eclim--java-organize-imports
-	     (eclim/java-import-order (eclim--project-name)) 
-	     (list 
-	      (concat (eclim--completion-candidate-package candidate) "." 
-		      (eclim--completion-candidate-class candidate)))))
+	  ;; If this is a class, first check if this is a completion of generic argumends
+	  (let ((gen-args (cee--generic-args candidate)))
+	    (if gen-args 
+		(progn 
+		  (delete-region company-point (point))
+		  (cee--show-arg-list nil gen-args ", " ">"))
+	      (progn
+		;; otherwise, remove the doc string and insert an import statement
+		(cee--delete-backward " - ")
+		(eclim--java-organize-imports
+		 (eclim/java-import-order (eclim--project-name)) 
+		 (list 
+		  (concat (eclim--completion-candidate-package candidate) "." 
+			  (eclim--completion-candidate-class candidate)))))))
 	;; Otherwise, check if this is a method call
 	(if (string= "f" type)
-	    (let ((call-args (company-emacs-eclim--method-call candidate)))
-	      (company-emacs-eclim--delete-backward "(")
-	      (yas/expand-snippet (point) (point)
-				  (apply 'concat 
-					 (append (list "(")
-						 (join-list
-						  (loop for arg in call-args
-							for i from 1
-							collect (concat "${" (int-to-string i) ":" (first arg) " "(second arg) "}"))
-						  ", ")
-						 (list ")")))))
+	    (let ((call-args (cee--method-call candidate)))
+	      (cee--delete-backward "(")
+	      (cee--show-arg-list "("
+				  (mapcar (lambda (c) (concat (first c) " " (second c))) call-args)
+				  ", " ")"))
 	  ;; Otherwise, just delete the doc string
-	  (company-emacs-eclim--delete-backward " : "))))))
+	  (cee--delete-backward " : "))))))
 
 (add-hook 'company-completion-finished-hook
-	  'company-emacs-eclim--completion-finished)
+	  'cee--completion-finished)
 
 (provide 'company-emacs-eclim)
