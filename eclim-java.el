@@ -190,8 +190,7 @@
 buffer position of the token/identifier at point, and START is
 the string from BEG to (point)."
   ;; TODO: make this work for dos buffers
-  (let ((beg (save-excursion
-               (+ 1 (or (progn (re-search-backward "[.,-/+( ]" nil t) (eclim--byte-offset)) 0)))))
+  (let ((beg (+ 1 (or (save-excursion (re-search-backward "[.,-/+( ]" nil t)) 0))))
     (cons beg (buffer-substring-no-properties beg (point)))))
 
 (defun eclim--java-package-components (package)
