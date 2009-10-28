@@ -8,11 +8,17 @@
 ;; TODO: find better binding for implement
 (define-key eclim-mode-map (kbd "C-c C-e z") 'eclim-java-implement)
 
-(defvar eclim-java-field-prefixes "\\(s_\\|m_\\)\\(.*\\)"
+(defgroup eclim-java nil
+  "Java: editing, browsing, refactoring"
+  :group 'eclim)
+
+(defcustom eclim-java-field-prefixes "\\(s_\\|m_\\)\\(.*\\)"
   "this variable contains a regular expression matching the java field
   prefixes. The prefixes get removed when using yasnippet to generate
   getter and setter methods. This variable allows you to have field
-  names lik 'm_username' and get method names like 'setUsername' and 'getUsername'")
+  names lik 'm_username' and get method names like 'setUsername' and 'getUsername'"
+  :group 'eclim-java
+  :type 'regexp)
 
 (defun eclim/java-complete ()
   (mapcar (lambda (line)

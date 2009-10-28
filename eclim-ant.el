@@ -28,29 +28,33 @@
 
 ;;* Eclim Ant
 
+(define-key eclim-mode-map (kbd "C-c C-e a c") 'eclim-ant-clear-cache)
 (define-key eclim-mode-map (kbd "C-c C-e a r") 'eclim-ant-run)
 (define-key eclim-mode-map (kbd "C-c C-e a a") 'eclim-ant-run)
-(define-key eclim-mode-map (kbd "C-c C-e a c") 'eclim-ant-clear-cache)
 (define-key eclim-mode-map (kbd "C-c C-e a v") 'eclim-ant-validate)
 
-(defvar eclim-ant-directory ""
-  "The directory where the project buildfiles are located")
+(defgroup eclim-ant nil
+  "Build java projects using Apache Ant"
+  :group 'eclim)
+
+(defcustom eclim-ant-directory ""
+  "This variable contains the location, where the main buildfile is
+stored. It is used globally for all eclim projects."
+  :group 'eclim-ant
+  :type 'directory)
+
+(defcustom eclim-ant-buildfile-name "build.xml"
+  "The name of the main buildfile from your projects."
+  :group 'eclim-ant
+  :type 'string)
 
 (defvar eclim--ant-target-cache nil)
 
 (defun eclim--ant-buildfile-name ()
-  (concat (file-name-as-directory eclim-ant-directory) "build.xml"))
+  (concat (file-name-as-directory eclim-ant-directory) eclim-ant-buildfile-name))
 
 (defun eclim--ant-buildfile-path ()
   (file-name-directory (concat (eclim--project-dir) "/" (eclim--ant-buildfile-name))))
-
-(defun eclim/ant-target-list (project buildfile)
-  (eclim--check-project project)
-  (eclim--call-process "ant_targets" "-p" project "-f" buildfile))
-
-(defun eclim-ant-clear-cache ()
-  (interactive)
-  (setq eclim--ant-target-cache nil))
 
 (defun eclim--ant-targets (project buildfile)
   (when (null eclim--ant-target-cache)
@@ -58,19 +62,40 @@
   (or (gethash buildfile eclim--ant-target-cache)
       (puthash buildfile (eclim/ant-target-list project buildfile) eclim--ant-target-cache)))
 
-(defun eclim/ant-validate ()
-  (mapcar (lambda (line)
-            (split-string line "|"))
-          (eclim--call-process "ant_validate" "-p" (eclim--project-name) "-f" (eclim--ant-buildfile-name))))
-
 (defun eclim--ant-read-target (project buildfile)
   (ido-completing-read "Target: " (eclim--ant-targets project buildfile)))
 
-(defun eclim-ant-validate ()
+(defun eclim/ant-validate (project buildfile)
+  (eclim--check-project project)
+  (mapcar (lambda (line)
+            (split-string line "|"))
+          (eclim--call-process "ant_validate" "-p" project "-f" file)))
+
+(defun eclim/ant-target-list (project buildfile)
+  (eclim--check-project project)
+  (eclim--call-process "ant_targets" "-p" project "-f" buildfile))
+
+(defun eclim-ant-clear-cache ()
+  "Clear the cached ant target list. This can be usefull when the
+buildfile for the current project has changed and needs to be updated"
   (interactive)
-  (message (eclim/ant-validate))
-  ;; TODO: display the error messages to the user
-  )
+  (setq eclim--ant-target-cache nil))
+
+(defun eclim-ant-validate (project file)
+  "Run ant-xml validation against the file opened in the current
+buffer. The resulst are displayed in a deticated compilation buffer."
+  (interactive (list (eclim--project-name) (buffer-file-name)))
+  (pop-to-buffer (get-buffer-create "*eclim: build*"))
+  (let ((buffer-read-only nil))
+    (erase-buffer)
+    (dolist (line (eclim/ant-validate project file))
+      (insert (concat (car line) ":"
+                      (replace-regexp-in-string " col " ":" (second line))
+                      " "
+                      (third line)))
+      (newline)))
+  (beginning-of-buffer)
+  (compilation-mode))
 
 (defun eclim-ant-run (target)
   "run a specified ant target in the scope of the current project. If

@@ -66,7 +66,8 @@ saved."
   :type '(choice (const :tag "Off" nil)
                  (const :tag "On" t)))
 
-(defvar eclim--snippet-directory (concat (file-name-directory load-file-name) "snippets"))
+(defvar eclim--snippet-directory
+  (concat (file-name-directory load-file-name) "snippets"))
 
 (defvar eclim--project-dir nil)
 (make-variable-buffer-local 'eclim--project-dir)
