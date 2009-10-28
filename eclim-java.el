@@ -166,13 +166,8 @@
   (let ((declaration (cdr (assoc 'name node)))
         (qualified-name (cdr (assoc 'qualified node))))
     (insert (format (concat "%-"(number-to-string (* level 2)) "s=> ") ""))
-    (lexical-let ((file-path (first (first (eclim/java-search
-                                            project
-                                            nil nil nil
-                                            qualified-name
-                                            "classOrInterface"
-                                            "declarations"
-                                            "project")))))
+    (lexical-let ((file-path (first (first (eclim--java-find-references
+                                            qualified-name)))))
       (insert-text-button declaration
                           'follow-link t
                           'help-echo qualified-name
@@ -183,12 +178,15 @@
     (loop for child across children do
           (eclim--java-insert-hierarchy-node project child (+ level 1)))))
 
+(defun eclim--java-find-references (java-symbol)
+  (eclim/java-search nil nil nil nil
+                     java-symbol
+                     nil
+                     "declarations"))
+
 (defun eclim-java-find-declaration (java-symbol)
   (interactive (list (symbol-name (symbol-at-point))))
-  (let ((search-result (eclim/java-search nil nil nil nil
-                                          java-symbol
-                                          nil
-                                          "declarations")))
+  (let ((search-result (eclim--java-find-references java-symbol)))
     ;; TODO: display multiple results in a grep like buffer
     (if (string= (caar search-result) "") (message "no declaration found")
       (if (= (length search-result) 1)
