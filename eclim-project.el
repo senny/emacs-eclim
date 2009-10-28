@@ -1,6 +1,6 @@
-;; eclim.el --- an interface to the Eclipse IDE.
+;; eclim-project.el --- an interface to the Eclipse IDE.
 ;;
-;; Copyright (C) 2009  Tassilo Horn <tassilo@member.fsf.org>
+;; Copyright (C) 2009  Yves Senn <yves senn * gmx ch>
 ;;
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -16,8 +16,6 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;
 ;;; Contributors
-;;
-;;  - Yves Senn <yves senn * gmx ch>
 ;;
 ;;; Conventions
 ;;
@@ -280,8 +278,8 @@
   (interactive "MPattern: ")
   ;; TODO: the search command returns strange results
   (let ((matches (eclim/project-file-locate (eclim--project-name) pattern)))
-    (when (get-buffer "*eclim-find*") (kill-buffer "*eclim-find*"))
-    (pop-to-buffer "*eclim-find*" t)
+    (when (get-buffer "*eclim: find*") (kill-buffer "*eclim: find*"))
+    (pop-to-buffer "*eclim: find*" t)
     (insert "searching for: " pattern "..." "\n\n")
     (dolist (match matches)
       (when match

@@ -1,6 +1,6 @@
-;; eclim.el --- an interface to the Eclipse IDE.
+;; eclim-maven.el --- an interface to the Eclipse IDE.
 ;;
-;; Copyright (C) 2009  Tassilo Horn <tassilo@member.fsf.org>
+;; Copyright (C) 2009  Yves Senn <yves senn * gmx ch>
 ;;
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -17,16 +17,13 @@
 ;;
 ;;; Contributors
 ;;
-;;  - Nikolaj Schumacher <bugs * nschum de>
-;;  - Yves Senn <yves senn * gmx ch>
-;;
 ;;; Conventions
 ;;
 ;; Conventions used in this file: Name internal variables and functions
 ;; "eclim--<descriptive-name>", and name eclim command invocations
 ;; "eclim/command-name", like eclim/project-list.
 
-;;* Eclim Ant
+;;* Eclim Maven
 
 (require 'compile)
 
@@ -38,9 +35,6 @@
 
 (define-key eclim-mode-map (kbd "C-c C-e m p") 'eclim-maven-lifecycle-phase-run)
 (define-key eclim-mode-map (kbd "C-c C-e m r") 'eclim-maven-run)
-
-(defvar eclim-maven-directory ""
-  "The directory where the project buildfiles are located")
 
 (defvar eclim-maven-lifecycle-phases
   '("validate" "compile" "test" "package" "integration" "verify" "install" "deploy"))
@@ -56,12 +50,14 @@
     (compile (concat "mvn -f " (eclim--maven-pom-path) " " command))))
 
 (defun eclim-maven-run (goal)
-  ""
+  "Execute a specific Maven goal in the context of the current
+project. The build output is displayed in the *compilation* buffer."
   (interactive "MGoal: ")
   (eclim--maven-execute goal))
 
 (defun eclim-maven-lifecycle-phase-run (phase)
-  ""
+  "Run any given Maven life-cycle phase in the context of the current
+project. The build output is displayed in the *compilation* buffer."
   (interactive (list (eclim--maven-lifecycle-phase-read)))
   (eclim-maven-run phase))
 
