@@ -32,6 +32,7 @@
 
 (define-key eclim-mode-map (kbd "C-c C-e s") 'eclim-java-method-signature-at-point)
 (define-key eclim-mode-map (kbd "C-c C-e d") 'eclim-javadoc-insert-at-point)
+(define-key eclim-mode-map (kbd "C-c C-e f d") 'eclim-java-find-declaration)
 (define-key eclim-mode-map (kbd "C-c C-e i") 'eclim-java-import-missing)
 (define-key eclim-mode-map (kbd "C-c C-e h") 'eclim-java-hierarchy)
 ;; TODO: find better binding for implement
@@ -176,11 +177,23 @@
                           'follow-link t
                           'help-echo qualified-name
                           'action (lambda (&rest ignore)
-                                    (eclim-find-file file-path)))))
+                                    (eclim--find-file file-path)))))
   (newline)
   (let ((children (cdr (assoc 'children node))))
     (loop for child across children do
           (eclim--java-insert-hierarchy-node project child (+ level 1)))))
+
+(defun eclim-java-find-declaration (java-symbol)
+  (interactive (list (symbol-name (symbol-at-point))))
+  (let ((search-result (eclim/java-search nil nil nil nil
+                                          java-symbol
+                                          nil
+                                          "declarations")))
+    ;; TODO: display multiple results in a grep like buffer
+    (if (string= (caar search-result) "") (message "no declaration found")
+      (if (= (length search-result) 1)
+          (eclim--visit-declaration (car search-result))
+        (message "TODO: currently not handling multiple results")))))
 
 (defun eclim-java-references-at-point ()
   (interactive)

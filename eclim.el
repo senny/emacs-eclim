@@ -83,6 +83,10 @@ saved."
     ("dos" . "iso-8859-1")
     ("undecided-unix" . "iso-8859-1")))
 
+(defvar eclim--compressed-urls-regexp "\\(^jar:file://\\)\\|\\(^zip://\\)")
+(defvar eclim--compressed-file-path-replacement-regexp "\\\\")
+(defvar eclim--compressed-file-path-removal-regexp "^/")
+
 (defun string-startswith-p (string prefix)
   ;; TODO: there is probably already a library function that does this
   (equal (substring-no-properties string 0 (string-width prefix)) prefix))
@@ -155,19 +159,31 @@ saved."
                      (insensitive-match (car (cddr (assoc (downcase (eclim--project-dir)) downcase-project-list)))))
                 (or sensitive-match insensitive-match))))))
 
-(defun eclim-find-file (path-to-file)
+(defun eclim--find-file (path-to-file)
   (if (not (string-match-p "!" path-to-file))
       (find-file-other-window path-to-file)
     (let* ((parts (split-string path-to-file "!"))
-           (archive-name (replace-regexp-in-string "^jar:file://" "" (first parts)))
+           (archive-name (replace-regexp-in-string eclim--compressed-urls-regexp "" (first parts)))
            (file-name (second parts)))
       (find-file-other-window archive-name)
       (beginning-of-buffer)
-      (re-search-forward (regexp-quote (replace-regexp-in-string "\\\\" "/" file-name)))
+      (re-search-forward (replace-regexp-in-string
+                          eclim--compressed-file-path-removal-regexp ""
+                          (regexp-quote (replace-regexp-in-string
+                                         eclim--compressed-file-path-replacement-regexp
+                                         "/" file-name))))
       (let ((old-buffer (current-buffer)))
         (archive-extract)
         (beginning-of-buffer)
         (kill-buffer old-buffer)))))
+
+(defun eclim--visit-declaration (eclim-response)
+  (let* ((file-name (car eclim-response))
+         (line-and-column (cadr eclim-response))
+         (position (split-string line-and-column " col ")))
+    (eclim--find-file file-name)
+    (goto-line (string-to-number (car position)))
+    (move-to-column (- (string-to-number (cadr position)) 1))))
 
 (defun eclim--string-strip (content)
   (replace-regexp-in-string "\s*$" "" content))
