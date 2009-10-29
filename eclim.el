@@ -255,8 +255,8 @@ saved."
   (car (eclim--call-process "workspace_dir")))
 
 (defun eclim/jobs (&optional family)
-  ;; TODO: implement the family option
-  (eclim--call-process "jobs"))
+  (eclim--call-process (eclim--build-command "jobs"
+                                             "-f" family)))
 
 (defun eclim/problems (project)
   (eclim--check-project project)

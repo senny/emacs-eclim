@@ -235,7 +235,6 @@ has been found."
 (defun eclim-java-find-declaration (pattern)
   (interactive (list (symbol-name (symbol-at-point))))
   (let ((search-result (eclim--java-find-declaration pattern)))
-    ;; TODO: display multiple results in a grep like buffer
     (if (string= (caar search-result) "") (message "no declaration found")
       (if (= (length search-result) 1)
           (eclim--visit-declaration (car search-result))
