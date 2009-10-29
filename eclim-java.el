@@ -31,9 +31,9 @@
 (require 'decompile)
 
 (define-key eclim-mode-map (kbd "C-c C-e s") 'eclim-java-method-signature-at-point)
-(define-key eclim-mode-map (kbd "C-c C-e d") 'eclim-javadoc-insert-at-point)
 (define-key eclim-mode-map (kbd "C-c C-e f d") 'eclim-java-find-declaration)
 (define-key eclim-mode-map (kbd "C-c C-e f r") 'eclim-java-find-references)
+(define-key eclim-mode-map (kbd "C-c C-e f t") 'eclim-java-find-type)
 (define-key eclim-mode-map (kbd "C-c C-e f f") 'eclim-java-find-generic)
 (define-key eclim-mode-map (kbd "C-c C-e i") 'eclim-java-import-missing)
 (define-key eclim-mode-map (kbd "C-c C-e h") 'eclim-java-hierarchy)
@@ -48,7 +48,7 @@
   "this variable contains a regular expression matching the java field
   prefixes. The prefixes get removed when using yasnippet to generate
   getter and setter methods. This variable allows you to have field
-  names lik 'm_username' and get method names like 'setUsername' and 'getUsername'"
+  names like 'm_username' and get method names like 'setUsername' and 'getUsername'"
   :group 'eclim-java
   :type 'regexp)
 
@@ -80,7 +80,7 @@
           (eclim--call-process "java_complete"
                                "-p" (eclim--project-name)
                                "-f" (eclim--project-current-file)
-                               "-e" "iso-8859-1"
+                               "-e" (eclim--current-encoding)
                                "-l" "standard"
                                "-o" (number-to-string (eclim--byte-offset)))))
 
@@ -89,8 +89,9 @@
   "Searches backward in the current buffer until a class declaration
 has been found."
   (save-excursion
-    (re-search-backward "class[ ]+\\([a-zA-Z]+\\) ")
-    (match-string 1)))
+    (if (re-search-backward "class[ ]+\\([a-zA-Z]+\\) " nil t)
+        (match-string 1)
+      "")))
 
 (defun eclim--java-symbol-remove-prefix (name)
   (if (string-match eclim-java-field-prefixes name)
@@ -189,8 +190,8 @@ has been found."
     (eclim--java-insert-hierarchy-node
      project
      (json-read-from-string
-      (replace-regexp-in-string "'" "\""
-                                (car (eclim/java-hierarchy project file offset encoding))))
+      (replace-regexp-in-string
+       "'" "\"" (car (eclim/java-hierarchy project file offset encoding))))
      0)))
 
 (defun eclim--java-insert-hierarchy-node (project node level)
@@ -252,7 +253,16 @@ has been found."
   (eclim--find-display-results pattern
                                (eclim--java-find-references pattern)))
 
-(defun eclim-java-find-generic (scope context type pattern)
+(defun eclim-java-find-type (class-name)
+  "Searches the project for a given class. The CLASS-NAME is the pattern, which will be used for the search."
+  (interactive (list (read-string "Name: " (let ((case-fold-search nil)
+                                                 (current-symbol (symbol-name (symbol-at-point))))
+                                             (if (string-match-p "^[A-Z]" current-symbol)
+                                                 current-symbol
+                                               (eclim--java-current-class-name))))))
+  (eclim-java-find-generic nil "declarations" "classOrInterface" class-name t))
+
+(defun eclim-java-find-generic (scope context type pattern &optional open-single-file)
   (interactive (list (eclim--completing-read "Scope: " eclim--java-search-scopes)
                      (eclim--completing-read "Context: " eclim--java-search-contexts)
                      (eclim--completing-read "Type: " eclim--java-search-types)
@@ -262,7 +272,7 @@ has been found."
                                         pattern
                                         type
                                         context
-                                        scope)))
+                                        scope) open-single-file))
 
 (defun eclim--java-method-signature-at-point ()
   ;; TODO: this does currently not work everywhere and needs some more love
@@ -281,11 +291,6 @@ has been found."
   (let* ((signature (eclim--java-method-signature-at-point))
          (message-log-max nil))
     (message signature)))
-
-(defun eclim-javadoc-insert-at-point ()
-  (interactive)
-  (message (eclim/javadoc-comment (eclim--project-name) (eclim--project-current-file)
-                                  (number-to-string (eclim--byte-offset)))))
 
 (defun eclim--java-identifier-at-point ()
   "Returns a cons cell (BEG . START) where BEG is the start
