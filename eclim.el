@@ -46,8 +46,9 @@
            (file-exists-p (setq file (expand-file-name "bin/eclim" file)))
            (return file)))))
 
-(defcustom eclim-interactive-completion-function 'ido-completing-read
-  ""
+(defcustom eclim-interactive-completion-function (if ido-mode 'ido-completing-read 'completing-read)
+  "Defines a function which is used by eclim to complete a list of
+choices interactively."
   :group 'eclim
   :type 'function)
 
@@ -263,12 +264,6 @@ saved."
   (interactive)
   ;; TODO display the errors in a formatted list
   (message (eclim/problems (eclim--project-name))))
-
-(defun eclim--choices-prompt (prompt choices)
-  "Displays a prompt and lets the user choose between a list of choices."
-  (or
-   (ido-completing-read (concat prompt ": ") choices)
-   ""))
 
 (defun eclim-complete ()
   (interactive)

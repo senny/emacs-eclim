@@ -380,7 +380,7 @@ a java type that can be imported."
   (let* ((pattern (cdr (eclim--java-identifier-at-point)))
          (imports (eclim/java-import (eclim--project-name) pattern)))
     (eclim--java-organize-imports (eclim/java-import-order (eclim--project-name))
-                                  (list (eclim--choices-prompt "Import" imports)))))
+                                  (list (eclim--completing-read "Import: " imports)))))
 
 (defun eclim-java-import-missing ()
   "Checks the current file for missing imports and prompts the
@@ -397,7 +397,7 @@ user if necessary."
                  (eclim--java-organize-imports imports-order
                                                (if (= len 1) candidates
                                                  (list
-                                                  (eclim--choices-prompt (concat "Missing type '" (cdr (assoc 'type unused)) "'")
+                                                  (eclim--completing-read (concat "Missing type '" (cdr (assoc 'type unused)) "'")
                                                                          candidates)))))))))
 
 (defun eclim-java-remove-unused-imports ()
@@ -417,7 +417,7 @@ user if necessary."
   (let* ((response (eclim/java-impl (eclim--project-name) (eclim--project-current-file)))
          (methods (remove-if-not (lambda (element) (string-match "(.*)" element))
                                  response)))
-    (insert (ido-completing-read "Signature: " methods) " {}")
+    (insert (eclim--completing-read "Signature: " methods) " {}")
     (backward-char)))
 
 

@@ -75,7 +75,7 @@
       (progn
         (or (if single nil (eclim--project-get-marked))
             (eclim--project-current-line)))
-    (ido-completing-read "Project: "
+    (eclim--completing-read "Project: "
                          (mapcar (lambda (row) (nth 2 row)) (eclim/project-list)))))
 
 (defun eclim--project-mode-init ()
@@ -267,7 +267,7 @@
   (eclim--project-buffer-refresh))
 
 (defun eclim--project-nature-read ()
-  (ido-completing-read "Type: " (eclim/project-nature-aliases)))
+  (completing-read "Type: " (eclim/project-nature-aliases)))
 
 (defun eclim-project-mode-refresh ()
   (interactive)

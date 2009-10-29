@@ -40,7 +40,7 @@
   '("validate" "compile" "test" "package" "integration" "verify" "install" "deploy"))
 
 (defun eclim--maven-lifecycle-phase-read ()
-  (ido-completing-read "Phase: " eclim-maven-lifecycle-phases))
+  (completing-read "Phase: " eclim-maven-lifecycle-phases))
 
 (defun eclim--maven-pom-path ()
   (concat (eclim--project-dir) "/pom.xml "))
