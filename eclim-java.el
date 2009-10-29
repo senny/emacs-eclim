@@ -34,6 +34,7 @@
 (define-key eclim-mode-map (kbd "C-c C-e d") 'eclim-javadoc-insert-at-point)
 (define-key eclim-mode-map (kbd "C-c C-e f d") 'eclim-java-find-declaration)
 (define-key eclim-mode-map (kbd "C-c C-e f r") 'eclim-java-find-references)
+(define-key eclim-mode-map (kbd "C-c C-e f f") 'eclim-java-find-generic)
 (define-key eclim-mode-map (kbd "C-c C-e i") 'eclim-java-import-missing)
 (define-key eclim-mode-map (kbd "C-c C-e h") 'eclim-java-hierarchy)
 ;; TODO: find better binding for implement
@@ -237,33 +238,31 @@ has been found."
     (if (string= (caar search-result) "") (message "no declaration found")
       (if (= (length search-result) 1)
           (eclim--visit-declaration (car search-result))
-        (message "TODO: currently not handling multiple results")))))
+        (eclim--find-display-results pattern search-result)))))
 
 (defun eclim--java-convert-signature-to-pattern (signature)
   (replace-regexp-in-string "#" "."
-                            (progn (string-match "^.*\\.\\(.*?\\)(.*$"
+                            (progn (string-match "^\\(.*?\\)(.*$"
                                                  signature)
                                    (match-string 1 signature))))
 
 (defun eclim-java-find-references (pattern)
   (interactive (list (eclim--java-convert-signature-to-pattern
                       (eclim--java-method-signature-at-point))))
-  (eclim--find-display-results (eclim--project-dir)
-                               pattern
+  (eclim--find-display-results pattern
                                (eclim--java-find-references pattern)))
 
-(defun eclim-java-find (scope context type pattern)
+(defun eclim-java-find-generic (scope context type pattern)
   (interactive (list (eclim--completing-read "Scope: " eclim--java-search-scopes)
                      (eclim--completing-read "Context: " eclim--java-search-contexts)
                      (eclim--completing-read "Type: " eclim--java-search-types)
                      (read-string "Pattern: ")))
-  (eclim--find-display-results (eclim--project-dir) pattern
-                               (eclim/java-search
-                                nil nil nil nil
-                                pattern
-                                type
-                                context
-                                scope)))
+  (eclim--find-display-results pattern (eclim/java-search
+                                        nil nil nil nil
+                                        pattern
+                                        type
+                                        context
+                                        scope)))
 
 (defun eclim--java-method-signature-at-point ()
   ;; TODO: this does currently not work everywhere and needs some more love
@@ -398,7 +397,7 @@ user if necessary."
                                                (if (= len 1) candidates
                                                  (list
                                                   (eclim--completing-read (concat "Missing type '" (cdr (assoc 'type unused)) "'")
-                                                                         candidates)))))))))
+                                                                          candidates)))))))))
 
 (defun eclim-java-remove-unused-imports ()
   (interactive)

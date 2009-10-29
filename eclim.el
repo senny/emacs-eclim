@@ -186,7 +186,8 @@ saved."
         (beginning-of-buffer)
         (kill-buffer old-buffer)))))
 
-(defun eclim--find-display-results (base-directory pattern results)
+(defun eclim--find-display-results (pattern results &optional base-directory)
+  (when (null base-directory) (setq base-directory (eclim--project-dir)))
   (pop-to-buffer (get-buffer-create "*eclim: find"))
   (let ((buffer-read-only nil))
     (erase-buffer)
