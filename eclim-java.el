@@ -33,6 +33,7 @@
 (define-key eclim-mode-map (kbd "C-c C-e s") 'eclim-java-method-signature-at-point)
 (define-key eclim-mode-map (kbd "C-c C-e d") 'eclim-javadoc-insert-at-point)
 (define-key eclim-mode-map (kbd "C-c C-e f d") 'eclim-java-find-declaration)
+(define-key eclim-mode-map (kbd "C-c C-e f r") 'eclim-java-find-references)
 (define-key eclim-mode-map (kbd "C-c C-e i") 'eclim-java-import-missing)
 (define-key eclim-mode-map (kbd "C-c C-e h") 'eclim-java-hierarchy)
 ;; TODO: find better binding for implement
@@ -50,6 +51,28 @@
   :group 'eclim-java
   :type 'regexp)
 
+(defvar eclim--java-search-types '("all"
+                                   "annotation"
+                                   "class"
+                                   "classOrEnum"
+                                   "classOrInterface"
+                                   "constructor"
+                                   "enum"
+                                   "field"
+                                   "interface"
+                                   "method"
+                                   "package"
+                                   "type"))
+
+(defvar eclim--java-search-scopes '("all"
+                                    "project"
+                                    "type"))
+
+(defvar eclim--java-search-contexts '("all"
+                                      "declarations"
+                                      "implementors"
+                                      "references"))
+
 (defun eclim/java-complete ()
   (mapcar (lambda (line)
             (split-string line "|" nil))
@@ -60,6 +83,13 @@
                                "-l" "standard"
                                "-o" (number-to-string (eclim--byte-offset)))))
 
+
+(defun eclim--java-current-class-name ()
+  "Searches backward in the current buffer until a class declaration
+has been found."
+  (save-excursion
+    (re-search-backward "class[ ]+\\([a-zA-Z]+\\) ")
+    (match-string 1)))
 
 (defun eclim--java-symbol-remove-prefix (name)
   (if (string-match eclim-java-field-prefixes name)
@@ -166,7 +196,7 @@
   (let ((declaration (cdr (assoc 'name node)))
         (qualified-name (cdr (assoc 'qualified node))))
     (insert (format (concat "%-"(number-to-string (* level 2)) "s=> ") ""))
-    (lexical-let ((file-path (first (first (eclim--java-find-references
+    (lexical-let ((file-path (first (first (eclim--java-find-declaration
                                             qualified-name)))))
       (insert-text-button declaration
                           'follow-link t
@@ -178,53 +208,80 @@
     (loop for child across children do
           (eclim--java-insert-hierarchy-node project child (+ level 1)))))
 
-(defun eclim--java-find-references (java-symbol)
-  (eclim/java-search nil nil nil nil
-                     java-symbol
-                     nil
-                     "declarations"))
+(defun eclim--java-find-references (pattern)
+  (eclim/java-search
+   nil
+   nil
+   nil
+   nil
+   pattern
+   "method"
+   "references"
+   "project"))
 
-(defun eclim-java-find-declaration (java-symbol)
+(defun eclim--java-find-declaration (pattern  &optional type)
+  (eclim/java-search
+   nil
+   nil
+   nil
+   nil
+   pattern
+   type
+   "declaration"
+   "project"))
+
+(defun eclim-java-find-declaration (pattern)
   (interactive (list (symbol-name (symbol-at-point))))
-  (let ((search-result (eclim--java-find-references java-symbol)))
+  (let ((search-result (eclim--java-find-declaration pattern)))
     ;; TODO: display multiple results in a grep like buffer
     (if (string= (caar search-result) "") (message "no declaration found")
       (if (= (length search-result) 1)
           (eclim--visit-declaration (car search-result))
         (message "TODO: currently not handling multiple results")))))
 
-(defun eclim-java-references-at-point ()
-  (interactive)
-  (message (eclim/java-search
-            (eclim--project-name)
-            nil
-            nil
-            nil
-            (symbol-name (symbol-at-point))
-            "all"
-            "references"
-            "project"
-            ;; (eclim--project-current-file)
-            ;; (number-to-string (car (eclim--java-identifier-at-point)))
-            ;; (number-to-string (length (symbol-name (symbol-at-point)))) nil
-            ;; "all"
-            ;; nil
-            ;; "references"
-            "project")))
+(defun eclim--java-convert-signature-to-pattern (signature)
+  (replace-regexp-in-string "#" "."
+                            (progn (string-match "^.*\\.\\(.*?\\)(.*$"
+                                                 signature)
+                                   (match-string 1 signature))))
+
+(defun eclim-java-find-references (pattern)
+  (interactive (list (eclim--java-convert-signature-to-pattern
+                      (eclim--java-method-signature-at-point))))
+  (eclim--find-display-results (eclim--project-dir)
+                               pattern
+                               (eclim--java-find-references pattern)))
+
+(defun eclim-java-find (scope context type pattern)
+  (interactive (list (eclim--completing-read "Scope: " eclim--java-search-scopes)
+                     (eclim--completing-read "Context: " eclim--java-search-contexts)
+                     (eclim--completing-read "Type: " eclim--java-search-types)
+                     (read-string "Pattern: ")))
+  (eclim--find-display-results (eclim--project-dir) pattern
+                               (eclim/java-search
+                                nil nil nil nil
+                                pattern
+                                type
+                                context
+                                scope)))
+
+(defun eclim--java-method-signature-at-point ()
+  ;; TODO: this does currently not work everywhere and needs some more love
+  (let ((java-symbol (symbol-name (symbol-at-point))))
+    (save-excursion
+      (re-search-backward "[. ]" nil t)
+      (let ((pattern (if (string= (char-to-string (char-after (point))) " ")
+                         (concat (eclim--java-current-class-name) "." java-symbol)
+                       java-symbol)))
+        (forward-char 1)
+        (third (car (eclim--java-find-declaration pattern "method")))))))
 
 (defun eclim-java-method-signature-at-point ()
   (interactive)
   ;; TODO: make this work when the cursor is in the argument list
-  (save-excursion
-    (re-search-backward "[. ]" nil t)
-    (forward-char 1)
-    (let* ((signature (third (first (eclim/java-search
-                                     (eclim--project-name)
-                                     (eclim--project-current-file)
-                                     (number-to-string (eclim--byte-offset))
-                                     (number-to-string (length (symbol-name (symbol-at-point))))))))
-           (message-log-max nil))
-      (message signature))))
+  (let* ((signature (eclim--java-method-signature-at-point))
+         (message-log-max nil))
+    (message signature)))
 
 (defun eclim-javadoc-insert-at-point ()
   (interactive)

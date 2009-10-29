@@ -87,10 +87,7 @@ buffer. The resulst are displayed in a deticated compilation buffer."
   (let ((buffer-read-only nil))
     (erase-buffer)
     (dolist (line (eclim/ant-validate project file))
-      (insert (concat (car line) ":"
-                      (replace-regexp-in-string " col " ":" (second line))
-                      " "
-                      (third line)))
+      (insert (eclim--convert-find-result-to-string line))
       (newline)))
   (beginning-of-buffer)
   (compilation-mode))

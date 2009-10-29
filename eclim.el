@@ -46,6 +46,11 @@
            (file-exists-p (setq file (expand-file-name "bin/eclim" file)))
            (return file)))))
 
+(defcustom eclim-interactive-completion-function 'ido-completing-read
+  ""
+  :group 'eclim
+  :type 'function)
+
 (defcustom eclim-executable
   (or (executable-find "eclim") (eclim-executable-find))
   "Location of eclim executable."
@@ -136,6 +141,9 @@ saved."
           (point-min) (point-max)))
         nil))))
 
+(defun eclim--completing-read (prompt choices)
+  (funcall eclim-interactive-completion-function prompt choices))
+
 (defun eclim--project-dir ()
   "Return this file's project root directory."
   (or eclim--project-dir
@@ -176,6 +184,28 @@ saved."
         (archive-extract)
         (beginning-of-buffer)
         (kill-buffer old-buffer)))))
+
+(defun eclim--find-display-results (base-directory pattern results)
+  (pop-to-buffer (get-buffer-create "*eclim: find"))
+  (let ((buffer-read-only nil))
+    (erase-buffer)
+    (insert (concat "-*- mode: eclim-find; default-directory: " base-directory " -*-"))
+    (newline 2)
+    (insert (concat "eclim java_sarch -p " pattern))
+    (newline)
+    (dolist (result results)
+      (insert (eclim--convert-find-result-to-string result base-directory))
+      (newline))
+    (setq default-directory base-directory)
+    (grep-mode)))
+
+(defun eclim--convert-find-result-to-string (line &optional directory)
+  (let ((converted-directory (replace-regexp-in-string "\\\\" "/" (car line))))
+    (concat (if converted-directory
+                (replace-regexp-in-string (concat (regexp-quote directory) "/?") "" converted-directory)
+              converted-directory)
+            ":" (replace-regexp-in-string " col " ":" (second line)) " "
+            (third line))))
 
 (defun eclim--visit-declaration (eclim-response)
   (let* ((file-name (car eclim-response))
