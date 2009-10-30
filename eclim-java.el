@@ -177,6 +177,33 @@ has been found."
                                                             "-s" scope
                                                             "-i" case-insensitive))))
 
+(defun eclim/java-refactor-rename (project file name offset length encoding &optional preview diff)
+  (eclim--java-src-update)
+  (eclim/project-update project)
+  (apply 'eclim--call-process (eclim--build-command "java_refactor_rename"
+                                                    "-p" project
+                                                    "-f" file
+                                                    "-n" name
+                                                    "-o" offset
+                                                    "-l" length
+                                                    "-e" encoding
+                                                    "-v" preview
+                                                    "-d" diff)))
+
+(defun eclim-java-refactor-rename-symbol-at-point (project file name encoding)
+  (interactive (list (eclim--project-name)
+                     (eclim--project-current-file)
+                     (read-string "Name: ")
+                     (eclim--current-encoding)))
+  (message (eclim/java-refactor-rename project
+                                       file
+                                       name
+                                       (number-to-string (car (eclim--java-identifier-at-point2)))
+                                       (number-to-string (length (symbol-name (symbol-at-point))))
+                                       encoding
+                                       " ")))
+
+
 (defun eclim-java-hierarchy (project file offset encoding)
   (interactive (list (eclim--project-name)
                      (eclim--project-current-file)
@@ -297,6 +324,18 @@ the string from BEG to (point)."
   ;; TODO: make this work for dos buffers
   (let ((beg (+ 1 (or (save-excursion (re-search-backward "[.,-/+( ]" nil t)) 0))))
     (cons beg (buffer-substring-no-properties beg (point)))))
+
+(defun eclim--java-identifier-at-point2 ()
+  "Returns a cons cell (BEG . START) where BEG is the start
+buffer position of the token/identifier at point, and START is
+the string from BEG to (point)."
+  ;; TODO: make this work for dos buffers
+  (let ((beg (+ 1 (or (save-excursion
+                        (re-search-backward "[.,-/+( ]" nil t)
+                        (eclim--byte-offset))
+                      0))))
+    (cons beg (buffer-substring-no-properties beg (point)))))
+
 
 (defun eclim--java-package-components (package)
   "Returns the components of a Java package statement."

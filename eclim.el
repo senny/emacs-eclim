@@ -87,7 +87,8 @@ saved."
 (defvar eclim--file-coding-system-mapping
   '(("undecided-dos" . "iso-8859-1")
     ("dos" . "iso-8859-1")
-    ("undecided-unix" . "iso-8859-1")))
+    ("undecided-unix" . "iso-8859-1")
+    ("utf-8-dos" . "utf-8")))
 
 (defvar eclim--compressed-urls-regexp "\\(^jar:file://\\)\\|\\(^zip://\\)")
 (defvar eclim--compressed-file-path-replacement-regexp "\\\\")
