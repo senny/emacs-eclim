@@ -27,6 +27,9 @@
 
 (defvar eclim-project-mode-hook nil)
 
+(defvar eclim--project-scopes '("project"
+                                "workspace"))
+
 (defvar eclim-project-mode-map
   (let ((map (make-keymap)))
     (suppress-keymap map t)
@@ -41,7 +44,6 @@
     (define-key map (kbd "I") 'eclim-project-import)
     (define-key map (kbd "g") 'eclim-project-goto)
     (define-key map (kbd "D") 'eclim-project-delete)
-    ;; TODO: find a better shortcut for updating
     (define-key map (kbd "p") 'eclim-project-update)
     (define-key map (kbd "r") 'eclim-project-mode-refresh)
     (define-key map (kbd "R") 'eclim-project-rename)
@@ -50,7 +52,11 @@
 
 
 (define-key eclim-mode-map (kbd "C-c C-e g") 'eclim-project-goto)
-(define-key eclim-mode-map (kbd "C-c C-e p") 'eclim-manage-projects)
+(define-key eclim-mode-map (kbd "C-c C-e p p") 'eclim-manage-projects)
+(define-key eclim-mode-map (kbd "C-c C-e p i") 'eclim-project-import)
+(define-key eclim-mode-map (kbd "C-c C-e p c") 'eclim-project-create)
+(define-key eclim-mode-map (kbd "C-c C-e p g") 'eclim-project-goto)
+(define-key eclim-mode-map (kbd "C-c C-e m") 'eclim-manage-projects)
 
 (defun eclim--project-clear-cache ()
   (setq eclim--project-natures-cache nil)
@@ -76,7 +82,7 @@
         (or (if single nil (eclim--project-get-marked))
             (eclim--project-current-line)))
     (eclim--completing-read "Project: "
-                         (mapcar (lambda (row) (nth 2 row)) (eclim/project-list)))))
+                            (mapcar (lambda (row) (nth 2 row)) (eclim/project-list)))))
 
 (defun eclim--project-mode-init ()
   (switch-to-buffer (get-buffer-create "*eclim: projects*"))
@@ -220,17 +226,22 @@
   (eclim--check-project project)
   (eclim--call-process "project_refresh_file" "-p" project "-f" file))
 
-(defun eclim/project-update (project)
+(defun eclim/project-update (project &optional buildfile settings)
   (eclim--check-project project)
-  ;; TODO: add buildfile and settings options
-  (eclim--call-process "project_update" "-p" project))
+  (eclim--call-process (eclim--build-command "project_update"
+                                             "-p" project
+                                             "-b" buildfile
+                                             "-s" settings)))
 
 (defun eclim/project-nature-aliases ()
   (eclim--call-process "project_nature_aliases"))
 
-(defun eclim/project-file-locate (project pattern)
-  (eclim--check-project project)
-  (eclim--call-process "locate_file" "-p" pattern "-s" "project" "-n" project))
+(defun eclim/project-file-locate (pattern scope &optional project)
+  (when project (eclim--check-project project))
+  (apply 'eclim--call-process (eclim--build-command "locate_file"
+                                             "-p" pattern
+                                             "-s" scope
+                                             "-n" project)))
 
 (defun eclim/project-links (project)
   (eclim--check-project project)

@@ -37,7 +37,6 @@
 (define-key eclim-mode-map (kbd "C-c C-e f f") 'eclim-java-find-generic)
 (define-key eclim-mode-map (kbd "C-c C-e i") 'eclim-java-import-missing)
 (define-key eclim-mode-map (kbd "C-c C-e h") 'eclim-java-hierarchy)
-;; TODO: find better binding for implement
 (define-key eclim-mode-map (kbd "C-c C-e z") 'eclim-java-implement)
 
 (defgroup eclim-java nil
