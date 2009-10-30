@@ -53,10 +53,10 @@
 
 (define-key eclim-mode-map (kbd "C-c C-e g") 'eclim-project-goto)
 (define-key eclim-mode-map (kbd "C-c C-e p p") 'eclim-manage-projects)
+(define-key eclim-mode-map (kbd "C-c C-e p m") 'eclim-manage-projects)
 (define-key eclim-mode-map (kbd "C-c C-e p i") 'eclim-project-import)
 (define-key eclim-mode-map (kbd "C-c C-e p c") 'eclim-project-create)
 (define-key eclim-mode-map (kbd "C-c C-e p g") 'eclim-project-goto)
-(define-key eclim-mode-map (kbd "C-c C-e m") 'eclim-manage-projects)
 
 (defun eclim--project-clear-cache ()
   (setq eclim--project-natures-cache nil)
