@@ -203,7 +203,6 @@ has been found."
                                        encoding
                                        " ")))
 
-
 (defun eclim-java-hierarchy (project file offset encoding)
   (interactive (list (eclim--project-name)
                      (eclim--project-current-file)
@@ -335,7 +334,6 @@ the string from BEG to (point)."
                         (eclim--byte-offset))
                       0))))
     (cons beg (buffer-substring-no-properties beg (point)))))
-
 
 (defun eclim--java-package-components (package)
   "Returns the components of a Java package statement."

@@ -103,6 +103,15 @@ saved."
   (let ((w (string-width string)))
     (equal (substring-no-properties string (- w (string-width prefix)) w) prefix)))
 
+(defun string-startswith-p (string prefix)
+  ;; TODO: there is probably already a library function that does this
+  (equal (substring-no-properties string 0 (string-width prefix)) prefix))
+
+(defun string-endswith-p (string prefix)
+  ;; TODO: there is probably already a library function that does this
+  (let ((w (string-width string)))
+    (equal (substring-no-properties string (- w (string-width prefix)) w) prefix)))
+
 (defun eclim--buffer-lines ()
   (goto-char (point-max))
   (let (lines)
@@ -231,9 +240,16 @@ saved."
 
 (defun eclim--byte-offset ()
   ;; TODO: restricted the ugly newline counting to dos buffers => remove it all the way later
-  (let ((current-offset (position-bytes (1- (point)))))
+  (let ((current-offset (position-bytes (1- (point))))
+        (current-file buffer-file-name)
+        (current-line (line-number-at-pos (point))))
     (when (not current-offset) (setq current-offset 0))
     (if (string-match "dos" (symbol-name buffer-file-coding-system))
+        (save-excursion
+          (set-buffer (get-buffer-create "*eclim: temporary*"))
+          (erase-buffer)
+          (insert-file-contents-literally buffer-file-name)
+          (goto-line current-line))
         (+ current-offset (how-many "\n" (point-min) (point)))
       current-offset)))
 
