@@ -502,5 +502,9 @@ user if necessary."
   (when eclim-auto-save (save-buffer))
   (eclim--java-complete-internal (mapcar 'second (eclim/java-complete))))
 
+;; Request an eclipse source update when files are saved
+(add-hook 'after-save-hook
+	  (lambda ()
+	    (if eclim-mode (eclim--java-src-update))))
 
 (provide 'eclim-java)
