@@ -103,15 +103,6 @@ saved."
   (let ((w (string-width string)))
     (equal (substring-no-properties string (- w (string-width prefix)) w) prefix)))
 
-(defun string-startswith-p (string prefix)
-  ;; TODO: there is probably already a library function that does this
-  (equal (substring-no-properties string 0 (string-width prefix)) prefix))
-
-(defun string-endswith-p (string prefix)
-  ;; TODO: there is probably already a library function that does this
-  (let ((w (string-width string)))
-    (equal (substring-no-properties string (- w (string-width prefix)) w) prefix)))
-
 (defun eclim--buffer-lines ()
   (goto-char (point-max))
   (let (lines)
@@ -267,14 +258,6 @@ saved."
                                      coding-system
                                      eclim--file-coding-system-mapping))))
     (if mapped-coding-system mapped-coding-system coding-system)))
-
-(defun eclim--java-src-update ()
-  (when eclim-auto-save
-    (save-buffer)
-    ;; TODO: Sometimes this isn't finished when we complete.
-    (eclim--call-process "java_src_update"
-                         "-p" (eclim--project-name)
-                         "-f" (eclim--project-current-file))))
 
 (defun eclim/workspace-dir ()
   (car (eclim--call-process "workspace_dir")))

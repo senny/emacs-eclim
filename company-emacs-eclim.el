@@ -79,7 +79,7 @@
   (interactive "d")
   (let ((project-file (eclim--project-current-file))
         (project-name (eclim--project-name)))
-    (eclim--java-src-update)
+    (eclim/java-src-update)
     (setq cee--candidates  (cee--correct-completions (eclim/java-complete))))
   (let ((completion-ignore-case nil))
     (all-completions prefix (mapcar 'eclim--completion-candidate-doc cee--candidates))))

@@ -83,6 +83,13 @@
                                "-l" "standard"
                                "-o" (number-to-string (eclim--byte-offset)))))
 
+(defun eclim/java-src-update ()
+  (when eclim-auto-save
+    (save-buffer)
+    ;; TODO: Sometimes this isn't finished when we complete.
+    (eclim--call-process "java_src_update"
+                         "-p" (eclim--project-name)
+                         "-f" (eclim--project-current-file))))
 
 (defun eclim--java-current-class-name ()
   "Searches backward in the current buffer until a class declaration
@@ -178,7 +185,7 @@ has been found."
                                                             "-i" case-insensitive))))
 
 (defun eclim/java-refactor-rename (project file name offset length encoding &optional preview diff)
-  (eclim--java-src-update)
+  (eclim/java-src-update)
   (eclim/project-update project)
   (apply 'eclim--call-process (eclim--build-command "java_refactor_rename"
                                                     "-p" project
@@ -441,7 +448,7 @@ user if necessary."
 
 (defun eclim-java-remove-unused-imports ()
   (interactive)
-  (eclim--java-src-update)
+  (eclim/java-src-update)
   (let ((imports-order (eclim/java-import-order (eclim--project-name)))
         (unused (eclim/java-import-unused (eclim--project-name))))
     (eclim--java-organize-imports imports-order nil unused)))
@@ -505,6 +512,6 @@ user if necessary."
 ;; Request an eclipse source update when files are saved
 (add-hook 'after-save-hook
 	  (lambda ()
-	    (if eclim-mode (eclim--java-src-update))))
+	    (if eclim-mode (eclim/java-src-update))))
 
 (provide 'eclim-java)
