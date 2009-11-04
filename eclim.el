@@ -238,20 +238,28 @@ saved."
   (set-buffer (get-buffer-create "*eclim-temporary-buffer*"))
   (delete-region (point-min) (point-max)))
 
-(defun eclim--byte-offset ()
+(defun eclim--byte-offset (&optional text)
   ;; TODO: restricted the ugly newline counting to dos buffers => remove it all the way later
-  (let ((current-offset (position-bytes (1- (point))))
-        (current-file buffer-file-name)
-        (current-line (line-number-at-pos (point))))
+  (let ((current-offset (position-bytes (1- (point)))))
     (when (not current-offset) (setq current-offset 0))
     (if (string-match "dos" (symbol-name buffer-file-coding-system))
-        (save-excursion
-          (set-buffer (get-buffer-create "*eclim: temporary*"))
-          (erase-buffer)
-          (insert-file-contents-literally buffer-file-name)
-          (goto-line current-line))
         (+ current-offset (how-many "\n" (point-min) (point)))
       current-offset)))
+
+;; (defun eclim--byte-offset ()
+;;   ;; TODO: restricted the ugly newline counting to dos buffers => remove it all the way later
+;;   (let ((current-offset (position-bytes (1- (point))))
+;;         (current-file buffer-file-name)
+;;         (current-line (line-number-at-pos (point))))
+;;     (when (not current-offset) (setq current-offset 0))
+;;     (if (string-match "dos" (symbol-name buffer-file-coding-system))
+;;         (save-excursion
+;;           (set-buffer (get-buffer-create "*eclim: temporary*"))
+;;           (erase-buffer)
+;;           (insert-file-contents-literally buffer-file-name)
+;;           (goto-line current-line))
+;;         (+ current-offset (how-many "\n" (point-min) (point)))
+;;       current-offset)))
 
 (defun eclim--current-encoding ()
   (let* ((coding-system (symbol-name buffer-file-coding-system))
