@@ -368,18 +368,16 @@ the string from BEG to (point)."
                                 (sort-imports (rest imports-order)
                                               (remove-if #'matches-prefix imports)
                                               (append result (remove-if-not #'matches-prefix imports)))))))
-         (remove-duplicates (imports result)
-                            (if (null imports) result
-                              (let ((f (first imports))
-                                    (n (second imports)))
-                                (if (null n) (cons f result)
-                                  (if (or (eclim--java-wildcard-includes-p f n)
-                                          (equal f n))
-                                      (remove-duplicates (cons f (rest (rest imports))) result)
-                                    (remove-duplicates (rest imports) (cons f result))))))))
-    (reverse
-     (remove-duplicates
-      (sort-imports imports-order (sort imports #'string-lessp) '()) '()))))
+	 (remove-duplicates (import result)
+			    (loop for imp = import then (cdr imp)
+				  for f = (first imp)
+				  for n = (second imp)
+				  while imp
+				  when (not (or (eclim--java-wildcard-includes-p f n)
+						(equal f n)))
+				  collect f)))
+    (remove-duplicates
+     (sort-imports imports-order (sort imports #'string-lessp) '()) '())))
 
 (defun eclim--java-extract-imports ()
   "Extracts (by removing) import statements of a java
@@ -406,18 +404,19 @@ cursor at a suitable point for re-inserting new import statements."
   rest. Imports listed in the optional parameter UNUSED-IMPORTS
   will be removed."
   (save-excursion
-    (flet ((write-imports (imports last-import-first-part)
-                          (when imports
-                            (let ((first-part (first (eclim--java-package-components (first imports)))))
-                              (if (not (equal last-import-first-part first-part))
-                                  (newline))
-                              (insert (format "import %s;\n" (first imports)))
-                              (write-imports (rest imports) first-part)))))
+    (flet ((write-imports (imports)
+	    (loop for imp in imports
+		  for last-import-first-part = nil then first-part
+		  for first-part = (first (eclim--java-package-components imp))
+		  do (progn 
+		       (unless (equal last-import-first-part first-part)
+			 (newline))
+		       (insert (format "import %s;\n" imp))))))
       (let ((imports
              (remove-if #'eclim--java-ignore-import-p
                         (remove-if (lambda (x) (member x unused-imports))
                                    (append (eclim--java-extract-imports) additional-imports)))))
-        (write-imports (eclim--java-sort-imports imports imports-order) nil)))))
+        (write-imports (eclim--java-sort-imports imports imports-order))))))
 
 (defun eclim-java-import ()
   "Reads the token at the point and calls eclim to resolve it to
