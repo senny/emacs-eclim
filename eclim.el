@@ -95,6 +95,8 @@ saved."
 (defvar eclim--compressed-file-path-replacement-regexp "\\\\")
 (defvar eclim--compressed-file-path-removal-regexp "^/")
 
+(defvar eclim--supress-errors nil)
+
 (defun string-startswith-p (string prefix)
   ;; TODO: there is probably already a library function that does this
   (equal (substring-no-properties string 0 (string-width prefix)) prefix))
@@ -115,11 +117,14 @@ saved."
     lines))
 
 (defun eclim--error-buffer (text)
-  (let ((errbuf (get-buffer-create "*Eclim errors*")))
-    (set-buffer errbuf)
-    (insert text)
-    (setq buffer-read-only t)
-    (display-buffer errbuf t)))
+  (unless eclim--supress-errors
+    (let ((errbuf (get-buffer-create "*Eclim errors*")))
+      (set-buffer errbuf)
+      (setq buffer-read-only nil)
+      (goto-char (point-max))
+      (insert text)
+      (setq buffer-read-only t)
+      (display-buffer errbuf t))))b
 
 (defun eclim--build-command (command &rest args)
   (let ((i 0)

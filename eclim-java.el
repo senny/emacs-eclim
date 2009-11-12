@@ -1,4 +1,4 @@
-;; eclim-java.el --- an interface to the Eclipse IDE.
+t;; eclim-java.el --- an interface to the Eclipse IDE.
 ;;
 ;; Copyright (C) 2009  Yves Senn <yves senn * gmx ch>
 ;;
@@ -511,6 +511,7 @@ user if necessary."
 ;; Request an eclipse source update when files are saved
 (add-hook 'after-save-hook
 	  (lambda ()
-	    (if eclim-mode (eclim/java-src-update))))
+	    (let ((eclim--supress-errors t))
+	      (if eclim-mode (eclim/java-src-update)))))
 
 (provide 'eclim-java)
