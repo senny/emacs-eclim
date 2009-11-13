@@ -84,12 +84,13 @@ t;; eclim-java.el --- an interface to the Eclipse IDE.
                                "-o" (number-to-string (eclim--byte-offset)))))
 
 (defun eclim/java-src-update ()
-  (when eclim-auto-save
-    (save-buffer)
-    ;; TODO: Sometimes this isn't finished when we complete.
-    (eclim--call-process "java_src_update"
-                         "-p" (eclim--project-name)
-                         "-f" (eclim--project-current-file))))
+  (let ((project-name (eclim--project-name)))
+    (when (and eclim-auto-save project-name)
+      (save-buffer)
+      ;; TODO: Sometimes this isn't finished when we complete.
+      (eclim--call-process "java_src_update"
+			   "-p" (eclim--project-name)
+			   "-f" (eclim--project-current-file)))))
 
 (defun eclim--java-current-class-name ()
   "Searches backward in the current buffer until a class declaration
