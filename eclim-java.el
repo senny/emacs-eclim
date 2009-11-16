@@ -1,4 +1,4 @@
-t;; eclim-java.el --- an interface to the Eclipse IDE.
+;; eclim-java.el --- an interface to the Eclipse IDE.
 ;;
 ;; Copyright (C) 2009  Yves Senn <yves senn * gmx ch>
 ;;
@@ -521,6 +521,6 @@ user if necessary."
                              (when (member major-mode eclim-java-major-modes)
                                (let ((eclim--supress-errors t))
                                  (if eclim-mode (eclim/java-src-update))))
-                             t)))
+                             t))
 
 (provide 'eclim-java)
