@@ -51,6 +51,13 @@ t;; eclim-java.el --- an interface to the Eclipse IDE.
   :group 'eclim-java
   :type 'regexp)
 
+(defcustom eclim-java-major-modes '(java-mode jde-mode)
+  "This variable contains a list of major modes to edit java
+files. There are certain operations, that eclim will only perform when
+the current buffer is contained within this list"
+  :group 'eclim-java
+  :type 'list)
+
 (defvar eclim--java-search-types '("all"
                                    "annotation"
                                    "class"
@@ -84,12 +91,13 @@ t;; eclim-java.el --- an interface to the Eclipse IDE.
                                "-o" (number-to-string (eclim--byte-offset)))))
 
 (defun eclim/java-src-update ()
-  (when eclim-auto-save
-    (save-buffer)
-    ;; TODO: Sometimes this isn't finished when we complete.
-    (eclim--call-process "java_src_update"
-                         "-p" (eclim--project-name)
-                         "-f" (eclim--project-current-file))))
+  (let ((project-name (eclim--project-name)))
+    (when (and eclim-auto-save project-name)
+      (save-buffer)
+      ;; TODO: Sometimes this isn't finished when we complete.
+      (eclim--call-process "java_src_update"
+                           "-p" (eclim--project-name)
+                           "-f" (eclim--project-current-file)))))
 
 (defun eclim--java-current-class-name ()
   "Searches backward in the current buffer until a class declaration
@@ -368,14 +376,14 @@ the string from BEG to (point)."
                                 (sort-imports (rest imports-order)
                                               (remove-if #'matches-prefix imports)
                                               (append result (remove-if-not #'matches-prefix imports)))))))
-	 (remove-duplicates (import result)
-			    (loop for imp = import then (cdr imp)
-				  for f = (first imp)
-				  for n = (second imp)
-				  while imp
-				  when (not (or (eclim--java-wildcard-includes-p f n)
-						(equal f n)))
-				  collect f)))
+         (remove-duplicates (import result)
+                            (loop for imp = import then (cdr imp)
+                                  for f = (first imp)
+                                  for n = (second imp)
+                                  while imp
+                                  when (not (or (eclim--java-wildcard-includes-p f n)
+                                                (equal f n)))
+                                  collect f)))
     (remove-duplicates
      (sort-imports imports-order (sort imports #'string-lessp) '()) '())))
 
@@ -405,13 +413,13 @@ cursor at a suitable point for re-inserting new import statements."
   will be removed."
   (save-excursion
     (flet ((write-imports (imports)
-	    (loop for imp in imports
-		  for last-import-first-part = nil then first-part
-		  for first-part = (first (eclim--java-package-components imp))
-		  do (progn 
-		       (unless (equal last-import-first-part first-part)
-			 (newline))
-		       (insert (format "import %s;\n" imp))))))
+                          (loop for imp in imports
+                                for last-import-first-part = nil then first-part
+                                for first-part = (first (eclim--java-package-components imp))
+                                do (progn
+                                     (unless (equal last-import-first-part first-part)
+                                       (newline))
+                                     (insert (format "import %s;\n" imp))))))
       (let ((imports
              (remove-if #'eclim--java-ignore-import-p
                         (remove-if (lambda (x) (member x unused-imports))
@@ -509,9 +517,10 @@ user if necessary."
   (eclim--java-complete-internal (mapcar 'second (eclim/java-complete))))
 
 ;; Request an eclipse source update when files are saved
-(add-hook 'after-save-hook
-	  (lambda ()
-	    (let ((eclim--supress-errors t))
-	      (if eclim-mode (eclim/java-src-update)))))
+(add-hook 'after-save-hook (lambda ()
+                             (when (member major-mode eclim-java-major-modes)
+                               (let ((eclim--supress-errors t))
+                                 (if eclim-mode (eclim/java-src-update))))
+                             t))
 
 (provide 'eclim-java)

@@ -124,7 +124,7 @@ saved."
       (goto-char (point-max))
       (insert text)
       (setq buffer-read-only t)
-      (display-buffer errbuf t))))b
+      (display-buffer errbuf t))))
 
 (defun eclim--build-command (command &rest args)
   (let ((i 0)
