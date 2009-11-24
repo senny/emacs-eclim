@@ -36,6 +36,7 @@ t;; eclim-java.el --- an interface to the Eclipse IDE.
 (define-key eclim-mode-map (kbd "C-c C-e f t") 'eclim-java-find-type)
 (define-key eclim-mode-map (kbd "C-c C-e f f") 'eclim-java-find-generic)
 (define-key eclim-mode-map (kbd "C-c C-e i") 'eclim-java-import-missing)
+(define-key eclim-mode-map (kbd "C-c C-e u") 'eclim-java-remove-unused-imports)
 (define-key eclim-mode-map (kbd "C-c C-e h") 'eclim-java-hierarchy)
 (define-key eclim-mode-map (kbd "C-c C-e z") 'eclim-java-implement)
 
