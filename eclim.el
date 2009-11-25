@@ -202,7 +202,7 @@ saved."
 	(erase-buffer)
 	(insert (concat "-*- mode: eclim-find; default-directory: " base-directory " -*-"))
 	(newline 2)
-	(insert (concat "eclim java_sarch -p " pattern))
+	(insert (concat "eclim java_search -p " pattern))
 	(newline)
 	(dolist (result res)
 	  (insert (eclim--convert-find-result-to-string result base-directory))

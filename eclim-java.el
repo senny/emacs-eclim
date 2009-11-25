@@ -300,7 +300,7 @@ has been found."
                                              (if (string-match-p "^[A-Z]" current-symbol)
                                                  current-symbol
                                                (eclim--java-current-class-name))))))
-  (eclim-java-find-generic nil "declarations" "classOrInterface" class-name t))
+  (eclim-java-find-generic nil "declarations" "type" class-name t))
 
 (defun eclim-java-find-generic (scope context type pattern &optional open-single-file)
   (interactive (list (eclim--completing-read "Scope: " eclim--java-search-scopes)
