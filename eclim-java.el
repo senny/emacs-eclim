@@ -402,8 +402,10 @@ cursor at a suitable point for re-inserting new import statements."
   (goto-char 0)
   (let ((imports '()))
     (while (search-forward-regexp "^\s*import \\(.*\\);" nil t)
-      (push (match-string-no-properties 1) imports)
-      (delete-region (line-beginning-position) (line-end-position)))
+      (unless (save-match-data
+		(string-match "^\s*import\s*static" (match-string 0)))
+	(push (match-string-no-properties 1) imports)
+	(delete-region (line-beginning-position) (line-end-position))))
     (delete-blank-lines)
     (if (null imports)
         (progn
