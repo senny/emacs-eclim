@@ -392,12 +392,11 @@ the string from BEG to (point)."
   "Extracts (by removing) import statements of a java
 file. Returns a list of the extracted imports. Tries to leave the
 cursor at a suitable point for re-inserting new import statements."
+  (goto-char 0)
   (let ((imports '()))
-    (goto-char 0)
     (while (search-forward-regexp "^\s*import \\(.*\\);" nil t)
       (push (match-string-no-properties 1) imports)
-      (beginning-of-line)
-      (kill-line))
+      (delete-region (line-beginning-position) (line-end-position)))
     (delete-blank-lines)
     (if (null imports)
         (progn
