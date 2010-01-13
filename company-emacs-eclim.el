@@ -186,10 +186,14 @@ available."
 	;; Otherwise, check if this is a method call
 	(if (string= "f" type)
 	    (let ((call-args (cee--method-call candidate)))
-	      (cee--delete-backward "(")
+	      (push-mark)
+	      (goto-char (search-backward "("))
 	      (cee--show-arg-list "("
 				  (mapcar (lambda (c) (concat (first c) " " (second c))) call-args)
-				  ", " ")"))
+				  ", " ")")
+	      (save-excursion
+		(delete-region (1- (search-forward "(")) (mark)))
+	      (pop-mark))
 	  ;; Otherwise, just delete the doc string
 	  (cee--delete-backward " : "))))))
 
