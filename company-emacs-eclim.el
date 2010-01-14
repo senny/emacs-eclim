@@ -192,7 +192,7 @@ available."
 				  (mapcar (lambda (c) (concat (first c) " " (second c))) call-args)
 				  ", " ")")
 	      (save-excursion
-		(delete-region (1- (search-forward "(")) (mark)))
+		(delete-region (1- (search-forward "(")) (mark t)))
 	      (pop-mark))
 	  ;; Otherwise, just delete the doc string
 	  (cee--delete-backward " : "))))))
