@@ -100,13 +100,20 @@ the current buffer is contained within this list"
                            "-p" (eclim--project-name)
                            "-f" (eclim--project-current-file)))))
 
+(defun eclim--java-current-type-name (&optional type)
+  "Searches backward in the current buffer until a type
+declaration has been found. TYPE may be either 'class',
+'interface', 'enum' or nil, meaning 'match all of the above'."
+  (save-excursion
+    (if (re-search-backward 
+	 (concat (or type "\\(class\\|interface\\|enum\\)") "[ ]+\\([a-zA-Z]+\\) ") nil t)
+        (match-string 2)
+      "")))
+
 (defun eclim--java-current-class-name ()
   "Searches backward in the current buffer until a class declaration
 has been found."
-  (save-excursion
-    (if (re-search-backward "class[ ]+\\([a-zA-Z]+\\) " nil t)
-        (match-string 1)
-      "")))
+  (eclim--java-current-type-name "class"))
 
 (defun eclim--java-symbol-remove-prefix (name)
   (if (string-match eclim-java-field-prefixes name)
@@ -293,14 +300,14 @@ has been found."
   (eclim--find-display-results pattern
                                (eclim--java-find-references pattern)))
 
-(defun eclim-java-find-type (class-name)
-  "Searches the project for a given class. The CLASS-NAME is the pattern, which will be used for the search."
+(defun eclim-java-find-type (type-name)
+  "Searches the project for a given class. The TYPE-NAME is the pattern, which will be used for the search."
   (interactive (list (read-string "Name: " (let ((case-fold-search nil)
                                                  (current-symbol (symbol-name (symbol-at-point))))
                                              (if (string-match-p "^[A-Z]" current-symbol)
                                                  current-symbol
-                                               (eclim--java-current-class-name))))))
-  (eclim-java-find-generic nil "declarations" "type" class-name t))
+                                               (eclim--java-current-type-name))))))
+  (eclim-java-find-generic nil "declarations" "type" type-name t))
 
 (defun eclim-java-find-generic (scope context type pattern &optional open-single-file)
   (interactive (list (eclim--completing-read "Scope: " eclim--java-search-scopes)
@@ -320,7 +327,7 @@ has been found."
     (save-excursion
       (re-search-backward "[. ]" nil t)
       (let ((pattern (if (string= (char-to-string (char-after (point))) " ")
-                         (concat (eclim--java-current-class-name) "." java-symbol)
+                         (concat (eclim--java-current-type-name) "." java-symbol)
                        java-symbol)))
         (forward-char 1)
         (third (car (eclim--java-find-declaration pattern "method")))))))
