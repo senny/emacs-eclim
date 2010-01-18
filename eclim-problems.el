@@ -5,9 +5,23 @@
 
 (defvar eclim--problems-project nil)
 
-(defvar eclim-problems-mode-map
+(setq eclim-problems-mode-map
   (let ((map (make-keymap)))
+	(suppress-keymap map t)
+	(define-key map (kbd "a") 'eclim-problems-show-all)
+	(define-key map (kbd "e") 'eclim-problems-show-errors)
+	(define-key map (kbd "g") 'eclim-problems-buffer-refresh)
+	(define-key map (kbd "q") 'quit-window)
+	(define-key map (kbd "w") 'eclim-problems-show-warnings)
     map))
+
+(defvar eclim--problems-list nil)
+
+(defvar eclim--problems-filter nil)
+
+(defvar eclim--problems-faces
+  '(("e" foreground-color . "red")
+    ("w" foreground-color . "yellow")))
 
 (defun eclim--problems-mode ()
   (kill-all-local-variables)
@@ -35,11 +49,37 @@
 (defun eclim--problem-description (p) (third p))
 (defun eclim--problem-type (p) (fourth p))
 
-(defun eclim--problems-buffer-refresh ()
+(defun eclim--problems-apply-filter (f)
+  (setq eclim--problems-filter f)
+  (eclim--problems-buffer-redisplay))
+
+(defun eclim-problems-show-errors ()
+  (interactive)
+  (eclim--problems-apply-filter "e"))
+
+(defun eclim-problems-show-warnings ()
+  (interactive)
+  (eclim--problems-apply-filter "w"))
+
+(defun eclim-problems-show-all ()
+  (interactive)
+  (eclim--problems-apply-filter nil))
+
+(defun eclim-problems-buffer-refresh ()
+  "Refresh the problem list and draw it on screen."
+  (interactive)
+  (setq eclim--problems-list (eclim--problems))
+  (eclim--problems-buffer-redisplay))
+  
+(defun eclim--problems-buffer-redisplay ()
+  "Draw the problem list on screen."
   (let ((inhibit-read-only t)
 	(line-number (line-number-at-pos)))
     (erase-buffer)
-    (dolist (problem (eclim--problems))
+    (dolist (problem (remove-if-not 
+		      (lambda (x) (or (not eclim--problems-filter) 
+				      (string= (eclim--problem-type x) eclim--problems-filter)))
+		     eclim--problems-list))
       (eclim--insert-problem problem))
     (goto-line line-number)))
 
@@ -54,7 +94,7 @@
   (setq eclim--problems-project (eclim--project-name))
   (switch-to-buffer (get-buffer-create "*eclim: problems*"))
   (eclim--problems-mode)
-  (eclim--problems-buffer-refresh)
+  (eclim-problems-buffer-refresh)
   (beginning-of-buffer))
 
 (defun eclim-problems ()
@@ -66,4 +106,4 @@
 
 (add-hook 'after-save-hook #'eclim--problems-update-maybe)
 
-(provide 'eclim-problems')
+(provide 'eclim-problems)
