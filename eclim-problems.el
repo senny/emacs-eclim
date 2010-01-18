@@ -6,14 +6,15 @@
 (defvar eclim--problems-project nil)
 
 (setq eclim-problems-mode-map
-  (let ((map (make-keymap)))
+      (let ((map (make-keymap)))
 	(suppress-keymap map t)
 	(define-key map (kbd "a") 'eclim-problems-show-all)
 	(define-key map (kbd "e") 'eclim-problems-show-errors)
 	(define-key map (kbd "g") 'eclim-problems-buffer-refresh)
 	(define-key map (kbd "q") 'quit-window)
 	(define-key map (kbd "w") 'eclim-problems-show-warnings)
-    map))
+	(define-key map (kbd "RET") 'eclim-problems-open-current)
+	map))
 
 (defvar eclim--problems-list nil)
 
@@ -40,9 +41,9 @@
 (defun eclim--problems ()
   "Calls eclipse to obtain all current problems. Returns a list of lists."
   (remove-if-not (lambda (l) (= (length l) 4)) ;; for now, ignore multiline errors
-	  (mapcar (lambda (line) (split-string line "|" nil))
-		  (eclim--call-process "problems" 
-				       "-p" eclim--problems-project))))
+		 (mapcar (lambda (line) (split-string line "|" nil))
+			 (eclim--call-process "problems" 
+					      "-p" eclim--problems-project))))
 
 (defun eclim--problem-file (p) (first p))
 (defun eclim--problem-pos (p) (second p))
@@ -65,23 +66,36 @@
   (interactive)
   (eclim--problems-apply-filter nil))
 
+(defun eclim-problems-open-current ()
+  (interactive)
+  (let* ((p (nth (1- (line-number-at-pos)) (eclim--problems-filtered)))
+	 (pos (split-string (eclim--problem-pos p) " col ")))
+    (find-file-other-window (eclim--problem-file p))
+    (goto-line (string-to-int (first pos)))
+    (beginning-of-line)
+    (dotimes (i (1- (string-to-int (second pos))))
+      (forward-char))))
+
 (defun eclim-problems-buffer-refresh ()
   "Refresh the problem list and draw it on screen."
   (interactive)
   (setq eclim--problems-list (eclim--problems))
   (eclim--problems-buffer-redisplay))
-  
+
 (defun eclim--problems-buffer-redisplay ()
   "Draw the problem list on screen."
   (let ((inhibit-read-only t)
 	(line-number (line-number-at-pos)))
     (erase-buffer)
-    (dolist (problem (remove-if-not 
-		      (lambda (x) (or (not eclim--problems-filter) 
-				      (string= (eclim--problem-type x) eclim--problems-filter)))
-		     eclim--problems-list))
+    (dolist (problem (eclim--problems-filtered))
       (eclim--insert-problem problem))
     (goto-line line-number)))
+
+(defun eclim--problems-filtered ()
+  (remove-if-not 
+   (lambda (x) (or (not eclim--problems-filter) 
+		   (string= (eclim--problem-type x) eclim--problems-filter)))
+   eclim--problems-list))
 
 (defun eclim--insert-problem (problem)
   (insert (format "%-40s | %-12s | %s "
