@@ -273,15 +273,6 @@ saved."
   (eclim--call-process (eclim--build-command "jobs"
                                              "-f" family)))
 
-(defun eclim/problems (project)
-  (eclim--check-project project)
-  (eclim--call-process "problems" "-p" project))
-
-(defun eclim-problems ()
-  (interactive)
-  ;; TODO display the errors in a formatted list
-  (message (eclim/problems (eclim--project-name))))
-
 (defun eclim-complete ()
   (interactive)
   ;; TODO build context sensitive completion mechanism
@@ -315,5 +306,6 @@ saved."
 (require 'eclim-java)
 (require 'eclim-ant)
 (require 'eclim-maven)
+(require 'eclim-problems)
 
 (provide 'eclim)
