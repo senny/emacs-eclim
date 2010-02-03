@@ -16,6 +16,8 @@
 	(define-key map (kbd "RET") 'eclim-problems-open-current)
 	map))
 
+(define-key eclim-mode-map (kbd "C-c C-e b") 'eclim-problems)
+
 (defvar eclim--problems-list nil)
 
 (defvar eclim--problems-filter nil)

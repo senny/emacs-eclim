@@ -50,6 +50,9 @@ You can display a hierarchy of the java class in the current buffer. Use the fun
 #### override / implement methods
 With eclim you can easily choose the method you want to implement or override from a list. Just call `eclim-java-implement` to get a list of available method scaffolds.
 
+#### problems
+You can display a list of the current errors and warnings in the current project by calling `eclim-problems`. In the problems list you can switch between displaying only errors or errors/warnings by pressing "e" and "w" respectively, or jump to the source code for the current problem by pressing RET. Press "g" to refresh the display.
+
 ### Ant
 You can use the function `eclim-ant-run` to execute a given ant target from the current project. Be aware that emacs-eclim needs to be able to locate your build.xml file. You can use the `eclim-ant-directory` variable or overwrite the `eclim--ant-buildfile-name` function to customize how eclim locates your main buildfile.
 
