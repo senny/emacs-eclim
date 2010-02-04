@@ -106,7 +106,7 @@ declaration has been found. TYPE may be either 'class',
 'interface', 'enum' or nil, meaning 'match all of the above'."
   (save-excursion
     (if (re-search-backward 
-	 (concat (or type "\\(class\\|interface\\|enum\\)") "[ ]+\\([a-zA-Z]+\\) ") nil t)
+	 (concat (or type "\\(class\\|interface\\|enum\\)") "\\s-+\\([^<{\s-]+\\)") nil t)
         (match-string 2)
       "")))
 
