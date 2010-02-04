@@ -127,14 +127,11 @@ saved."
       (display-buffer errbuf t))))
 
 (defun eclim--build-command (command &rest args)
-  (let ((i 0)
-        (arguments (list command)))
-    (while (< i (length args))
-      (when (nth (+ i 1) args)
-        (add-to-list 'arguments (nth i args) t)
-        (add-to-list 'arguments (nth (+ i 1) args) t))
-      (setq i (+ i 2)))
-    arguments))
+  (cons command
+	(loop for a = args then (rest (rest a))
+	      for arg = (first a)
+	      for val = (second a)
+	      while arg when val append (list arg val))))
 
 (defun eclim--call-process (&rest args)
   (message (apply 'concat eclim-executable " -command " (mapcar (lambda (arg)
