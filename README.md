@@ -22,57 +22,20 @@ from eclipse to emacs.
         (global-eclim-mode)
 
 ## Usage
-To get started just lunch the eclim executable that the placed in your
-Eclipse installation directory.
+To get started just lunch the eclim executable that the placed in your Eclipse installation directory.
 
-### Projects
-The easiest way to manage your eclipse projects in emacs is to use the `eclim-manage-projects` command. This opens up a new buffer containing all the projects of your eclipse workspace.
-
-### Java
-
-#### code completion
-You have two possibilities to use the eclipse code completion mechanism inside emacs.
-
-1. standard completion using the **emacs \*completion\* buffer**
-   > to start the completion, call `eclim-emacs-complete`. This
-   is bound to M-TAB by default.
-1. company-mode backend called: **company-emacs-eclim**
-   >To activate this backend, replace `company-eclim` with
-   `company-emacs-eclim` in the `eclim-backends` list, or call the
-   convenience function `company-emacs-eclim-setup`.
-
-#### organizing java imports
-Emacs eclim allows you to use the import capabilities from Eclipse. When you call `emacs-eclim-import-missing` the needed imports will be added automatically. If there are multiple classes with the same name, you can choose the right one from a provided list. 
-
-#### class hierarchy
-You can display a hierarchy of the java class in the current buffer. Use the function `emacs-java-hierarchy` to open the hierarchy buffer. The elements in the buffer are linked to the corresponding source files. This does also work for compiled .class files inside JAR files. This feature uses JAD to decompile the java classes. Make sure you have the executable it in your PATH when you want to use it.
-
-#### override / implement methods
-With eclim you can easily choose the method you want to implement or override from a list. Just call `eclim-java-implement` to get a list of available method scaffolds.
-
-#### problems
-You can display a list of the current errors and warnings in the current project by calling `eclim-problems`. In the problems list you can switch between displaying only errors or errors/warnings by pressing "e" and "w" respectively, or jump to the source code for the current problem by pressing RET. Press "g" to refresh the display.
-
-### Ant
-You can use the function `eclim-ant-run` to execute a given ant target from the current project. Be aware that emacs-eclim needs to be able to locate your build.xml file. You can use the `eclim-ant-directory` variable or overwrite the `eclim--ant-buildfile-name` function to customize how eclim locates your main buildfile.
-
-### Maven
-Beside Ant you can now run maven life-cycle phases or call a specific goal. This works in all your project files, as long as emacs-eclim recognizes the eclipse project file. To run a maven phase just call `eclim-maven-lifecycle-phase-run` or `eclim-maven-run` to enter the name of a goal.
+[Java]
+[Ant]
+[Maven]
+[Projects]
 
 ## Contributing
 
-The project is pretty new and needs a lot of work. If you have some
-spare time and want to help us improve java development on emacs, just
-fork the project and send me a pull-request, once you want me to merge
-it back into the repository.
+The project is under active development and we are always looking for assistance.
 
-## Troubleshooting
-Make sure that you installed eclim correctly. The installer should have placed the following files into your Eclipse installation directory:
-
-    $ECLIPSE_HOME/eclimd
-    $ECLIPSE_HOME/plugins/org.eclim_1.4.5/bin/eclim
-
-Furthermore emacs eclim relies on a `eclim` executable that is placed in your PATH. If you don't want to add the executable installed into your Eclipse plugin directory you can place a script with the following content in your PATH.
-
-    #!/bin/sh
-    $ECLIPSE_HOME/plugins/org.eclim_1.4.5/bin/eclim $*
+1. [Fork][0] emacs-eclim
+2. Create a topic branch - `git checkout -b my_branch`
+3. Make your changes and update the History.txt file
+4. Push to your branch - `git push origin my_branch`
+5. Send me a pull-request for your topic branch
+6. That's it!
