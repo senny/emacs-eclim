@@ -1,0 +1,11 @@
+== In Git
+
+=== New Features
+ * organize imports
+ * browsing with the class hierarchy
+ * override / implement methods
+ * display problems
+ * run Ant targets
+ * run Maven phases and goals
+
+=== Bugfixes
