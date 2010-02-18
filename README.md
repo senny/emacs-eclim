@@ -23,7 +23,12 @@ from eclipse to emacs.
 
 ## Usage
 To get started just lunch the eclim executable that the placed in your Eclipse installation directory.
-[[Java]]
+* [Projects](http://wiki.github.com/senny/emacs-eclim/projects)
+* [Code Completion](http://wiki.github.com/senny/emacs-eclim/code-completion)
+* [Java](http://wiki.github.com/senny/emacs-eclim/java)
+* [Ant](http://wiki.github.com/senny/emacs-eclim/ant)
+* [Maven](http://wiki.github.com/senny/emacs-eclim/maven)
+* [Problems and Errors](http://wiki.github.com/senny/emacs-eclim/problems-and-errors)
 
 ## Contributing
 
