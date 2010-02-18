@@ -12,7 +12,6 @@ from eclipse to emacs.
 1. install eclim and follow the instructions
 1. download the emacs-eclim source code
 1. add the following code to your emacs startup script
-
         (add-to-list 'load-path (expand-file-name "/path/to/emacs-eclim/"))
         ;; only add the vendor path when you want to use the libraries provided with emacs-eclim
         (add-to-list 'load-path (expand-file-name "~/coding/git/emacs-eclim/vendor"))
@@ -23,6 +22,7 @@ from eclipse to emacs.
 
 ## Usage
 To get started just lunch the eclim executable that the placed in your Eclipse installation directory.
+
 * [Projects](http://wiki.github.com/senny/emacs-eclim/projects)
 * [Code Completion](http://wiki.github.com/senny/emacs-eclim/code-completion)
 * [Java](http://wiki.github.com/senny/emacs-eclim/java)
