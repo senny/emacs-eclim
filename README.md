@@ -23,11 +23,7 @@ from eclipse to emacs.
 
 ## Usage
 To get started just lunch the eclim executable that the placed in your Eclipse installation directory.
-
-[Java]
-[Ant]
-[Maven]
-[Projects]
+[[Java]]
 
 ## Contributing
 
