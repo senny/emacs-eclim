@@ -1,4 +1,4 @@
-t;; eclim-java.el --- an interface to the Eclipse IDE.
+t ;; eclim-java.el --- an interface to the Eclipse IDE.
 ;;
 ;; Copyright (C) 2009  Yves Senn <yves senn * gmx ch>
 ;;
@@ -218,13 +218,13 @@ has been found."
                      (eclim--project-current-file)
                      (read-string "Name: ")
                      (eclim--current-encoding)))
-  (message (eclim/java-refactor-rename project
-                                       file
-                                       name
-                                       (number-to-string (car (eclim--java-identifier-at-point2)))
-                                       (number-to-string (length (symbol-name (symbol-at-point))))
-                                       encoding
-                                       " ")))
+  (eclim/java-refactor-rename project
+			      file
+			      name
+			      (number-to-string (car (eclim--java-identifier-at-point2)))
+			      (number-to-string (length (symbol-name (symbol-at-point))))
+			      encoding
+			      " "))
 
 (defun eclim-java-hierarchy (project file offset encoding)
   (interactive (list (eclim--project-name)
@@ -475,11 +475,18 @@ user if necessary."
   (interactive)
   ;; TODO: present the user with more fine grain control over the selection of methods
   (let* ((response (eclim/java-impl (eclim--project-name) (eclim--project-current-file)))
-         (methods (remove-if-not (lambda (element) (string-match "(.*)" element))
-                                 response)))
-    (insert (eclim--completing-read "Signature: " methods) " {}")
-    (backward-char)))
-
+         (methods 
+	  (remove-if (lambda (element) (string-match "//" element))
+		     (remove-if-not (lambda (element) (string-match "(.*)" element))
+				    response)))
+	 (start (point)))
+    (insert 
+     "@Override\n"
+     (replace-regexp-in-string " abstract " " " 
+			       (eclim--completing-read "Signature: " methods)) 
+     " {}")
+    (backward-char)
+    (indent-region start (point))))
 
 (defun eclim--java-complete-internal (completion-list)
   (let* ((window (get-buffer-window "*Completions*" 0))
