@@ -33,7 +33,7 @@ To get started just lunch the eclim executable that the placed in your Eclipse i
 
 The project is under active development and we are always looking for assistance.
 
-1. [Fork][0] emacs-eclim
+1. Fork emacs-eclim
 2. Create a topic branch - `git checkout -b my_branch`
 3. Make your changes and update the History.txt file
 4. Push to your branch - `git push origin my_branch`
