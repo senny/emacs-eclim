@@ -228,10 +228,10 @@
 
 (defun eclim/project-update (project &optional buildfile settings)
   (eclim--check-project project)
-  (eclim--call-process (eclim--build-command "project_update"
-                                             "-p" project
-                                             "-b" buildfile
-                                             "-s" settings)))
+  (apply 'eclim--call-process (eclim--build-command "project_update"
+						    "-p" project
+						    "-b" buildfile
+						    "-s" settings)))
 
 (defun eclim/project-nature-aliases ()
   (eclim--call-process "project_nature_aliases"))
