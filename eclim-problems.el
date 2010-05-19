@@ -82,7 +82,10 @@
   "Refresh the problem list and draw it on screen."
   (interactive)
   (setq eclim--problems-list (eclim--problems))
-  (eclim--problems-buffer-redisplay))
+  (eclim--problems-buffer-redisplay)
+  (message "Eclim reports %d errors, %d warnings."
+	   (length (remove-if-not (lambda (p) (string-equal "e" (eclim--problem-type p))) eclim--problems-list))
+	   (length (remove-if-not (lambda (p) (string-equal "w" (eclim--problem-type p))) eclim--problems-list))))
 
 (defun eclim--problems-buffer-redisplay ()
   "Draw the problem list on screen."
@@ -110,7 +113,7 @@
   (setq eclim--problems-project (eclim--project-name))
   (switch-to-buffer (get-buffer-create "*eclim: problems*"))
   (eclim--problems-mode)
-  (eclim-problems-buffer-refresh)
+  (eclim-problems-buffer-refresh) 
   (beginning-of-buffer))
 
 (defun eclim-problems ()
@@ -118,8 +121,17 @@
   (interactive)
   (eclim--problems-mode-init))
 
-(defun eclim--problems-update-maybe ())
-
+(defun eclim--problems-update-maybe ()
+  "If autoupdate is enabled, this function triggers a delayed
+refresh of the problems buffer."
+  (when eclim-autoupdate-problems
+    (run-with-idle-timer 1 nil 
+			 (lambda() 
+			   (let ((b (current-buffer)))
+			     (switch-to-buffer (get-buffer-create "*eclim: problems*"))
+			     (eclim-problems-buffer-refresh)
+			     (switch-to-buffer b))))))
+ 
 (add-hook 'after-save-hook #'eclim--problems-update-maybe)
 
 (provide 'eclim-problems)
