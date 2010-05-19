@@ -106,26 +106,6 @@ saved."
   (let ((w (string-width string)))
     (equal (substring-no-properties string (- w (string-width prefix)) w) prefix)))
 
-(defun eclim--buffer-lines ()
-  (goto-char (point-max))
-  (let (lines)
-    (while (= 0 (forward-line -1))
-      (push (replace-regexp-in-string "" ""
-                                      (buffer-substring-no-properties (line-beginning-position)
-                                                                      (line-end-position)))
-            lines))
-    lines))
-
-(defun eclim--error-buffer (text)
-  (unless eclim--supress-errors
-    (let ((errbuf (get-buffer-create "*Eclim errors*")))
-      (set-buffer errbuf)
-      (setq buffer-read-only nil)
-      (goto-char (point-max))
-      (insert text)
-      (setq buffer-read-only t)
-      (display-buffer errbuf t))))
-
 (defun eclim--build-command (command &rest args)
   (cons command
 	(loop for a = args then (rest (rest a))
@@ -134,17 +114,13 @@ saved."
 	      while arg when val append (list arg val))))
 
 (defun eclim--call-process (&rest args)
-  (message (apply 'concat eclim-executable " -command " (mapcar (lambda (arg)
-                                                                  (concat " " arg)) args)))
-  (let ((coding-system-for-read 'utf-8))
-    (with-temp-buffer
-      (if (= 0 (apply 'call-process eclim-executable nil t nil
-                      "-command" args))
-          (eclim--buffer-lines)
-        (eclim--error-buffer
-         (buffer-substring-no-properties
-          (point-min) (point-max)))
-        nil))))
+  (let ((cmd (apply 'concat eclim-executable " -command " (mapcar (lambda (arg)
+								    (concat " " arg)) args))))
+    (message cmd)
+    (remove-if (lambda (s) (= 0 (length s)))
+	    (split-string
+	     (shell-command-to-string cmd)
+	     "\n"))))
 
 (defun eclim--completing-read (prompt choices)
   (funcall eclim-interactive-completion-function prompt choices))
@@ -240,21 +216,6 @@ saved."
     (if (string-match "dos" (symbol-name buffer-file-coding-system))
         (+ current-offset (how-many "\n" (point-min) (point)))
       current-offset)))
-
-;; (defun eclim--byte-offset ()
-;;   ;; TODO: restricted the ugly newline counting to dos buffers => remove it all the way later
-;;   (let ((current-offset (position-bytes (1- (point))))
-;;         (current-file buffer-file-name)
-;;         (current-line (line-number-at-pos (point))))
-;;     (when (not current-offset) (setq current-offset 0))
-;;     (if (string-match "dos" (symbol-name buffer-file-coding-system))
-;;         (save-excursion
-;;           (set-buffer (get-buffer-create "*eclim: temporary*"))
-;;           (erase-buffer)
-;;           (insert-file-contents-literally buffer-file-name)
-;;           (goto-line current-line))
-;;         (+ current-offset (how-many "\n" (point-min) (point)))
-;;       current-offset)))
 
 (defun eclim--current-encoding ()
   (let* ((coding-system (symbol-name buffer-file-coding-system))
