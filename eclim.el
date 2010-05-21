@@ -126,7 +126,7 @@ saved."
   (funcall eclim-interactive-completion-function prompt choices))
 
 (defun eclim--project-dir ()
-  "Return this file's project root directory."
+  "return this file's project root directory."
   (or eclim--project-dir
       (setq eclim--project-dir
             (directory-file-name
@@ -202,10 +202,6 @@ saved."
 
 (defun eclim--project-current-file ()
   (file-relative-name buffer-file-name (eclim--project-dir)))
-
-(defun eclim--temp-buffer ()
-  (set-buffer (get-buffer-create "*eclim-temporary-buffer*"))
-  (delete-region (point-min) (point-max)))
 
 (defun eclim--byte-offset (&optional text)
   ;; TODO: restricted the ugly newline counting to dos buffers => remove it all the way later
