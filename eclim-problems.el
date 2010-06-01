@@ -124,7 +124,8 @@
 (defun eclim--problems-update-maybe ()
   "If autoupdate is enabled, this function triggers a delayed
 refresh of the problems buffer."
-  (when eclim-autoupdate-problems
+  (when (and eclim--project-dir
+	     eclim-autoupdate-problems)
     (run-with-idle-timer 1 nil 
 			 (lambda() 
 			   (let ((b (current-buffer)))
