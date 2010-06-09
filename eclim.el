@@ -126,7 +126,7 @@ saved."
   (funcall eclim-interactive-completion-function prompt choices))
 
 (defun eclim--project-dir ()
-  "Return this file's project root directory."
+  "return this file's project root directory."
   (or eclim--project-dir
       (setq eclim--project-dir
             (directory-file-name
@@ -166,21 +166,19 @@ saved."
         (beginning-of-buffer)
         (kill-buffer old-buffer)))))
 
-(defun eclim--find-display-results (pattern results &optional open-single-file base-directory)
+(defun eclim--find-display-results (pattern results &optional open-single-file)
   (let ((res (remove-if (lambda (r) (zerop (length (remove-if (lambda (r) (zerop (length r))) r)))) results)))
     (if (and (= 1 (length res)) open-single-file) (eclim--visit-declaration (car res))
-      (when (null base-directory) (setq base-directory (eclim--project-dir)))
       (pop-to-buffer (get-buffer-create "*eclim: find"))
       (let ((buffer-read-only nil))
 	(erase-buffer)
-	(insert (concat "-*- mode: eclim-find; default-directory: " base-directory " -*-"))
+	(insert (concat "-*- mode: eclim-find; default-directory: " default-directory " -*-"))
 	(newline 2)
 	(insert (concat "eclim java_search -p " pattern))
 	(newline)
 	(dolist (result res)
-	  (insert (eclim--convert-find-result-to-string result base-directory))
+	  (insert (eclim--convert-find-result-to-string result default-directory))
 	  (newline))
-	(setq default-directory base-directory)
 	(grep-mode)))))
 
 (defun eclim--convert-find-result-to-string (line &optional directory)
@@ -204,10 +202,6 @@ saved."
 
 (defun eclim--project-current-file ()
   (file-relative-name buffer-file-name (eclim--project-dir)))
-
-(defun eclim--temp-buffer ()
-  (set-buffer (get-buffer-create "*eclim-temporary-buffer*"))
-  (delete-region (point-min) (point-max)))
 
 (defun eclim--byte-offset (&optional text)
   ;; TODO: restricted the ugly newline counting to dos buffers => remove it all the way later

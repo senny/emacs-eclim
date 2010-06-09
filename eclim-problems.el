@@ -26,6 +26,8 @@
   '(("e" foreground-color . "red")
     ("w" foreground-color . "yellow")))
 
+(defconst eclim--problems-buffer-name "*eclim: problems*")
+
 (defun eclim--problems-mode ()
   (kill-all-local-variables)
   (buffer-disable-undo)
@@ -128,9 +130,13 @@ refresh of the problems buffer."
 	     eclim-autoupdate-problems)
     (run-with-idle-timer 1 nil 
 			 (lambda() 
-			   (let ((b (current-buffer)))
-			     (switch-to-buffer (get-buffer-create "*eclim: problems*"))
-			     (eclim-problems-buffer-refresh)
+			   (let ((b (current-buffer))
+				 (p (get-buffer eclim--problems-buffer-name)))
+			     (if p
+ 				 (progn
+				   (switch-to-buffer p)
+				   (eclim-problems-buffer-refresh))
+			       (eclim--problems-mode-init))
 			     (switch-to-buffer b))))))
  
 (add-hook 'after-save-hook #'eclim--problems-update-maybe)
