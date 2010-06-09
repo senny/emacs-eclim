@@ -19,6 +19,7 @@
 ;;
 ;;  - Nikolaj Schumacher <bugs * nschum de>
 ;;  - Yves Senn <yves senn * gmx ch>
+;;  - Fredrik Appelberg <fredrik * bitbakery se>
 ;;
 ;;; Conventions
 ;;
