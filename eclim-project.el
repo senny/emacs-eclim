@@ -103,6 +103,7 @@
         default-directory (eclim/workspace-dir))
   (hl-line-mode t)
   (use-local-map eclim-project-mode-map)
+  (cd "~") ;; setting a defualt directoy avoids some problems with tramp
   (run-mode-hooks 'eclim-project-mode-hook))
 
 (defun eclim--project-buffer-refresh ()
