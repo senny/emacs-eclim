@@ -103,6 +103,7 @@
         default-directory (eclim/workspace-dir))
   (hl-line-mode t)
   (use-local-map eclim-project-mode-map)
+  (cd "~") ;; setting a defualt directoy avoids some problems with tramp
   (run-mode-hooks 'eclim-project-mode-hook))
 
 (defun eclim--project-buffer-refresh ()
@@ -228,10 +229,10 @@
 
 (defun eclim/project-update (project &optional buildfile settings)
   (eclim--check-project project)
-  (eclim--call-process (eclim--build-command "project_update"
-                                             "-p" project
-                                             "-b" buildfile
-                                             "-s" settings)))
+  (apply 'eclim--call-process (eclim--build-command "project_update"
+						    "-p" project
+						    "-b" buildfile
+						    "-s" settings)))
 
 (defun eclim/project-nature-aliases ()
   (eclim--call-process "project_nature_aliases"))
