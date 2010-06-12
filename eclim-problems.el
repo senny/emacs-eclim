@@ -1,3 +1,8 @@
+(defcustom eclim-problems-resize-file-column t
+  "Resizes file column in emacs-eclim problems mode"
+  :group 'eclim
+  :type '(choice (const :tag "Off" nil)
+		 (const :tag "On" t)))
 
 (defvar eclim-autoupdate-problems t)
 
@@ -89,13 +94,23 @@
 	   (length (remove-if-not (lambda (p) (string-equal "e" (eclim--problem-type p))) eclim--problems-list))
 	   (length (remove-if-not (lambda (p) (string-equal "w" (eclim--problem-type p))) eclim--problems-list))))
 
+(defun eclim--problems-filecol-size ()
+  (if eclim-problems-resize-file-column
+      (min 40
+	   (apply #'max 0
+		  (mapcar (lambda (problem)
+			    (length (file-name-nondirectory (eclim--problem-file problem))))
+			  (eclim--problems-filtered))))
+    40))
+
 (defun eclim--problems-buffer-redisplay ()
   "Draw the problem list on screen."
   (let ((inhibit-read-only t)
-	(line-number (line-number-at-pos)))
+	(line-number (line-number-at-pos))
+	(filecol-size (eclim--problems-filecol-size)))
     (erase-buffer)
     (dolist (problem (eclim--problems-filtered))
-      (eclim--insert-problem problem))
+      (eclim--insert-problem problem filecol-size))
     (goto-line line-number)))
 
 (defun eclim--problems-filtered ()
@@ -104,8 +119,8 @@
 		   (string= (eclim--problem-type x) eclim--problems-filter)))
    eclim--problems-list))
 
-(defun eclim--insert-problem (problem)
-  (insert (format "%-40s | %-12s | %s "
+(defun eclim--insert-problem (problem filecol-size)
+  (insert (format (concat "%-" (number-to-string filecol-size) "s | %-12s | %s ")
 		  (truncate-string-to-width (file-name-nondirectory (eclim--problem-file problem)) 40 0 nil t)
 		  (eclim--problem-pos problem)
 		  (eclim--problem-description problem)))
