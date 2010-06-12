@@ -239,11 +239,15 @@
 
 (defun eclim/project-file-locate (pattern scope &optional project)
   (when project (eclim--check-project project))
-  (apply 'eclim--call-process (eclim--build-command "locate_file"
-                                             "-p" pattern
-                                             "-s" scope
-                                             "-n" project)))
-
+  (if project 
+      (apply 'eclim--call-process (eclim--build-command "locate_file"
+							"-p" pattern
+							"-s" scope
+							"-n" project))
+    (apply 'eclim--call-process (eclim--build-command "locate_file"
+						     "-p" pattern
+						     "-s" scope))))
+     
 (defun eclim/project-links (project)
   (eclim--check-project project)
   (eclim--call-process "project_links" "-p" project))
@@ -297,6 +301,26 @@
       (when match
         (insert (second (split-string match "|")) ":0:")))
     (grep-mode)))
+
+
+(defun eclim-file-locate (pattern)
+  (interactive "MPattern: ")
+  (let ((matches (eclim/project-file-locate pattern "workspace")))
+    (when (get-buffer "*eclim: find*") (kill-buffer "*eclim: find*"))
+    (pop-to-buffer "*eclim: find*" t)
+    (insert "-*- mode: grep; default-directory: \"" (eclim/workspace-dir) "\" -*-")
+    (insert "searching for: " pattern "..." "\n\n")
+    (dolist (match matches)
+      (when match
+	(insert (third (split-string match "|")) ":0:\t"
+		(first (split-string match "|"))
+		"\n")))
+    (grep-mode)))
+
+(defun eclim-file-locate-fuzzy (pattern)
+  (interactive "MPattern: ")
+  (eclim-file-locate
+   (concat ".*" (replace-regexp-in-string "\\(.\\)" ".*?\\1" pattern) ".*")))
 
 (defun eclim-project-update (projects)
   (interactive (list (eclim--project-read)))
