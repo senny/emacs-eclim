@@ -4,6 +4,18 @@
   :type '(choice (const :tag "Off" nil)
 		 (const :tag "On" t)))
 
+(defcustom eclim-problems-show-pos nil
+  "Shows problem line/column in emacs-eclim problems mode"
+  :group 'eclim
+  :type '(choice (const :tag "Off" nil)
+		 (const :tag "On" t)))
+
+(defcustom eclim-problems-show-file-extension nil
+  "Shows file extensions in emacs-eclim problems mode"
+  :group 'eclim
+  :type '(choice (const :tag "Off" nil)
+		 (const :tag "On" t)))
+
 (defvar eclim-autoupdate-problems t)
 
 (defvar eclim-problems-mode-hook nil)
@@ -113,12 +125,16 @@
 	   (length (remove-if-not (lambda (p) (string-equal "e" (eclim--problem-type p))) eclim--problems-list))
 	   (length (remove-if-not (lambda (p) (string-equal "w" (eclim--problem-type p))) eclim--problems-list))))
 
+(defun eclim--problems-cleanup-filename (filename)
+  (let ((x (file-name-nondirectory (eclim--problem-file problem))))
+    (if eclim-problems-show-file-extension x (file-name-sans-extension x))))
+
 (defun eclim--problems-filecol-size ()
   (if eclim-problems-resize-file-column
       (min 40
 	   (apply #'max 0
 		  (mapcar (lambda (problem)
-			    (length (file-name-nondirectory (eclim--problem-file problem))))
+			    (length (eclim--problems-cleanup-filename (eclim--problem-file problem))))
 			  (eclim--problems-filtered))))
     40))
 
@@ -139,10 +155,21 @@
    eclim--problems-list))
 
 (defun eclim--insert-problem (problem filecol-size)
-  (insert (format (concat "%-" (number-to-string filecol-size) "s | %-12s | %s ")
-		  (truncate-string-to-width (file-name-nondirectory (eclim--problem-file problem)) 40 0 nil t)
-		  (eclim--problem-pos problem)
-		  (eclim--problem-description problem)))
+  (let* ((filecol-format-string (concat "%-" (number-to-string filecol-size) "s"))
+	 (filename (truncate-string-to-width (eclim--problems-cleanup-filename (eclim--problem-file problem))
+					     40 0 nil t)))
+    (if eclim-problems-show-pos
+	(insert (format (concat filecol-format-string
+				" | %-12s"
+				" | %s")
+			filename
+			(eclim--problem-pos problem)
+			(eclim--problem-description problem)))
+      ;; else
+      (insert (format (concat filecol-format-string
+			      " | %s")
+		      filename
+		      (eclim--problem-description problem)))))
   (insert "\n"))
 
 (defun eclim--problems-mode-init ()
