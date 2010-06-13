@@ -138,6 +138,14 @@
   (interactive)
   (eclim--problems-mode-init))
 
+(defun eclim-problems-open ()
+  "Opens a new (emacs) window inside the current frame showing the current project compilation problems"
+  (interactive)
+  (let ((w (selected-window)))
+    (select-window (split-window nil (round (* (/ (window-height w) 34.0) 21)) nil))
+    (eclim-problems)
+    (select-window w)))
+
 (defun eclim--problems-update-maybe ()
   "If autoupdate is enabled, this function triggers a delayed
 refresh of the problems buffer."
