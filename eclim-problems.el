@@ -43,6 +43,25 @@
 	line-move-visual nil
 	buffer-read-only t
 	default-directory (eclim/workspace-dir))
+  (setq mode-line-format
+	(list "-"
+	      'mode-line-mule-info
+	      'mode-line-modified
+	      'mode-line-frame-identification
+	      'mode-line-buffer-identification
+
+	      "   "
+	      'mode-line-position
+
+	      "  "
+	      'eclim--problems-project
+
+	      "  "
+	      'mode-line-modes
+	      '(which-func-mode ("" which-func-format "--"))
+
+	      'global-mode-string
+	      "-%-"))
   (hl-line-mode t)
   (use-local-map eclim-problems-mode-map)
   (run-mode-hooks 'eclim-problems-mode-hook))
