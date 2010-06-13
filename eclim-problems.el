@@ -151,12 +151,13 @@
 refresh of the problems buffer."
   (when (and eclim--project-dir
 	     eclim-autoupdate-problems)
+    (setq eclim--problems-project (eclim--project-name))
     (run-with-idle-timer 1 nil 
-			 (lambda() 
+			 (lambda()
 			   (let ((b (current-buffer))
 				 (p (get-buffer eclim--problems-buffer-name)))
 			     (if p
- 				 (progn
+				 (progn
 				   (switch-to-buffer p)
 				   (eclim-problems-buffer-refresh))
 			       (eclim--problems-mode-init))
