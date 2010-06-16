@@ -20,6 +20,7 @@
 ;;  - Nikolaj Schumacher <bugs * nschum de>
 ;;  - Yves Senn <yves senn * gmx ch>
 ;;  - Fredrik Appelberg <fredrik * bitbakery se>
+;;  - Alessandro Arzilli <alessandro.arzilli * gmail com>
 ;;
 ;;; Conventions
 ;;
