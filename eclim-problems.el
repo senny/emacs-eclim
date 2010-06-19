@@ -16,11 +16,19 @@
   :type '(choice (const :tag "Off" nil)
 		 (const :tag "On" t)))
 
+(defcustom eclim-problems-hl-errors t
+  "Highlights errors"
+  :group 'eclim
+  :type '(choice (const :tag "Off" nil)
+		 (const :tag "On" t)))
+
 (defvar eclim-autoupdate-problems t)
 
 (defvar eclim-problems-mode-hook nil)
 
-(defvar eclim--problems-project nil)
+(defvar eclim--problems-filter-description "")
+(defvar eclim--problems-project nil) ;; problems are relative to this project
+(defvar eclim--problems-file nil) ;; problems are relative to this file (when eclim--problems-filefilter is non-nil)
 
 (setq eclim-problems-mode-map
       (let ((map (make-keymap)))
@@ -30,6 +38,7 @@
 	(define-key map (kbd "g") 'eclim-problems-buffer-refresh)
 	(define-key map (kbd "q") 'quit-window)
 	(define-key map (kbd "w") 'eclim-problems-show-warnings)
+	(define-key map (kbd "f") 'eclim-problems-toggle-filefilter)
 	(define-key map (kbd "RET") 'eclim-problems-open-current)
 	map))
 
@@ -37,7 +46,8 @@
 
 (defvar eclim--problems-list nil)
 
-(defvar eclim--problems-filter nil)
+(defvar eclim--problems-filter nil) ;; nil -> all problems, w -> warnings, e -> errors
+(defvar eclim--problems-filefilter nil) ;; should filter by file name
 
 (defvar eclim--problems-faces
   '(("e" foreground-color . "red")
@@ -66,7 +76,7 @@
 	      'mode-line-position
 
 	      "  "
-	      'eclim--problems-project
+	      'eclim--problems-filter-description
 
 	      "  "
 	      'mode-line-modes
@@ -97,6 +107,11 @@
 (defun eclim-problems-show-errors ()
   (interactive)
   (eclim--problems-apply-filter "e"))
+
+(defun eclim-problems-toggle-filefilter ()
+  (interactive)
+  (setq eclim--problems-filefilter (not eclim--problems-filefilter))
+  (eclim--problems-buffer-redisplay))
 
 (defun eclim-problems-show-warnings ()
   (interactive)
@@ -138,8 +153,18 @@
 			  (eclim--problems-filtered))))
     40))
 
+(defun eclim--problems-update-filter-description ()
+  (if eclim--problems-filefilter
+      (if eclim--problems-filter
+	  (setq eclim--problems-filter-description (concat "(file-" eclim--problems-filter ")"))
+	  (setq eclim--problems-filter-description "(file)"))
+    (if eclim--problems-filter
+	(setq eclim--problems-filter-description (concat eclim--problems-project "(" eclim--problems-filter ")"))
+      (setq eclim--problems-filter-description eclim--problems-project))))
+
 (defun eclim--problems-buffer-redisplay ()
   "Draw the problem list on screen."
+  (eclim--problems-update-filter-description)
   (let ((inhibit-read-only t)
 	(line-number (line-number-at-pos))
 	(filecol-size (eclim--problems-filecol-size)))
@@ -150,30 +175,37 @@
 
 (defun eclim--problems-filtered ()
   (remove-if-not 
-   (lambda (x) (or (not eclim--problems-filter) 
-		   (string= (eclim--problem-type x) eclim--problems-filter)))
+   (lambda (x) (and
+		(or (not eclim--problems-filefilter)
+		    (string= (eclim--problem-file x) eclim--problems-file))
+		(or (not eclim--problems-filter) 
+		    (string= (eclim--problem-type x) eclim--problems-filter))))
    eclim--problems-list))
 
 (defun eclim--insert-problem (problem filecol-size)
   (let* ((filecol-format-string (concat "%-" (number-to-string filecol-size) "s"))
 	 (filename (truncate-string-to-width (eclim--problems-cleanup-filename (eclim--problem-file problem))
-					     40 0 nil t)))
-    (if eclim-problems-show-pos
-	(insert (format (concat filecol-format-string
-				" | %-12s"
-				" | %s")
-			filename
-			(eclim--problem-pos problem)
-			(eclim--problem-description problem)))
-      ;; else
-      (insert (format (concat filecol-format-string
-			      " | %s")
-		      filename
-		      (eclim--problem-description problem)))))
-  (insert "\n"))
+					     40 0 nil t))
+	 (text (if eclim-problems-show-pos
+		   (format (concat filecol-format-string
+				   " | %-12s"
+				   " | %s")
+			   filename
+			   (eclim--problem-pos problem)
+			   (eclim--problem-description problem))
+		 ;; else
+		 (format (concat filecol-format-string
+				 " | %s")
+			 filename
+			 (eclim--problem-description problem)))))
+    (when (and eclim-problems-hl-errors (string= (eclim--problem-type problem) "e"))
+      (put-text-property 0 (length text) 'face 'bold text))
+    (insert text)
+    (insert "\n")))
 
 (defun eclim--problems-mode-init ()
   (setq eclim--problems-project (eclim--project-name))
+  (setq eclim--problems-file buffer-file-name)
   (switch-to-buffer (get-buffer-create "*eclim: problems*"))
   (eclim--problems-mode)
   (eclim-problems-buffer-refresh) 
@@ -188,9 +220,18 @@
   "Opens a new (emacs) window inside the current frame showing the current project compilation problems"
   (interactive)
   (let ((w (selected-window)))
-    (select-window (split-window nil (round (* (/ (window-height w) 34.0) 21)) nil))
+    (select-window (split-window nil (round (* (window-height w) 0.75)) nil))
     (eclim-problems)
     (select-window w)))
+
+(defun eclim-problems-refocus ()
+  (interactive)
+
+  (when eclim--project-dir
+    (setq eclim--problems-project (eclim--project-name))
+    (setq eclim--problems-file buffer-file-name)
+    (with-current-buffer eclim--problems-buffer-name
+      (eclim-problems-buffer-refresh))))
 
 (defun eclim--problems-update-maybe ()
   "If autoupdate is enabled, this function triggers a delayed
@@ -198,6 +239,7 @@ refresh of the problems buffer."
   (when (and eclim--project-dir
 	     eclim-autoupdate-problems)
     (setq eclim--problems-project (eclim--project-name))
+    (setq eclim--problems-file buffer-file-name)
     (run-with-idle-timer 1 nil 
 			 (lambda()
 			   (let ((b (current-buffer))
