@@ -8,6 +8,8 @@
  * run Ant targets
  * run Maven phases and goals
  * automatic refresh of the problems buffer
+ * file-filter for the problems buffer
+ * interface improvements for the problems buffer
 
 === Bugfixes
  * fixed a problem on startup when the eclimd server was not started
