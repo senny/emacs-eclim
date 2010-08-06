@@ -445,7 +445,9 @@ a java type that can be imported."
                                   (list (eclim--completing-read "Import: " imports)))))
 
 (defun eclim--ends-with (a b)
-  (compare-strings a (- (length a) (length b)) (length a) b 0 (length b)))
+  (if (> (length a) (length b))
+      (= 0 (compare-strings a (- (length a) (length b)) (length a) b 0 (length b)))
+    -1))
 
 (defun eclim--fix-static-import (import-spec)
   (let ((imports (cdr (assoc 'imports import-spec)))
@@ -456,12 +458,16 @@ a java type that can be imported."
       
       (if (not (stringp type))
 	  import-spec
-	
-	(if (eclim--ends-with (elt imports 0) type)
-	    (list
-	     (cons 'imports (vector (concat (elt imports 0) "." type)))
-	     (cons 'type type))
-	  import-spec)))))
+
+	(progn
+
+	  (message "Type: %s first element of imports: %s" type (elt imports 0))
+	  
+	  (if (eclim--ends-with (elt imports 0) type)
+	      import-spec
+	      (list
+	       (cons 'imports (vector (concat (elt imports 0) "." type)))
+	       (cons 'type type))))))))
 
 (defun eclim-java-import-missing ()
   "Checks the current file for missing imports and prompts the
