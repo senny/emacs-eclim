@@ -446,8 +446,8 @@ a java type that can be imported."
 
 (defun eclim--ends-with (a b)
   (if (> (length a) (length b))
-      (= 0 (compare-strings a (- (length a) (length b)) (length a) b 0 (length b)))
-    -1))
+      (string= (substring a (- (length a) (length b))) b)
+    nil))
 
 (defun eclim--fix-static-import (import-spec)
   (let ((imports (cdr (assoc 'imports import-spec)))
@@ -465,9 +465,11 @@ a java type that can be imported."
 	  
 	  (if (eclim--ends-with (elt imports 0) type)
 	      import-spec
+	    (progn
+	      (message "Appending")
 	      (list
 	       (cons 'imports (vector (concat (elt imports 0) "." type)))
-	       (cons 'type type))))))))
+	       (cons 'type type)))))))))
 
 (defun eclim-java-import-missing ()
   "Checks the current file for missing imports and prompts the
