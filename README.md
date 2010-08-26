@@ -19,6 +19,9 @@ from eclipse to emacs.
         (setq eclim-auto-save t)
         (global-eclim-mode)
 
+## Optional dependencies
+* A recent (version 0.6.0 or later) of [yasnippet](http://code.google.com/p/yasnippet/).
+
 ## Usage
 To get started just lunch the eclim executable that the placed in your Eclipse installation directory.
 
