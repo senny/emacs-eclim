@@ -43,6 +43,7 @@
 	map))
 
 (define-key eclim-mode-map (kbd "C-c C-e b") 'eclim-problems)
+(define-key eclim-mode-map (kbd "C-c C-e o") 'eclim-problems-open)
 
 (defvar eclim--problems-list nil)
 
