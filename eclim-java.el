@@ -444,6 +444,33 @@ a java type that can be imported."
     (eclim--java-organize-imports (eclim/java-import-order (eclim--project-name))
                                   (list (eclim--completing-read "Import: " imports)))))
 
+(defun eclim--ends-with (a b)
+  (if (> (length a) (length b))
+      (string= (substring a (- (length a) (length b))) b)
+    nil))
+
+(defun eclim--fix-static-import (import-spec)
+  (let ((imports (cdr (assoc 'imports import-spec)))
+	(type (cdr (assoc 'type import-spec))))
+    (message "Imports %s" imports)
+    (if (not (= 1 (length imports)))
+	import-spec
+      
+      (if (not (stringp type))
+	  import-spec
+
+	(progn
+
+	  (message "Type: %s first element of imports: %s" type (elt imports 0))
+	  
+	  (if (eclim--ends-with (elt imports 0) type)
+	      import-spec
+	    (progn
+	      (message "Appending")
+	      (list
+	       (cons 'imports (vector (concat (elt imports 0) "." type)))
+	       (cons 'type type)))))))))
+
 (defun eclim-java-import-missing ()
   "Checks the current file for missing imports and prompts the
 user if necessary."
@@ -453,7 +480,7 @@ user if necessary."
           (json-read-from-string
            (replace-regexp-in-string "'" "\""
                                      (first (eclim/java-import-missing (eclim--project-name)))))
-          do (let* ((candidates (append (cdr (assoc 'imports unused)) nil))
+          do (let* ((candidates (append (cdr (assoc 'imports (eclim--fix-static-import unused))) nil))
                     (len (length candidates)))
                (if (= len 0) nil
                  (eclim--java-organize-imports imports-order

@@ -20,6 +20,7 @@
 ;;  - Nikolaj Schumacher <bugs * nschum de>
 ;;  - Yves Senn <yves senn * gmx ch>
 ;;  - Fredrik Appelberg <fredrik * bitbakery se>
+;;  - Alessandro Arzilli <alessandro.arzilli * gmail com>
 ;;
 ;;; Conventions
 ;;
@@ -254,6 +255,8 @@ saved."
 
 (define-globalized-minor-mode global-eclim-mode eclim-mode
   (lambda () (eclim-mode 1)))
+
+
 
 (require 'eclim-project)
 (require 'eclim-java)
