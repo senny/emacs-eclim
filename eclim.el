@@ -116,8 +116,10 @@ saved."
 	      while arg when val append (list arg val))))
 
 (defun eclim--call-process (&rest args)
-  (let ((cmd (apply 'concat eclim-executable " -command " (mapcar (lambda (arg)
-								    (concat " " arg)) args))))
+  (let ((cmd (apply 'concat eclim-executable " -command " 
+		    (mapcar (lambda (arg) (concat " " arg))
+			    (mapcar (lambda (arg) (if (numberp arg) (number-to-string arg) arg))
+				    args)))))
     (message cmd)
     (remove-if (lambda (s) (= 0 (length s)))
 	    (split-string

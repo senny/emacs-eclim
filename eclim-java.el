@@ -511,12 +511,13 @@ user if necessary."
 
 (defun eclim/java-impl (project file &optional offset encoding type superType methods)
   (eclim--check-project project)
-  (eclim--call-process "java_impl" "-p" project "-f" file))
+  (eclim--call-process "java_impl" "-p" project "-f" file "-o" offset))
 
 (defun eclim-java-implement ()
   (interactive)
+  (eclim/java-src-update)
   ;; TODO: present the user with more fine grain control over the selection of methods
-  (let* ((response (eclim/java-impl (eclim--project-name) (eclim--project-current-file)))
+  (let* ((response (eclim/java-impl (eclim--project-name) (eclim--project-current-file) (eclim--byte-offset)))
          (methods 
 	  (remove-if (lambda (element) (string-match "//" element))
 		     (remove-if-not (lambda (element) (string-match "(.*)" element))
