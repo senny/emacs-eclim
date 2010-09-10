@@ -258,27 +258,28 @@ has been found."
     (loop for child across children do
           (eclim--java-insert-hierarchy-node project child (+ level 1)))))
 
-(defun eclim--java-find-references (pattern)
-  (eclim/java-search
-   nil
-   nil
-   nil
-   nil
-   pattern
-   "method"
-   "references"
-   "project"))
+(defun eclim--java-find-references ()
+  (let ((i (eclim--java-identifier-at-point3)))
+    (eclim/java-search
+     (eclim--project-name)
+     (eclim--project-current-file)
+     (number-to-string (1- (car i)))
+     (number-to-string (length (cdr i)))
+     nil
+     "method"
+     "references"
+     "project")))
 
 (defun eclim--java-find-declaration (pattern  &optional type)
-  (eclim/java-search
-   nil
-   nil
-   nil
-   nil
-   pattern
-   type
-   "declaration"
-   "project"))
+  (let ((i (eclim--java-identifier-at-point3)))
+    (eclim/java-search
+     (eclim--project-name)
+     (eclim--project-current-file)
+     (number-to-string (1- (car i)))
+     (number-to-string (length (cdr i)))
+     nil
+     "declaration"
+     "project")))
 
 (defun eclim-java-find-declaration (pattern)
   (interactive (list (symbol-name (symbol-at-point))))
@@ -294,11 +295,9 @@ has been found."
                                                  signature)
                                    (match-string 1 signature))))
 
-(defun eclim-java-find-references (pattern)
-  (interactive (list (eclim--java-convert-signature-to-pattern
-                      (eclim--java-method-signature-at-point))))
-  (eclim--find-display-results pattern
-                               (eclim--java-find-references pattern)))
+(defun eclim-java-find-references ()
+  (interactive)
+  (eclim--find-display-results "" (eclim--java-find-references)))
 
 (defun eclim-java-find-type (type-name)
   "Searches the project for a given class. The TYPE-NAME is the pattern, which will be used for the search."
@@ -357,6 +356,20 @@ the string from BEG to (point)."
                         (eclim--byte-offset))
                       0))))
     (cons beg (buffer-substring-no-properties beg (point)))))
+
+(setq eclim--java-identifier-delimeter "[.,-/+() \t]")
+
+(defun eclim--java-identifier-at-point3 ()
+  "As above, but returns the whole identifier, not just the start."
+  (save-excursion
+    (let ((beg (1+ (or (progn (re-search-backward "\\b" nil t)
+			       (eclim--byte-offset))
+		       0)))
+	  (end (or (progn (forward-char)
+			  (re-search-forward "\\b" nil t)
+			  (eclim--byte-offset))
+		   0)))
+      (cons beg (buffer-substring-no-properties beg (point))))))
 
 (defun eclim--java-package-components (package)
   "Returns the components of a Java package statement."
