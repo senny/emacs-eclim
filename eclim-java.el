@@ -1,4 +1,4 @@
-t ;; eclim-java.el --- an interface to the Eclipse IDE.
+;; eclim-java.el --- an interface to the Eclipse IDE.
 ;;
 ;; Copyright (C) 2009  Yves Senn <yves senn * gmx ch>
 ;;
