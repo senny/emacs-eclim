@@ -1,4 +1,4 @@
-t ;; eclim-java.el --- an interface to the Eclipse IDE.
+;; eclim-java.el --- an interface to the Eclipse IDE.
 ;;
 ;; Copyright (C) 2009  Yves Senn <yves senn * gmx ch>
 ;;
@@ -289,12 +289,6 @@ has been found."
           (eclim--visit-declaration (car search-result))
         (eclim--find-display-results pattern search-result)))))
 
-;; (defun eclim--java-convert-signature-to-pattern (signature)
-;;   (replace-regexp-in-string "#" "."
-;;                             (progn (string-match "^\\(.*?\\)(.*$"
-;;                                                  signature)
-;;                                    (match-string 1 signature))))
-
 (defun eclim-java-find-references ()
   (interactive)
   (eclim--find-display-results "" (eclim--java-find-references)))
@@ -320,24 +314,6 @@ has been found."
                                         context
                                         scope) open-single-file))
 
-;; (defun eclim--java-method-signature-at-point ()
-;;   ;; TODO: this does currently not work everywhere and needs some more love
-;;   (let ((java-symbol (symbol-name (symbol-at-point))))
-;;     (save-excursion
-;;       (re-search-backward "[. ]" nil t)
-;;       (let ((pattern (if (string= (char-to-string (char-after (point))) " ")
-;;                          (concat (eclim--java-current-type-name) "." java-symbol)
-;;                        java-symbol)))
-;;         (forward-char 1)
-;;         (third (car (eclim--java-find-declaration pattern "method")))))))
-
-;; (defun eclim-java-method-signature-at-point ()
-;;   (interactive)
-;;   ;; TODO: make this work when the cursor is in the argument list
-;;   (let* ((signature (eclim--java-method-signature-at-point))
-;;          (message-log-max nil))
-;;     (message signature)))
-
 (defun eclim--java-identifier-at-point (&optional full)
   "Returns a cons cell (BEG . IDENTIFIER) where BEG is the start
 buffer position of the token/identifier at point, and IDENTIFIER
@@ -352,29 +328,6 @@ start."
 			(point))))
       (cons (eclim--byte-offset)
 	    (buffer-substring-no-properties start end)))))
-
-;; (defun eclim--java-identifier-at-point2 ()
-;;   "Returns a cons cell (BEG . START) where BEG is the start
-;; buffer position of the token/identifier at point, and START is
-;; the string from BEG to (point)."
-;;   ;; TODO: make this work for dos buffers
-;;   (let ((beg (+ 1 (or (save-excursion
-;;                         (re-search-backward "[.,-/+( ]" nil t)
-;;                         (eclim--byte-offset))
-;;                       0))))
-;;     (cons beg (buffer-substring-no-properties beg (point)))))
-
-;; (defun eclim--java-identifier-at-point3 ()
-;;   "As above, but returns the whole identifier, not just the start."
-;;   (save-excursion
-;;     (let ((beg (1+ (or (progn (re-search-backward "\\b" nil t)
-;; 			       (eclim--byte-offset))
-;; 		       0)))
-;; 	  (end (or (progn (forward-char)
-;; 			  (re-search-forward "\\b" nil t)
-;; 			  (eclim--byte-offset))
-;; 		   0)))
-;;       (cons beg (buffer-substring-no-properties beg (point))))))
 
 (defun eclim--java-package-components (package)
   "Returns the components of a Java package statement."
