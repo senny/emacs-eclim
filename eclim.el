@@ -126,6 +126,23 @@ saved."
 	     (shell-command-to-string cmd)
 	     "\n"))))
 
+(setq eclim--default-args
+      '(("-n" . (eclim--project-name))
+	("-f" . (eclim--project-current-file))
+	("-o" . (eclim--byte-offset))
+	("-s" . "project")))
+
+(defmacro eclim/with-results (result args &rest body)
+  (let ((exp-args (cons (first args)
+			(loop for a in (rest args)
+			      append (if (listp a) a (list a (cdr (assoc a eclim--default-args))))))))
+    `(let ((,result (eclim--call-process ,@exp-args)))
+       (if (and ,result 
+		(string-match "connect:\s*\\(.*\\)" (first ,result)))
+	   (message "%s" (match-string 1 (first ,result)))
+	 ,@body))))
+
+
 (defun eclim--completing-read (prompt choices)
   (funcall eclim-interactive-completion-function prompt choices))
 

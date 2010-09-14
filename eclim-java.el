@@ -100,6 +100,7 @@ the current buffer is contained within this list"
                            "-p" (eclim--project-name)
                            "-f" (eclim--project-current-file)))))
 
+;; TODO: replace with call to nomnom?
 (defun eclim--java-current-type-name (&optional type)
   "Searches backward in the current buffer until a type
 declaration has been found. TYPE may be either 'class',
@@ -115,6 +116,7 @@ declaration has been found. TYPE may be either 'class',
 has been found."
   (eclim--java-current-type-name "class"))
 
+;; TODO: remove
 (defun eclim--java-symbol-remove-prefix (name)
   (if (string-match eclim-java-field-prefixes name)
       (match-string 2 name)
@@ -258,40 +260,61 @@ has been found."
     (loop for child across children do
           (eclim--java-insert-hierarchy-node project child (+ level 1)))))
 
-(defun eclim--java-find-references ()
-  (let ((i (eclim--java-identifier-at-point t)))
-    (eclim/java-search
-     (eclim--project-name)
-     (eclim--project-current-file)
-     (number-to-string (car i))
-     (number-to-string (length (cdr i)))
-     nil
-     "method"
-     "references"
-     "project")))
+;; (defun eclim--java-find-references ()
+;;   (let ((i (eclim--java-identifier-at-point t)))
+;;     (eclim/java-search
+;;      (eclim--project-name)
+;;      (eclim--project-current-file)
+;;      (number-to-string (car i))
+;;      (number-to-string (length (cdr i)))
+;;      nil
+;;      "method"
+;;      "references"
+;;      "project")))
 
-(defun eclim--java-find-declaration (pattern  &optional type)
-  (let ((i (eclim--java-identifier-at-point t)))
-    (eclim/java-search
-     (eclim--project-name)
-     (eclim--project-current-file)
-     (number-to-string (car i))
-     (number-to-string (length (cdr i)))
-     nil
-     "declaration"
-     "project")))
 
-(defun eclim-java-find-declaration (pattern)
-  (interactive (list (symbol-name (symbol-at-point))))
-  (let ((search-result (eclim--java-find-declaration pattern)))
-    (if (string= (caar search-result) "") (message "no declaration found")
-      (if (= (length search-result) 1)
-          (eclim--visit-declaration (car search-result))
-        (eclim--find-display-results pattern search-result)))))
+;; (defun eclim--java-find-declaration (pattern  &optional type)
+;;   (let ((i (eclim--java-identifier-at-point t)))
+;;     (eclim/java-search
+;;      (eclim--project-name)
+;;      (eclim--project-current-file)
+;;      (number-to-string (car i))
+;;      (number-to-string (length (cdr i)))
+;;      nil
+;;      "declaration"
+;;      "project")))
+
+;; (defun eclim-java-find-declaration (pattern)
+;;   (interactive (list (symbol-name (symbol-at-point))))
+;;   (let ((search-result (eclim--java-find-declaration pattern)))
+;;     (if (string= (caar search-result) "") (message "no declaration found")
+;;       (if (= (length search-result) 1)
+;;           (eclim--visit-declaration (car search-result))
+;;         (eclim--find-display-results pattern search-result)))))
+
+(defun eclim--java-split-search-results (res)
+  (mapcar (lambda (l) (split-string l "|" nil)) res))
+
+(defun eclim-java-find-declaration ()
+  (interactive)
+  (let ((i (eclim--java-identifier-at-point t)))
+    (eclim/with-results res ("java_search" "-n" "-f" ("-o" (car i)) ("-l" (length (cdr i)))
+			     ("-t" "method") ("-x" "declaration"))
+			(let ((r (eclim--java-split-search-results res)))
+			  (if (= (length r) 1)
+			      (eclim--visit-declaration (car r))
+			    (eclim--find-display-results (cdr i) r))))))
 
 (defun eclim-java-find-references ()
   (interactive)
-  (eclim--find-display-results "" (eclim--java-find-references)))
+  (let ((i (eclim--java-identifier-at-point t)))
+    (eclim/with-results res ("java_search" "-n" "-f" ("-o" (car i)) ("-l" (length (cdr i)))
+			     ("-t" "method") ("-x" "references") ("-s" "workspace"))
+			(eclim--find-display-results (cdr i) (eclim--java-split-search-results res)))))
+
+;; (defun eclim-java-find-references ()
+;;   (interactive)
+;;   (eclim--find-display-results "" (eclim--java-find-references)))
 
 (defun eclim-java-find-type (type-name)
   "Searches the project for a given class. The TYPE-NAME is the pattern, which will be used for the search."
