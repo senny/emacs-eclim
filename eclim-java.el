@@ -188,20 +188,6 @@ has been found."
                        "-o" (number-to-string offset)
                        "-e" encoding))
 
-(defun eclim/java-search (&optional project file offset length pattern type context scope case-insensitive encoding)
-  (mapcar (lambda (line)
-            (split-string line "|" nil))
-          (apply 'eclim--call-process (eclim--build-command "java_search"
-                                                            "-n" project
-                                                            "-f" file
-                                                            "-o" offset
-                                                            "-l" length
-                                                            "-p" pattern
-                                                            "-t" type
-                                                            "-x" context
-                                                            "-s" scope
-                                                            "-i" case-insensitive))))
-
 (defun eclim/java-refactor-rename (project file name offset length encoding &optional preview diff)
   (eclim/java-src-update)
   (eclim/project-update project)
@@ -260,46 +246,13 @@ has been found."
     (loop for child across children do
           (eclim--java-insert-hierarchy-node project child (+ level 1)))))
 
-;; (defun eclim--java-find-references ()
-;;   (let ((i (eclim--java-identifier-at-point t)))
-;;     (eclim/java-search
-;;      (eclim--project-name)
-;;      (eclim--project-current-file)
-;;      (number-to-string (car i))
-;;      (number-to-string (length (cdr i)))
-;;      nil
-;;      "method"
-;;      "references"
-;;      "project")))
-
-
-;; (defun eclim--java-find-declaration (pattern  &optional type)
-;;   (let ((i (eclim--java-identifier-at-point t)))
-;;     (eclim/java-search
-;;      (eclim--project-name)
-;;      (eclim--project-current-file)
-;;      (number-to-string (car i))
-;;      (number-to-string (length (cdr i)))
-;;      nil
-;;      "declaration"
-;;      "project")))
-
-;; (defun eclim-java-find-declaration (pattern)
-;;   (interactive (list (symbol-name (symbol-at-point))))
-;;   (let ((search-result (eclim--java-find-declaration pattern)))
-;;     (if (string= (caar search-result) "") (message "no declaration found")
-;;       (if (= (length search-result) 1)
-;;           (eclim--visit-declaration (car search-result))
-;;         (eclim--find-display-results pattern search-result)))))
-
 (defun eclim--java-split-search-results (res)
   (mapcar (lambda (l) (split-string l "|" nil)) res))
 
 (defun eclim-java-find-declaration ()
   (interactive)
   (let ((i (eclim--java-identifier-at-point t)))
-    (eclim/with-results res ("java_search" "-n" "-f" ("-o" (car i)) ("-l" (length (cdr i)))
-			     ("-t" "method") ("-x" "declaration"))
+    (eclim/with-results res ("java_search" "-n" "-f" ("-o" (car i)) ("-l" (length (cdr i))) ("-x" "declaration"))
 			(let ((r (eclim--java-split-search-results res)))
 			  (if (= (length r) 1)
 			      (eclim--visit-declaration (car r))
@@ -308,13 +261,8 @@ has been found."
 (defun eclim-java-find-references ()
   (interactive)
   (let ((i (eclim--java-identifier-at-point t)))
-    (eclim/with-results res ("java_search" "-n" "-f" ("-o" (car i)) ("-l" (length (cdr i)))
-			     ("-t" "method") ("-x" "references") ("-s" "workspace"))
+    (eclim/with-results res ("java_search" "-n" "-f" ("-o" (car i)) ("-l" (length (cdr i))) ("-x" "references"))
 			(eclim--find-display-results (cdr i) (eclim--java-split-search-results res)))))
-
-;; (defun eclim-java-find-references ()
-;;   (interactive)
-;;   (eclim--find-display-results "" (eclim--java-find-references)))
 
 (defun eclim-java-find-type (type-name)
   "Searches the project for a given class. The TYPE-NAME is the pattern, which will be used for the search."
@@ -323,19 +271,15 @@ has been found."
                                              (if (string-match-p "^[A-Z]" current-symbol)
                                                  current-symbol
                                                (eclim--java-current-type-name))))))
-  (eclim-java-find-generic nil "declarations" "type" type-name t))
+  (eclim-java-find-generic "workspace" "declarations" "type" type-name t))
 
 (defun eclim-java-find-generic (scope context type pattern &optional open-single-file)
   (interactive (list (eclim--completing-read "Scope: " eclim--java-search-scopes)
                      (eclim--completing-read "Context: " eclim--java-search-contexts)
                      (eclim--completing-read "Type: " eclim--java-search-types)
                      (read-string "Pattern: ")))
-  (eclim--find-display-results pattern (eclim/java-search
-                                        nil nil nil nil
-                                        pattern
-                                        type
-                                        context
-                                        scope) open-single-file))
+  (eclim/with-results res ("java_search" ("-p" pattern) ("-t" type) ("-x" context) ("-s" scope))
+		      (eclim--find-display-results pattern (eclim--java-split-search-results res) open-single-file)))
 
 (defun eclim--java-identifier-at-point (&optional full)
   "Returns a cons cell (BEG . IDENTIFIER) where BEG is the start

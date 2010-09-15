@@ -142,7 +142,6 @@ saved."
 	   (message "%s" (match-string 1 (first ,result)))
 	 ,@body))))
 
-
 (defun eclim--completing-read (prompt choices)
   (funcall eclim-interactive-completion-function prompt choices))
 

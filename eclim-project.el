@@ -163,9 +163,14 @@
                           (eclim--project-column-start 3)
                           (eclim--project-column-end 3)))))
 
+;; (defun eclim/project-list ()
+;;   (mapcar (lambda (line) (nreverse (split-string line " +- +" nil)))
+;;           (eclim--call-process "project_list")))
+
 (defun eclim/project-list ()
-  (mapcar (lambda (line) (nreverse (split-string line " +- +" nil)))
-          (eclim--call-process "project_list")))
+  (eclim/with-results res ("project_list")
+		      (mapcar (lambda (line) (nreverse (split-string line " +- +" nil))) res)))
+
 
 (defun eclim/project-import (folder)
   (eclim--project-clear-cache)
