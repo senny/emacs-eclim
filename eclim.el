@@ -128,6 +128,8 @@ saved."
 
 (setq eclim--default-args
       '(("-n" . (eclim--project-name))
+	("-p" . (eclim--project-name))
+	("-e" . (eclim--current-encoding))
 	("-f" . (eclim--project-current-file))
 	("-o" . (eclim--byte-offset))
 	("-s" . "project")))

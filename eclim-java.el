@@ -35,6 +35,7 @@
 (define-key eclim-mode-map (kbd "C-c C-e f r") 'eclim-java-find-references)
 (define-key eclim-mode-map (kbd "C-c C-e f t") 'eclim-java-find-type)
 (define-key eclim-mode-map (kbd "C-c C-e f f") 'eclim-java-find-generic)
+(define-key eclim-mode-map (kbd "C-c C-e r") 'eclim-java-refactor-rename-symbol-at-point)
 (define-key eclim-mode-map (kbd "C-c C-e i") 'eclim-java-import-missing)
 (define-key eclim-mode-map (kbd "C-c C-e u") 'eclim-java-remove-unused-imports)
 (define-key eclim-mode-map (kbd "C-c C-e h") 'eclim-java-hierarchy)
@@ -188,31 +189,19 @@ has been found."
                        "-o" (number-to-string offset)
                        "-e" encoding))
 
-(defun eclim/java-refactor-rename (project file name offset length encoding &optional preview diff)
+(defun eclim-java-refactor-rename-symbol-at-point ()
+  "Rename the java symbol at point."
+  ;; TODO: handle file refresh in a better way; esp. if you rename the
+  ;; current class
+  (interactive)
+  (save-some-buffers)
   (eclim/java-src-update)
-  (eclim/project-update project)
-  (apply 'eclim--call-process (eclim--build-command "java_refactor_rename"
-                                                    "-p" project
-                                                    "-f" file
-                                                    "-n" name
-                                                    "-o" offset
-                                                    "-l" length
-                                                    "-e" encoding
-                                                    "-v" preview
-                                                    "-d" diff)))
-
-(defun eclim-java-refactor-rename-symbol-at-point (project file name encoding)
-  (interactive (list (eclim--project-name)
-                     (eclim--project-current-file)
-                     (read-string "Name: ")
-                     (eclim--current-encoding)))
-  (eclim/java-refactor-rename project
-			      file
-			      name
-			      (number-to-string (car (eclim--java-identifier-at-point)))
-			      (number-to-string (length (symbol-name (symbol-at-point))))
-			      encoding
-			      " "))
+  (let* ((i (eclim--java-identifier-at-point t))
+	 (n (read-string (concat "Rename " (cdr i) " to: "))))
+    (eclim/with-results files ("java_refactor_rename" "-p" "-e" "-f" ("-n" n) 
+			       ("-o" (car i)) ("-l" (length (cdr i))))
+			(revert-buffer t t t)
+			(message "Done"))))
 
 (defun eclim-java-hierarchy (project file offset encoding)
   (interactive (list (eclim--project-name)
@@ -289,7 +278,10 @@ IDENTIFIER will contain the whole identifier, not just the
 start."
   ;; TODO: make this work for dos buffers
   (save-excursion
-    (if full (re-search-forward "\\b" nil t))
+    (when full 
+      (while (string-match "\s" (char-to-string (char-before)))
+	(forward-char))
+      (re-search-forward "\\b" nil t))
     (let ((end (point))
 	  (start (progn (backward-char) (re-search-backward "\\b" nil t)
 			(point))))
