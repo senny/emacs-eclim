@@ -144,29 +144,33 @@ ECLIM--DEFAULT-ARGS and used to construct a list. The argument
 lists are then appended together."
   (mapcar (lambda (a) (if (numberp a) (number-to-string a) a))
 	  (loop for a in args
-		append (if (listp a) a (list a (eval (cdr (or (assoc a eclim--default-args)
-							      (error "sorry, no default value for: %s" a)))))))))
+		append (if (listp a) 
+			   (list (car a) (eval (cadr a))) 
+			 (list a (eval (cdr (or (assoc a eclim--default-args)
+						(error "sorry, no default value for: %s" a)))))))))
 
-(defun eclim/execute-command (cmd &rest args)
+(defmacro eclim/execute-command (cmd &rest args)
   "Calls ECLIM--EXPAND-ARGS on ARGS, then calls eclim with the
 resulsts. Raises an error if the connection is refused."
-  (let ((params (apply 'concat eclim-executable " -command " cmd
-		  (mapcar (lambda (arg) (concat " " arg)) 
-			  (eclim--expand-args args)))))
-    (message params)
-    (let ((res (remove-if (lambda (s) (= 0 (length s)))
-			  (split-string
-			   (shell-command-to-string params)
-			   "\n"))))
-      (when (and res (string-match "connect:\s+\\(.*\\)" (first res)))
-	(error (match-string 1 (first res))))
-      res)))
+  (let ((params (gensym))
+	(res (gensym)))
+    `(let ((,params (apply 'concat eclim-executable " -command " ,cmd
+			   (mapcar (lambda (arg) (concat " " arg)) 
+				   (eclim--expand-args (quote ,args))))))
+       (message ,params)
+       (let ((,res (remove-if (lambda (s) (= 0 (length s)))
+			      (split-string
+			       (shell-command-to-string ,params)
+			       "\n"))))
+	 (when (and ,res (string-match "connect:\s+\\(.*\\)" (first ,res)))
+	   (error (match-string 1 (first ,res))))
+	 ,res))))
 
 (defmacro eclim/with-results (result cmd args &rest body)
   "Convenience macro. Calls eclim with CMD and the expanded ARGS
 list and binds RESULT to the results. If RESULT is non-nil, BODY
 is executed."
-  `(let ((,result (eclim/execute-command ,cmd (list ,@args))))
+  `(let ((,result (eclim/execute-command ,cmd ,@args)))
      (when ,result
        ,@body)))
 
