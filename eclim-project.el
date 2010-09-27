@@ -168,7 +168,7 @@
 ;;           (eclim--call-process "project_list")))
 
 (defun eclim/project-list ()
-  (eclim/with-results res ("project_list")
+  (eclim/with-results res "project_list" ()
 		      (mapcar (lambda (line) (nreverse (split-string line " +- +" nil))) res)))
 
 

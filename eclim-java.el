@@ -40,6 +40,8 @@
 (define-key eclim-mode-map (kbd "C-c C-e u") 'eclim-java-remove-unused-imports)
 (define-key eclim-mode-map (kbd "C-c C-e h") 'eclim-java-hierarchy)
 (define-key eclim-mode-map (kbd "C-c C-e z") 'eclim-java-implement)
+(define-key eclim-mode-map (kbd "C-c C-e d") 'eclim-java-doc-comment)
+
 
 (defgroup eclim-java nil
   "Java: editing, browsing, refactoring"
@@ -179,8 +181,12 @@ has been found."
                        "-p" project
                        "-f" (eclim--project-current-file)))
 
-(defun eclim/javadoc-comment (project file offset)
-  (eclim--call-process "javadoc_comment" "-p" project "-f" file "-o" offset))
+(defun eclim-java-doc-comment ()
+  "Inserts or updates a javadoc comment for the element at point."
+  (interactive)
+  (eclim/java-src-update)
+  (eclim/execute-command "javadoc_comment" "-p" "-f" "-o")
+  (revert-buffer t t t))
 
 (defun eclim/java-hierarchy (project file offset encoding)
   (eclim--call-process "java_hierarchy"
@@ -198,7 +204,7 @@ has been found."
   (eclim/java-src-update)
   (let* ((i (eclim--java-identifier-at-point t))
 	 (n (read-string (concat "Rename " (cdr i) " to: "))))
-    (eclim/with-results files ("java_refactor_rename" "-p" "-e" "-f" ("-n" n) 
+    (eclim/with-results files "java_refactor_rename" ("-p" "-e" "-f" ("-n" n) 
 			       ("-o" (car i)) ("-l" (length (cdr i))))
 			(revert-buffer t t t)
 			(message "Done"))))
@@ -241,8 +247,8 @@ has been found."
 (defun eclim-java-find-declaration ()
   (interactive)
   (let ((i (eclim--java-identifier-at-point t)))
-    (eclim/with-results res ("java_search" "-n" "-f" ("-o" (car i)) ("-l" (length (cdr i))) ("-x" "declaration"))
-			(let ((r (eclim--java-split-search-results res)))
+    (eclim/with-results hits "java_search" ("-n" "-f" ("-o" (car i)) ("-l" (length (cdr i))) ("-x" "declaration"))
+			(let ((r (eclim--java-split-search-results hits)))
 			  (if (= (length r) 1)
 			      (eclim--visit-declaration (car r))
 			    (eclim--find-display-results (cdr i) r))))))
@@ -250,8 +256,8 @@ has been found."
 (defun eclim-java-find-references ()
   (interactive)
   (let ((i (eclim--java-identifier-at-point t)))
-    (eclim/with-results res ("java_search" "-n" "-f" ("-o" (car i)) ("-l" (length (cdr i))) ("-x" "references"))
-			(eclim--find-display-results (cdr i) (eclim--java-split-search-results res)))))
+    (eclim/with-results hits "java_search" ("-n" "-f" ("-o" (car i)) ("-l" (length (cdr i))) ("-x" "references"))
+			(eclim--find-display-results (cdr i) (eclim--java-split-search-results hits)))))
 
 (defun eclim-java-find-type (type-name)
   "Searches the project for a given class. The TYPE-NAME is the pattern, which will be used for the search."
@@ -267,8 +273,8 @@ has been found."
                      (eclim--completing-read "Context: " eclim--java-search-contexts)
                      (eclim--completing-read "Type: " eclim--java-search-types)
                      (read-string "Pattern: ")))
-  (eclim/with-results res ("java_search" ("-p" pattern) ("-t" type) ("-x" context) ("-s" scope))
-		      (eclim--find-display-results pattern (eclim--java-split-search-results res) open-single-file)))
+  (eclim/with-results hits "java_search" (("-p" pattern) ("-t" type) ("-x" context) ("-s" scope))
+		      (eclim--find-display-results pattern (eclim--java-split-search-results hits) open-single-file)))
 
 (defun eclim--java-identifier-at-point (&optional full)
   "Returns a cons cell (BEG . IDENTIFIER) where BEG is the start
