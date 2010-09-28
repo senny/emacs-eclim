@@ -95,13 +95,13 @@ the current buffer is contained within this list"
                                "-o" (number-to-string (eclim--byte-offset)))))
 
 (defun eclim/java-src-update ()
+  "If ECLIM-AUTO-SAVE is non-nil, save all java buffers, then
+tell eclim to update its java sources."
   (let ((project-name (eclim--project-name)))
     (when (and eclim-auto-save project-name)
-      (save-buffer)
+      (save-some-buffers nil (lambda () (string-match "\\.java$" (buffer-file-name)))) 
       ;; TODO: Sometimes this isn't finished when we complete.
-      (eclim--call-process "java_src_update"
-                           "-p" (eclim--project-name)
-                           "-f" (eclim--project-current-file)))))
+      (eclim/execute-command "java_src_update" "-p" "-f"))))
 
 ;; TODO: replace with call to nomnom?
 (defun eclim--java-current-type-name (&optional type)
@@ -200,12 +200,13 @@ has been found."
   ;; TODO: handle file refresh in a better way; esp. if you rename the
   ;; current class
   (interactive)
-  (save-some-buffers)
   (eclim/java-src-update)
   (let* ((i (eclim--java-identifier-at-point t))
 	 (n (read-string (concat "Rename " (cdr i) " to: "))))
     (eclim/with-results files "java_refactor_rename" ("-p" "-e" "-f" ("-n" n) 
 						      ("-o" (car i)) ("-l" (length (cdr i))))
+			(when (not (string= "files:" (first files)))
+			  (error (first files)))
 			(revert-buffer t t t)
 			(message "Done"))))
 
