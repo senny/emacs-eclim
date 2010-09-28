@@ -205,7 +205,7 @@ has been found."
   (let* ((i (eclim--java-identifier-at-point t))
 	 (n (read-string (concat "Rename " (cdr i) " to: "))))
     (eclim/with-results files "java_refactor_rename" ("-p" "-e" "-f" ("-n" n) 
-			       ("-o" (car i)) ("-l" (length (cdr i))))
+						      ("-o" (car i)) ("-l" (length (cdr i))))
 			(revert-buffer t t t)
 			(message "Done"))))
 
@@ -282,17 +282,17 @@ buffer position of the token/identifier at point, and IDENTIFIER
 is the string from BEG to (point). If argument FULL is non-nill,
 IDENTIFIER will contain the whole identifier, not just the
 start."
-  ;; TODO: make this work for dos buffers
-  (save-excursion
-    (when full 
-      (while (string-match "\s" (char-to-string (char-before)))
-	(forward-char))
-      (re-search-forward "\\b" nil t))
-    (let ((end (point))
-	  (start (progn (backward-char) (re-search-backward "\\b" nil t)
-			(point))))
-      (cons (eclim--byte-offset)
-	    (buffer-substring-no-properties start end)))))
+  (let ((boundary "\\([<>()\\[\\.\s\t\n!=,;]\\|]\\)"))
+    ;; TODO: make this work for dos buffers
+    (save-excursion
+      (if (and full (re-search-forward boundary nil t))
+	     (backward-char))
+      (let ((end (point))
+	    (start (progn 
+		     (if (re-search-backward boundary nil t) (forward-char))
+		     (point))))
+	(cons (eclim--byte-offset)
+	      (buffer-substring-no-properties start end))))))
 
 (defun eclim--java-package-components (package)
   "Returns the components of a Java package statement."
@@ -302,7 +302,7 @@ start."
   "Returns true if PACKAGE is included in the WILDCARD import statement."
   (if (not (string-endswith-p wildcard ".*")) nil
     (equal (butlast (eclim--java-package-components wildcard))
-           (butlast (eclim--java-package-components package)))))
+	   (butlast (eclim--java-package-components package)))))
 
 (defun eclim--java-ignore-import-p (import)
   "Return true if this IMPORT should be ignored by the import
@@ -312,22 +312,22 @@ start."
 (defun eclim--java-sort-imports (imports imports-order)
   "Sorts a list of imports according to a given sort order, removing duplicates."
   (flet ((sort-imports (imports-order imports result)
-                       (cond ((null imports) result)
-                             ((null imports-order)
-                              (sort-imports nil nil (append result imports)))
-                             (t
-                              (flet ((matches-prefix (x) (string-startswith-p x (first imports-order))))
-                                (sort-imports (rest imports-order)
-                                              (remove-if #'matches-prefix imports)
-                                              (append result (remove-if-not #'matches-prefix imports)))))))
-         (remove-duplicates (import result)
-                            (loop for imp = import then (cdr imp)
-                                  for f = (first imp)
-                                  for n = (second imp)
-                                  while imp
-                                  when (not (or (eclim--java-wildcard-includes-p f n)
-                                                (equal f n)))
-                                  collect f)))
+		       (cond ((null imports) result)
+			     ((null imports-order)
+			      (sort-imports nil nil (append result imports)))
+			     (t
+			      (flet ((matches-prefix (x) (string-startswith-p x (first imports-order))))
+				(sort-imports (rest imports-order)
+					      (remove-if #'matches-prefix imports)
+					      (append result (remove-if-not #'matches-prefix imports)))))))
+	 (remove-duplicates (import result)
+			    (loop for imp = import then (cdr imp)
+				  for f = (first imp)
+				  for n = (second imp)
+				  while imp
+				  when (not (or (eclim--java-wildcard-includes-p f n)
+						(equal f n)))
+				  collect f)))
     (remove-duplicates
      (sort-imports imports-order (sort imports #'string-lessp) '()) '())))
 
@@ -344,10 +344,10 @@ cursor at a suitable point for re-inserting new import statements."
 	(delete-region (line-beginning-position) (line-end-position))))
     (delete-blank-lines)
     (if (null imports)
-        (progn
-          (end-of-line)
-          (newline)
-          (newline)))
+	(progn
+	  (end-of-line)
+	  (newline)
+	  (newline)))
     imports))
 
 (defun eclim--java-organize-imports (imports-order &optional additional-imports unused-imports)
@@ -358,27 +358,27 @@ cursor at a suitable point for re-inserting new import statements."
   will be removed."
   (save-excursion
     (flet ((write-imports (imports)
-                          (loop for imp in imports
-                                for last-import-first-part = nil then first-part
-                                for first-part = (first (eclim--java-package-components imp))
-                                do (progn
-                                     (unless (equal last-import-first-part first-part)
-                                       (newline))
-                                     (insert (format "import %s;\n" imp))))))
+			  (loop for imp in imports
+				for last-import-first-part = nil then first-part
+				for first-part = (first (eclim--java-package-components imp))
+				do (progn
+				     (unless (equal last-import-first-part first-part)
+				       (newline))
+				     (insert (format "import %s;\n" imp))))))
       (let ((imports
-             (remove-if #'eclim--java-ignore-import-p
-                        (remove-if (lambda (x) (member x unused-imports))
-                                   (append (eclim--java-extract-imports) additional-imports)))))
-        (write-imports (eclim--java-sort-imports imports imports-order))))))
+	     (remove-if #'eclim--java-ignore-import-p
+			(remove-if (lambda (x) (member x unused-imports))
+				   (append (eclim--java-extract-imports) additional-imports)))))
+	(write-imports (eclim--java-sort-imports imports imports-order))))))
 
 (defun eclim-java-import ()
   "Reads the token at the point and calls eclim to resolve it to
 a java type that can be imported."
   (interactive)
   (let* ((pattern (cdr (eclim--java-identifier-at-point)))
-         (imports (eclim/java-import (eclim--project-name) pattern)))
+	 (imports (eclim/java-import (eclim--project-name) pattern)))
     (eclim--java-organize-imports (eclim/java-import-order (eclim--project-name))
-                                  (list (eclim--completing-read "Import: " imports)))))
+				  (list (eclim--completing-read "Import: " imports)))))
 
 (defun eclim--ends-with (a b)
   (if (> (length a) (length b))
@@ -413,23 +413,23 @@ user if necessary."
   (interactive)
   (let ((imports-order (eclim/java-import-order (eclim--project-name))))
     (loop for unused across
-          (json-read-from-string
-           (replace-regexp-in-string "'" "\""
-                                     (first (eclim/java-import-missing (eclim--project-name)))))
-          do (let* ((candidates (append (cdr (assoc 'imports (eclim--fix-static-import unused))) nil))
-                    (len (length candidates)))
-               (if (= len 0) nil
-                 (eclim--java-organize-imports imports-order
-                                               (if (= len 1) candidates
-                                                 (list
-                                                  (eclim--completing-read (concat "Missing type '" (cdr (assoc 'type unused)) "'")
-                                                                          candidates)))))))))
+	  (json-read-from-string
+	   (replace-regexp-in-string "'" "\""
+				     (first (eclim/java-import-missing (eclim--project-name)))))
+	  do (let* ((candidates (append (cdr (assoc 'imports (eclim--fix-static-import unused))) nil))
+		    (len (length candidates)))
+	       (if (= len 0) nil
+		 (eclim--java-organize-imports imports-order
+					       (if (= len 1) candidates
+						 (list
+						  (eclim--completing-read (concat "Missing type '" (cdr (assoc 'type unused)) "'")
+									  candidates)))))))))
 
 (defun eclim-java-remove-unused-imports ()
   (interactive)
   (eclim/java-src-update)
   (let ((imports-order (eclim/java-import-order (eclim--project-name)))
-        (unused (eclim/java-import-unused (eclim--project-name))))
+	(unused (eclim/java-import-unused (eclim--project-name))))
     (eclim--java-organize-imports imports-order nil unused)))
 
 (defun eclim/java-impl (project file &optional offset encoding type superType methods)
@@ -441,7 +441,7 @@ user if necessary."
   (eclim/java-src-update)
   ;; TODO: present the user with more fine grain control over the selection of methods
   (let* ((response (eclim/java-impl (eclim--project-name) (eclim--project-current-file) (eclim--byte-offset)))
-         (methods 
+	 (methods 
 	  (remove-if (lambda (element) (string-match "//" element))
 		     (remove-if-not (lambda (element) (string-match "(.*)" element))
 				    response)))
@@ -456,39 +456,39 @@ user if necessary."
 
 (defun eclim--java-complete-internal (completion-list)
   (let* ((window (get-buffer-window "*Completions*" 0))
-         (c (eclim--java-identifier-at-point))
-         (beg (car c))
-         (word (cdr c))
-         (compl (try-completion word
-                                completion-list)))
+	 (c (eclim--java-identifier-at-point))
+	 (beg (car c))
+	 (word (cdr c))
+	 (compl (try-completion word
+				completion-list)))
     (if (and (eq last-command this-command)
-             window (window-live-p window) (window-buffer window)
-             (buffer-name (window-buffer window)))
-        ;; If this command was repeated, and there's a fresh completion window
-        ;; with a live buffer, and this command is repeated, scroll that
-        ;; window.
-        (with-current-buffer (window-buffer window)
-          (if (pos-visible-in-window-p (point-max) window)
-              (set-window-start window (point-min))
-            (save-selected-window
-              (select-window window)
-              (scroll-up))))
+	     window (window-live-p window) (window-buffer window)
+	     (buffer-name (window-buffer window)))
+	;; If this command was repeated, and there's a fresh completion window
+	;; with a live buffer, and this command is repeated, scroll that
+	;; window.
+	(with-current-buffer (window-buffer window)
+	  (if (pos-visible-in-window-p (point-max) window)
+	      (set-window-start window (point-min))
+	    (save-selected-window
+	      (select-window window)
+	      (scroll-up))))
       (cond
        ((null compl)
-        (message "No completions."))
+	(message "No completions."))
        ((stringp compl)
-        (if (string= word compl)
-            ;; Show completion buffer
-            (let ((list (all-completions word completion-list)))
-              (setq list (sort list 'string<))
-              (with-output-to-temp-buffer "*Completions*"
-                (display-completion-list list word)))
-          ;; Complete
-          (delete-region beg (point))
-          (insert compl)
-          ;; close completion buffer if there's one
-          (let ((win (get-buffer-window "*Completions*" 0)))
-            (if win (quit-window nil win)))))
+	(if (string= word compl)
+	    ;; Show completion buffer
+	    (let ((list (all-completions word completion-list)))
+	      (setq list (sort list 'string<))
+	      (with-output-to-temp-buffer "*Completions*"
+		(display-completion-list list word)))
+	  ;; Complete
+	  (delete-region beg (point))
+	  (insert compl)
+	  ;; close completion buffer if there's one
+	  (let ((win (get-buffer-window "*Completions*" 0)))
+	    (if win (quit-window nil win)))))
        (t (message "That's the only possible completion."))))))
 
 (defun eclim-java-complete ()
@@ -498,9 +498,9 @@ user if necessary."
 
 ;; Request an eclipse source update when files are saved
 (add-hook 'after-save-hook (lambda ()
-                             (when (member major-mode eclim-java-major-modes)
-                               (let ((eclim--supress-errors t))
-                                 (if eclim-mode (eclim/java-src-update))))
-                             t))
+			     (when (member major-mode eclim-java-major-modes)
+			       (let ((eclim--supress-errors t))
+				 (if eclim-mode (eclim/java-src-update))))
+			     t))
 
 (provide 'eclim-java)
