@@ -207,7 +207,12 @@ has been found."
 						      ("-o" (car i)) ("-l" (length (cdr i))))
 			(when (not (string= "files:" (first files)))
 			  (error (first files)))
-			(revert-buffer t t t)
+			(let ((current (current-buffer)))
+			  (loop for file in files
+				for buf = (get-file-buffer (file-name-nondirectory file))
+				when buf do (progn (switch-to-buffer buf)
+						   (revert-buffer t t t)))
+			  (switch-to-buffer current))
 			(message "Done"))))
 
 (defun eclim-java-hierarchy (project file offset encoding)
