@@ -189,6 +189,12 @@ has been found."
   (eclim/execute-command "javadoc_comment" "-p" "-f" "-o")
   (revert-buffer t t t))
 
+(defun eclim-java-constructor ()
+  (interactive)
+  (eclim/java-src-update)
+  (eclim/execute-command "java_constructor" "-p" "-f" "-o")
+  (revert-buffer t t t))
+
 (defun eclim/java-hierarchy (project file offset encoding)
   (eclim--call-process "java_hierarchy"
                        "-p" project
