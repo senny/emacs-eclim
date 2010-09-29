@@ -99,6 +99,7 @@ the current buffer is contained within this list"
 tell eclim to update its java sources."
   (let ((project-name (eclim--project-name)))
     (when (and eclim-auto-save project-name)
+      (save-buffer) ;; auto-save current buffer, prompt on saving others
       (save-some-buffers nil (lambda () (string-match "\\.java$" (buffer-file-name)))) 
       ;; TODO: Sometimes this isn't finished when we complete.
       (eclim/execute-command "java_src_update" "-p" "-f"))))
