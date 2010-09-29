@@ -116,6 +116,8 @@ saved."
 	      while arg when val append (list arg val))))
 
 (defun eclim--call-process (&rest args)
+  "Calls eclim with the supplied arguments. Consider using ECLIM/EXECUTE-COMMAND instead, 
+as it has argument expansion and rudimentary error checking."
   (let ((cmd (apply 'concat eclim-executable " -command " 
 		    (mapcar (lambda (arg) (concat " " arg))
 			    (mapcar (lambda (arg) (if (numberp arg) (number-to-string arg) arg))
@@ -125,6 +127,52 @@ saved."
 	    (split-string
 	     (shell-command-to-string cmd)
 	     "\n"))))
+
+(setq eclim--default-args
+      '(("-n" . (eclim--project-name))
+	("-p" . (eclim--project-name))
+	("-e" . (eclim--current-encoding))
+	("-f" . (eclim--project-current-file))
+	("-o" . (eclim--byte-offset))
+	("-s" . "project")))
+
+(defun eclim--expand-args (args)
+  "Takes a list of command-line arguments with which to call the
+eclim server. Each element should be either a string or a
+list. If it is a string, its default value is looked up in
+ECLIM--DEFAULT-ARGS and used to construct a list. The argument
+lists are then appended together."
+  (mapcar (lambda (a) (if (numberp a) (number-to-string a) a))
+	  (loop for a in args
+		append (if (listp a) 
+			   (list (car a) (eval (cadr a))) 
+			 (list a (eval (cdr (or (assoc a eclim--default-args)
+						(error "sorry, no default value for: %s" a)))))))))
+
+(defmacro eclim/execute-command (cmd &rest args)
+  "Calls ECLIM--EXPAND-ARGS on ARGS, then calls eclim with the
+resulsts. Raises an error if the connection is refused."
+  (let ((params (gensym))
+	(res (gensym)))
+    `(let ((,params (apply 'concat eclim-executable " -command " ,cmd
+			   (mapcar (lambda (arg) (concat " " arg)) 
+				   (eclim--expand-args (quote ,args))))))
+       (message ,params)
+       (let ((,res (remove-if (lambda (s) (= 0 (length s)))
+			      (split-string
+			       (shell-command-to-string ,params)
+			       "\n"))))
+	 (when (and ,res (string-match "connect:\s+\\(.*\\)" (first ,res)))
+	   (error (match-string 1 (first ,res))))
+	 ,res))))
+
+(defmacro eclim/with-results (result cmd args &rest body)
+  "Convenience macro. Calls eclim with CMD and the expanded ARGS
+list and binds RESULT to the results. If RESULT is non-nil, BODY
+is executed."
+  `(let ((,result (eclim/execute-command ,cmd ,@args)))
+     (when ,result
+       ,@body)))
 
 (defun eclim--completing-read (prompt choices)
   (funcall eclim-interactive-completion-function prompt choices))
