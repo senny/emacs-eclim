@@ -166,11 +166,12 @@ resulsts. Raises an error if the connection is refused."
 	   (error (match-string 1 (first ,res))))
 	 ,res))))
 
-(defmacro eclim/with-results (result cmd args &rest body)
-  "Convenience macro. Calls eclim with CMD and the expanded ARGS
-list and binds RESULT to the results. If RESULT is non-nil, BODY
-is executed."
-  `(let ((,result (eclim/execute-command ,cmd ,@args)))
+(defmacro eclim/with-results (result params &rest body)
+  "Convenience macro. PARAMS is a list where the first element is
+CMD to execute and the rest an ARGS list. Calls eclim with CMD
+and the expanded ARGS list and binds RESULT to the results. If
+RESULT is non-nil, BODY is executed."
+  `(let* ((,result (eclim/execute-command ,@params)))
      (when ,result
        ,@body)))
 
