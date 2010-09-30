@@ -95,7 +95,7 @@ the current buffer is contained within this list"
                                "-o" (number-to-string (eclim--byte-offset)))))
 
 (defun eclim/java-src-update ()
-  "If ECLIM-AUTO-SAVE is non-nil, save all java buffers, then
+  "If `eclim-auto-save' is non-nil, save all java buffers, then
 tell eclim to update its java sources."
   (when eclim-auto-save
     (save-buffer) ;; auto-save current buffer, prompt on saving others

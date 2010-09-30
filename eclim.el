@@ -116,8 +116,9 @@ saved."
 	      while arg when val append (list arg val))))
 
 (defun eclim--call-process (&rest args)
-  "Calls eclim with the supplied arguments. Consider using ECLIM/EXECUTE-COMMAND instead, 
-as it has argument expansion and rudimentary error checking."
+  "Calls eclim with the supplied arguments. Consider using
+`eclim/execute-command' instead, as it has argument expansion,
+error checking, and some other niceties.."
   (let ((cmd (apply 'concat eclim-executable " -command " 
 		    (mapcar (lambda (arg) (concat " " arg))
 			    (mapcar (lambda (arg) (if (numberp arg) (number-to-string arg) arg))
@@ -146,7 +147,7 @@ of the items in ARGS implies an eclim source refresh/update."
   "Takes a list of command-line arguments with which to call the
 eclim server. Each element should be either a string or a
 list. If it is a string, its default value is looked up in
-ECLIM--DEFAULT-ARGS and used to construct a list. The argument
+`eclim--default-args' and used to construct a list. The argument
 lists are then appended together."
   (mapcar (lambda (a) (if (numberp a) (number-to-string a) a))
 	  (loop for a in args
@@ -158,7 +159,7 @@ lists are then appended together."
 (defun eclim/call-process (cmd expargs)
   "Calls the eclim server with the supplied CMD and expanded
 arguments. Not inteded to be called directly; you should probably
-call ECLIM/EXECUTE-COMMAND instead."
+call `eclim/execute-command' instead."
   (let ((params (apply 'concat eclim-executable " -command " cmd
 		       (mapcar (lambda (arg) (concat " " arg)) expargs))))
     (message params)
@@ -168,7 +169,7 @@ call ECLIM/EXECUTE-COMMAND instead."
 		"\n"))))
     
 (defmacro eclim/execute-command (cmd &rest args)
-  "Calls ECLIM--EXPAND-ARGS on ARGS, then calls eclim with the
+  "Calls `eclim--expand-args' on ARGS, then calls eclim with the
 results. Automatically saves the current buffer (and optionally
 other java buffers as well), performs an eclim java_src_update
 operation, and refreshes the current buffer if necessary. Raises
