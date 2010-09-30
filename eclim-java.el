@@ -198,16 +198,16 @@ has been found."
 
 (defun eclim-java-refactor-rename-symbol-at-point ()
   "Rename the java symbol at point."
-  ;; TODO: handle file refresh in a better way; esp. if you rename the
-  ;; current class
   (interactive)
-  (eclim/java-src-update)
   (let* ((i (eclim--java-identifier-at-point t))
 	 (n (read-string (concat "Rename " (cdr i) " to: "))))
     (eclim/with-results files ("java_refactor_rename" "-p" "-e" "-f" ("-n" n) 
 			       ("-o" (car i)) ("-l" (length (cdr i))))
 			(when (not (string= "files:" (first files)))
 			  (error (first files)))
+			(when (not (file-exists-p (buffer-file-name)))
+			  (kill-buffer)
+			  (eclim-java-find-type n))
 			(let ((current (current-buffer)))
 			  (loop for file in files
 				for buf = (get-file-buffer (file-name-nondirectory file))
