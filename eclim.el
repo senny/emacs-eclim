@@ -136,6 +136,12 @@ as it has argument expansion and rudimentary error checking."
 	("-o" . (eclim--byte-offset))
 	("-s" . "project")))
 
+(defun eclim--implies-src-sync (args)
+  "ARGS is a list of expanded eclim arguments. Returns T if any
+of the items in ARGS implies an eclim source refresh/update."
+  (loop for a in (list "-f" "-o")
+	when (find a args :test #'string=) return t))
+
 (defun eclim--expand-args (args)
   "Takes a list of command-line arguments with which to call the
 eclim server. Each element should be either a string or a
@@ -149,21 +155,39 @@ lists are then appended together."
 			 (list a (eval (cdr (or (assoc a eclim--default-args)
 						(error "sorry, no default value for: %s" a)))))))))
 
+(defun eclim/call-process (cmd expargs)
+  "Calls the eclim server with the supplied CMD and expanded
+arguments. Not inteded to be called directly; you should probably
+call ECLIM/EXECUTE-COMMAND instead."
+  (let ((params (apply 'concat eclim-executable " -command " cmd
+		       (mapcar (lambda (arg) (concat " " arg)) expargs))))
+    (message params)
+    (remove-if (lambda (s) (= 0 (length s)))
+	       (split-string
+		(shell-command-to-string params)
+		"\n"))))
+    
 (defmacro eclim/execute-command (cmd &rest args)
   "Calls ECLIM--EXPAND-ARGS on ARGS, then calls eclim with the
-resulsts. Raises an error if the connection is refused."
-  (let ((params (gensym))
-	(res (gensym)))
-    `(let ((,params (apply 'concat eclim-executable " -command " ,cmd
-			   (mapcar (lambda (arg) (concat " " arg)) 
-				   (eclim--expand-args (quote ,args))))))
-       (message ,params)
-       (let ((,res (remove-if (lambda (s) (= 0 (length s)))
-			      (split-string
-			       (shell-command-to-string ,params)
-			       "\n"))))
+results. Automatically saves the current buffer (and optionally
+other java buffers as well), performs an eclim java_src_update
+operation, and refreshes the current buffer if necessary. Raises
+an error if the connection is refused."
+  (let ((res (gensym))
+	(expargs (gensym))
+	(sync (gensym)))
+    `(let* ((,expargs (eclim--expand-args (quote ,args)))
+	    (,sync (and eclim-auto-save (eclim--implies-src-sync ,expargs))))
+       (when ,sync 
+	     (save-buffer) ;; auto-save current buffer, prompt on saving others
+	     (save-some-buffers nil (lambda () (string-match "\\.java$" (buffer-file-name)))) 
+	     (eclim/call-process "java_src_update" (eclim--expand-args (list "-p" "-f"))))
+       (let ((eclim-auto-save nil)
+	     (,res (eclim/call-process ,cmd ,expargs)))
 	 (when (and ,res (string-match "connect:\s+\\(.*\\)" (first ,res)))
 	   (error (match-string 1 (first ,res))))
+	 (when (and ,sync (file-exists-p (buffer-file-name)))
+	   (revert-buffer t t t))
 	 ,res))))
 
 (defmacro eclim/with-results (result params &rest body)

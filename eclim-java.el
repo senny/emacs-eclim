@@ -97,14 +97,12 @@ the current buffer is contained within this list"
 (defun eclim/java-src-update ()
   "If ECLIM-AUTO-SAVE is non-nil, save all java buffers, then
 tell eclim to update its java sources."
-  (let ((project-name (eclim--project-name)))
-    (when (and eclim-auto-save project-name)
-      (save-buffer) ;; auto-save current buffer, prompt on saving others
-      (save-some-buffers nil (lambda () (string-match "\\.java$" (buffer-file-name)))) 
-      ;; TODO: Sometimes this isn't finished when we complete.
-      (eclim/execute-command "java_src_update" "-p" "-f"))))
+  (when eclim-auto-save
+    (save-buffer) ;; auto-save current buffer, prompt on saving others
+    (save-some-buffers nil (lambda () (string-match "\\.java$" (buffer-file-name)))) 
+    ;; TODO: Sometimes this isn't finished when we complete.
+    (eclim/call-process "java_src_update" (eclim--expand-args (list "-p" "-f")))))
 
-;; TODO: replace with call to nomnom?
 (defun eclim--java-current-type-name (&optional type)
   "Searches backward in the current buffer until a type
 declaration has been found. TYPE may be either 'class',
@@ -185,15 +183,11 @@ has been found."
 (defun eclim-java-doc-comment ()
   "Inserts or updates a javadoc comment for the element at point."
   (interactive)
-  (eclim/java-src-update)
-  (eclim/execute-command "javadoc_comment" "-p" "-f" "-o")
-  (revert-buffer t t t))
+  (eclim/execute-command "javadoc_comment" "-p" "-f" "-o"))
 
 (defun eclim-java-constructor ()
   (interactive)
-  (eclim/java-src-update)
-  (eclim/execute-command "java_constructor" "-p" "-f" "-o")
-  (revert-buffer t t t))
+  (eclim/execute-command "java_constructor" "-p" "-f" "-o"))
 
 (defun eclim/java-hierarchy (project file offset encoding)
   (eclim--call-process "java_hierarchy"
