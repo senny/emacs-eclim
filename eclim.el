@@ -137,11 +137,12 @@ error checking, and some other niceties.."
 	("-o" . (eclim--byte-offset))
 	("-s" . "project")))
 
-(defun eclim--implies-src-sync (args)
-  "ARGS is a list of expanded eclim arguments. Returns T if any
-of the items in ARGS implies an eclim source refresh/update."
-  (loop for a in (list "-f" "-o")
-	when (find a args :test #'string=) return t))
+(defun eclim--args-contains (args flags)
+  "Check if an (unexpanded) ARGS list contains any of the
+specified FLAGS."
+  (loop for f in flags
+	when (find f args :test #'string= :key (lambda (a) (if (listp a) (car a) a)))
+	return t))
 
 (defun eclim--expand-args (args)
   "Takes a list of command-line arguments with which to call the
@@ -155,40 +156,26 @@ lists are then appended together."
 			   (list (car a) (eval (cadr a))) 
 			 (list a (eval (cdr (or (assoc a eclim--default-args)
 						(error "sorry, no default value for: %s" a)))))))))
-
-(defun eclim/call-process (cmd expargs)
-  "Calls the eclim server with the supplied CMD and expanded
-arguments. Not inteded to be called directly; you should probably
-call `eclim/execute-command' instead."
-  (let ((params (apply 'concat eclim-executable " -command " cmd
-		       (mapcar (lambda (arg) (concat " " arg)) expargs))))
-    (message params)
-    (remove-if (lambda (s) (= 0 (length s)))
-	       (split-string
-		(shell-command-to-string params)
-		"\n"))))
     
 (defmacro eclim/execute-command (cmd &rest args)
   "Calls `eclim--expand-args' on ARGS, then calls eclim with the
 results. Automatically saves the current buffer (and optionally
 other java buffers as well), performs an eclim java_src_update
 operation, and refreshes the current buffer if necessary. Raises
-an error if the connection is refused."
+an error if the connection is refused. Automatically calls
+`eclim--check-project' if neccessary."
   (let ((res (gensym))
 	(expargs (gensym))
-	(sync (gensym)))
-    `(let* ((,expargs (eclim--expand-args (quote ,args)))
-	    (,sync (and eclim-auto-save (eclim--implies-src-sync ,expargs))))
-       (when ,sync 
-	     (save-buffer) ;; auto-save current buffer, prompt on saving others
-	     (save-some-buffers nil (lambda () (string-match "\\.java$" (buffer-file-name)))) 
-	     (eclim/call-process "java_src_update" (eclim--expand-args (list "-p" "-f"))))
-       (let ((eclim-auto-save nil)
-	     (,res (eclim/call-process ,cmd ,expargs)))
+	(sync (eclim--args-contains args '("-f" "-o")))
+	(check (eclim--args-contains args '("-p"))))
+    `(let* ((,expargs (eclim--expand-args (quote ,args))))
+       ,(when sync '(eclim/java-src-update))
+       ,(when check '(eclim--check-project))
+       (let ((,res (apply 'eclim--call-process ,cmd ,expargs)))
 	 (when (and ,res (string-match "connect:\s+\\(.*\\)" (first ,res)))
 	   (error (match-string 1 (first ,res))))
-	 (when (and ,sync (file-exists-p (buffer-file-name)))
-	   (revert-buffer t t t))
+	 ,(when sync `(when (file-exists-p (buffer-file-name))
+			(revert-buffer t t t)))
 	 ,res))))
 
 (defmacro eclim/with-results (result params &rest body)
@@ -196,9 +183,11 @@ an error if the connection is refused."
 CMD to execute and the rest an ARGS list. Calls eclim with CMD
 and the expanded ARGS list and binds RESULT to the results. If
 RESULT is non-nil, BODY is executed."
-  `(let* ((,result (eclim/execute-command ,@params)))
-     (when ,result
-       ,@body)))
+  (let ((sync (eclim--args-contains (rest params) (list "-f" "-o"))))
+    `(let* ((,result (eclim/execute-command ,@params))
+	    (eclim-auto-save (and (eclim-auto-save (not ,sync)))))
+       (when ,result
+	 ,@body))))
 
 (defun eclim--completing-read (prompt choices)
   (funcall eclim-interactive-completion-function prompt choices))

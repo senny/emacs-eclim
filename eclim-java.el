@@ -101,7 +101,7 @@ tell eclim to update its java sources."
     (save-buffer) ;; auto-save current buffer, prompt on saving others
     (save-some-buffers nil (lambda () (string-match "\\.java$" (buffer-file-name)))) 
     ;; TODO: Sometimes this isn't finished when we complete.
-    (eclim/call-process "java_src_update" (eclim--expand-args (list "-p" "-f")))))
+    (apply 'eclim--call-process "java_src_update" (eclim--expand-args (list "-p" "-f")))))
 
 (defun eclim--java-current-type-name (&optional type)
   "Searches backward in the current buffer until a type
@@ -167,18 +167,6 @@ has been found."
   (eclim--check-project project)
   (eclim--call-process "java_import_order"
                        "-p" project))
-
-(defun eclim/java-import-missing (project)
-  (eclim--check-project project)
-  (eclim--call-process "java_import_missing"
-                       "-p" project
-                       "-f" (eclim--project-current-file)))
-
-(defun eclim/java-import-unused (project)
-  (eclim--check-project project)
-  (eclim--call-process "java_imports_unused"
-                       "-p" project
-                       "-f" (eclim--project-current-file)))
 
 (defun eclim-java-doc-comment ()
   "Inserts or updates a javadoc comment for the element at point."
@@ -418,11 +406,10 @@ a java type that can be imported."
   "Checks the current file for missing imports and prompts the
 user if necessary."
   (interactive)
-  (let ((imports-order (eclim/java-import-order (eclim--project-name))))
+  (eclim/with-results imports-order ("java_import_order" "-p")
     (loop for unused across
 	  (json-read-from-string
-	   (replace-regexp-in-string "'" "\""
-				     (first (eclim/java-import-missing (eclim--project-name)))))
+	   (replace-regexp-in-string "'" "\"" (first (eclim/execute-command "java_import_missing" "-p" "-f"))))
 	  do (let* ((candidates (append (cdr (assoc 'imports (eclim--fix-static-import unused))) nil))
 		    (len (length candidates)))
 	       (if (= len 0) nil
@@ -434,10 +421,9 @@ user if necessary."
 
 (defun eclim-java-remove-unused-imports ()
   (interactive)
-  (eclim/java-src-update)
-  (let ((imports-order (eclim/java-import-order (eclim--project-name)))
-	(unused (eclim/java-import-unused (eclim--project-name))))
-    (eclim--java-organize-imports imports-order nil unused)))
+  (eclim/with-results imports-order ("java_import_order" "-p")
+		      (eclim/with-results unused ("java_imports_unused" "-p" "-f")
+					  (eclim--java-organize-imports imports-order nil unused))))
 
 (defun eclim/java-impl (project file &optional offset encoding type superType methods)
   (eclim--check-project project)
