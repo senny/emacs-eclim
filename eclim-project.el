@@ -250,9 +250,9 @@
 							"-s" scope
 							"-n" project))
     (apply 'eclim--call-process (eclim--build-command "locate_file"
-						     "-p" pattern
-						     "-s" scope))))
-     
+						      "-p" pattern
+						      "-s" scope))))
+
 (defun eclim/project-links (project)
   (eclim--check-project project)
   (eclim--call-process "project_links" "-p" project))

@@ -157,17 +157,6 @@ has been found."
 (defun eclim/java-classpath-variable-delete (name)
   (eclim--call-process "java_classpath_variable_create" "-n" name))
 
-(defun eclim/java-import (project pattern)
-  (eclim--check-project project)
-  (eclim--call-process "java_import"
-                       "-n" project
-                       "-p" pattern))
-
-(defun eclim/java-import-order (project)
-  (eclim--check-project project)
-  (eclim--call-process "java_import_order"
-                       "-p" project))
-
 (defun eclim-java-doc-comment ()
   "Inserts or updates a javadoc comment for the element at point."
   (interactive)
@@ -240,6 +229,7 @@ has been found."
   (mapcar (lambda (l) (split-string l "|" nil)) res))
 
 (defun eclim-java-find-declaration ()
+  "Find and display the declaration of the java identifier at point."
   (interactive)
   (let ((i (eclim--java-identifier-at-point t)))
     (eclim/with-results hits ("java_search" "-n" "-f" ("-o" (car i)) ("-l" (length (cdr i))) ("-x" "declaration"))
@@ -249,6 +239,7 @@ has been found."
 			    (eclim--find-display-results (cdr i) r))))))
 
 (defun eclim-java-find-references ()
+  "Find and display references for the java identifier at point."
   (interactive)
   (let ((i (eclim--java-identifier-at-point t)))
     (eclim/with-results hits ("java_search" "-n" "-f" ("-o" (car i)) ("-l" (length (cdr i))) ("-x" "references"))
@@ -370,10 +361,9 @@ cursor at a suitable point for re-inserting new import statements."
   "Reads the token at the point and calls eclim to resolve it to
 a java type that can be imported."
   (interactive)
-  (let* ((pattern (cdr (eclim--java-identifier-at-point)))
-	 (imports (eclim/java-import (eclim--project-name) pattern)))
-    (eclim--java-organize-imports (eclim/java-import-order (eclim--project-name))
-				  (list (eclim--completing-read "Import: " imports)))))
+  (eclim/with-results imports ("java_import" "-n" ("-p" (cdr (eclim--java-identifier-at-point))))
+		      (eclim--java-organize-imports (eclim/execute-command "java_import_order" "-p")
+						    (list (eclim--completing-read "Import: " imports)))))
 
 (defun eclim--ends-with (a b)
   (if (> (length a) (length b))
@@ -420,32 +410,29 @@ user if necessary."
 									  candidates)))))))))
 
 (defun eclim-java-remove-unused-imports ()
+  "Remove usused import from the current java source file."
   (interactive)
-  (eclim/with-results imports-order ("java_import_order" "-p")
-		      (eclim/with-results unused ("java_imports_unused" "-p" "-f")
-					  (eclim--java-organize-imports imports-order nil unused))))
-
-(defun eclim/java-impl (project file &optional offset encoding type superType methods)
-  (eclim--check-project project)
-  (eclim--call-process "java_impl" "-p" project "-f" file "-o" offset))
+  (eclim/with-results unused ("java_imports_unused" "-p" "-f")
+		      (let ((imports-order (eclim/execute-command "java_import_order" "-p")))
+			(eclim--java-organize-imports imports-order nil unused))))
 
 (defun eclim-java-implement ()
+  "Lets the user select from a list of methods to
+implemnt/override, then inserts a skeleton for the chosen
+method."
   (interactive)
-  (eclim/java-src-update)
-  ;; TODO: present the user with more fine grain control over the selection of methods
-  (let* ((response (eclim/java-impl (eclim--project-name) (eclim--project-current-file) (eclim--byte-offset)))
-	 (methods 
-	  (remove-if (lambda (element) (string-match "//" element))
-		     (remove-if-not (lambda (element) (string-match "(.*)" element))
-				    response)))
-	 (start (point)))
-    (insert 
-     "@Override\n"
-     (replace-regexp-in-string " abstract " " " 
-			       (eclim--completing-read "Signature: " methods)) 
-     " {}")
-    (backward-char)
-    (indent-region start (point))))
+  (eclim/with-results response ("java_impl" "-p" "-f" "-o")
+		      (let* ((methods  
+			      (remove-if (lambda (element) (string-match "//" element))
+					 (remove-if-not (lambda (element) (string-match "(.*)" element))
+							response)))
+			     (start (point)))
+			(insert 
+			 "@Override\n"
+			 (replace-regexp-in-string " abstract " " " 
+						   (eclim--completing-read "Signature: " methods)) " {}")
+			(backward-char)
+			(indent-region start (point)))))
 
 (defun eclim--java-complete-internal (completion-list)
   (let* ((window (get-buffer-window "*Completions*" 0))

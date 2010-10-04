@@ -170,9 +170,10 @@ an error if the connection is refused. Automatically calls
 	(check (eclim--args-contains args '("-p"))))
     `(let* ((,expargs (eclim--expand-args (quote ,args))))
        ,(when sync '(eclim/java-src-update))
-       ,(when check '(eclim--check-project))
+       ,(when check '(eclim--check-project (eclim--project-name)))
        (let ((,res (apply 'eclim--call-process ,cmd ,expargs)))
-	 (when (and ,res (string-match "connect:\s+\\(.*\\)" (first ,res)))
+	 (when (and ,res (or (string-match "connect:\s+\\(.*\\)" (first ,res))
+			     (string-match "Missing argument for required option:\s*\\(.*\\)" (first ,res))))
 	   (error (match-string 1 (first ,res))))
 	 ,(when sync `(when (file-exists-p (buffer-file-name))
 			(revert-buffer t t t)))
@@ -185,7 +186,7 @@ and the expanded ARGS list and binds RESULT to the results. If
 RESULT is non-nil, BODY is executed."
   (let ((sync (eclim--args-contains (rest params) (list "-f" "-o"))))
     `(let* ((,result (eclim/execute-command ,@params))
-	    (eclim-auto-save (and (eclim-auto-save (not ,sync)))))
+	    (eclim-auto-save (and eclim-auto-save (not ,sync))))
        (when ,result
 	 ,@body))))
 
