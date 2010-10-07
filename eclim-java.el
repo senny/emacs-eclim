@@ -42,18 +42,9 @@
 (define-key eclim-mode-map (kbd "C-c C-e z") 'eclim-java-implement)
 (define-key eclim-mode-map (kbd "C-c C-e d") 'eclim-java-doc-comment)
 
-
 (defgroup eclim-java nil
   "Java: editing, browsing, refactoring"
   :group 'eclim)
-
-(defcustom eclim-java-field-prefixes "\\(s_\\|m_\\)\\(.*\\)"
-  "this variable contains a regular expression matching the java field
-  prefixes. The prefixes get removed when using yasnippet to generate
-  getter and setter methods. This variable allows you to have field
-  names like 'm_username' and get method names like 'setUsername' and 'getUsername'"
-  :group 'eclim-java
-  :type 'regexp)
 
 (defcustom eclim-java-major-modes '(java-mode jde-mode)
   "This variable contains a list of major modes to edit java
@@ -87,12 +78,7 @@ the current buffer is contained within this list"
 (defun eclim/java-complete ()
   (mapcar (lambda (line)
             (split-string line "|" nil))
-          (eclim--call-process "java_complete"
-                               "-p" (eclim--project-name)
-                               "-f" (eclim--project-current-file)
-                               "-e" (eclim--current-encoding)
-                               "-l" "standard"
-                               "-o" (number-to-string (eclim--byte-offset)))))
+          (eclim/execute-command "java_complete" "-p" "-f" "-e" ("-l" "standard") "-o")))
 
 (defun eclim/java-src-update ()
   "If `eclim-auto-save' is non-nil, save all java buffers, then
@@ -110,19 +96,13 @@ declaration has been found. TYPE may be either 'class',
   (save-excursion
     (if (re-search-backward 
 	 (concat (or type "\\(class\\|interface\\|enum\\)") "\\s-+\\([^<{\s-]+\\)") nil t)
-        (match-string 2)
+	(match-string 2)
       "")))
 
 (defun eclim--java-current-class-name ()
   "Searches backward in the current buffer until a class declaration
 has been found."
   (eclim--java-current-type-name "class"))
-
-;; TODO: remove
-(defun eclim--java-symbol-remove-prefix (name)
-  (if (string-match eclim-java-field-prefixes name)
-      (match-string 2 name)
-    name))
 
 (defun eclim--completion-candidate-type (candidate)
   "Returns the type of a candidate."
@@ -149,7 +129,7 @@ has been found."
 (defun eclim/java-classpath-variables ()
   ;; TODO: fix trailing whitespaces
   (mapcar (lambda (line)
-            (split-string line "-")) (eclim--call-process "java_classpath_variables")))
+	    (split-string line "-")) (eclim--call-process "java_classpath_variables")))
 
 (defun eclim/java-classpath-variable-create (name path)
   (eclim--call-process "java_classpath_variable_create" "-n" name "-p" path))
@@ -168,10 +148,10 @@ has been found."
 
 (defun eclim/java-hierarchy (project file offset encoding)
   (eclim--call-process "java_hierarchy"
-                       "-p" project
-                       "-f" file
-                       "-o" (number-to-string offset)
-                       "-e" encoding))
+		       "-p" project
+		       "-f" file
+		       "-o" (number-to-string offset)
+		       "-e" encoding))
 
 (defun eclim-java-refactor-rename-symbol-at-point ()
   "Rename the java symbol at point."
@@ -195,9 +175,9 @@ has been found."
 
 (defun eclim-java-hierarchy (project file offset encoding)
   (interactive (list (eclim--project-name)
-                     (eclim--project-current-file)
-                     (eclim--byte-offset)
-                     (eclim--current-encoding)))
+		     (eclim--project-current-file)
+		     (eclim--byte-offset)
+		     (eclim--current-encoding)))
   (pop-to-buffer "*eclim: hierarchy*" t)
   (special-mode)
   (let ((buffer-read-only nil))
@@ -211,19 +191,18 @@ has been found."
 
 (defun eclim--java-insert-hierarchy-node (project node level)
   (let ((declaration (cdr (assoc 'name node)))
-        (qualified-name (cdr (assoc 'qualified node))))
+	(qualified-name (cdr (assoc 'qualified node))))
     (insert (format (concat "%-"(number-to-string (* level 2)) "s=> ") ""))
-    (lexical-let ((file-path (first (first (eclim--java-find-declaration
-                                            qualified-name)))))
+    (lexical-let ((file-path (first (first (eclim-java-find-type qualified-name)))))
       (insert-text-button declaration
-                          'follow-link t
-                          'help-echo qualified-name
-                          'action (lambda (&rest ignore)
-                                    (eclim--find-file file-path)))))
+			  'follow-link t
+			  'help-echo qualified-name
+			  'action (lambda (&rest ignore)
+				    (eclim--find-file file-path)))))
   (newline)
   (let ((children (cdr (assoc 'children node))))
     (loop for child across children do
-          (eclim--java-insert-hierarchy-node project child (+ level 1)))))
+	  (eclim--java-insert-hierarchy-node project child (+ level 1)))))
 
 (defun eclim--java-split-search-results (res)
   (mapcar (lambda (l) (split-string l "|" nil)) res))
@@ -248,17 +227,17 @@ has been found."
 (defun eclim-java-find-type (type-name)
   "Searches the project for a given class. The TYPE-NAME is the pattern, which will be used for the search."
   (interactive (list (read-string "Name: " (let ((case-fold-search nil)
-                                                 (current-symbol (symbol-name (symbol-at-point))))
-                                             (if (string-match-p "^[A-Z]" current-symbol)
-                                                 current-symbol
-                                               (eclim--java-current-type-name))))))
+						 (current-symbol (symbol-name (symbol-at-point))))
+					     (if (string-match-p "^[A-Z]" current-symbol)
+						 current-symbol
+					       (eclim--java-current-type-name))))))
   (eclim-java-find-generic "workspace" "declarations" "type" type-name t))
 
 (defun eclim-java-find-generic (scope context type pattern &optional open-single-file)
   (interactive (list (eclim--completing-read "Scope: " eclim--java-search-scopes)
-                     (eclim--completing-read "Context: " eclim--java-search-contexts)
-                     (eclim--completing-read "Type: " eclim--java-search-types)
-                     (read-string "Pattern: ")))
+		     (eclim--completing-read "Context: " eclim--java-search-contexts)
+		     (eclim--completing-read "Type: " eclim--java-search-types)
+		     (read-string "Pattern: ")))
   (eclim/with-results hits ("java_search" ("-p" pattern) ("-t" type) ("-x" context) ("-s" scope))
 		      (eclim--find-display-results pattern (eclim--java-split-search-results hits) open-single-file)))
 
@@ -272,7 +251,7 @@ start."
     ;; TODO: make this work for dos buffers
     (save-excursion
       (if (and full (re-search-forward boundary nil t))
-	     (backward-char))
+	  (backward-char))
       (let ((end (point))
 	    (start (progn 
 		     (if (re-search-backward boundary nil t) (forward-char))
@@ -397,17 +376,17 @@ a java type that can be imported."
 user if necessary."
   (interactive)
   (eclim/with-results imports-order ("java_import_order" "-p")
-    (loop for unused across
-	  (json-read-from-string
-	   (replace-regexp-in-string "'" "\"" (first (eclim/execute-command "java_import_missing" "-p" "-f"))))
-	  do (let* ((candidates (append (cdr (assoc 'imports (eclim--fix-static-import unused))) nil))
-		    (len (length candidates)))
-	       (if (= len 0) nil
-		 (eclim--java-organize-imports imports-order
-					       (if (= len 1) candidates
-						 (list
-						  (eclim--completing-read (concat "Missing type '" (cdr (assoc 'type unused)) "'")
-									  candidates)))))))))
+		      (loop for unused across
+			    (json-read-from-string
+			     (replace-regexp-in-string "'" "\"" (first (eclim/execute-command "java_import_missing" "-p" "-f"))))
+			    do (let* ((candidates (append (cdr (assoc 'imports (eclim--fix-static-import unused))) nil))
+				      (len (length candidates)))
+				 (if (= len 0) nil
+				   (eclim--java-organize-imports imports-order
+								 (if (= len 1) candidates
+								   (list
+								    (eclim--completing-read (concat "Missing type '" (cdr (assoc 'type unused)) "'")
+											    candidates)))))))))
 
 (defun eclim-java-remove-unused-imports ()
   "Remove usused import from the current java source file."

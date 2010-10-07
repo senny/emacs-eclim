@@ -177,8 +177,8 @@ available."
 	      (progn
 		;; otherwise, remove the doc string and insert an import statement
 		(cee--delete-backward " - ")
-		(eclim--java-organize-imports
-		 (eclim/java-import-order (eclim--project-name)) 
+		(eclim--java-organize-imports 
+		 (eclim/execute-command "java_import_order" "-p")
 		 (list 
 		  (concat (eclim--completion-candidate-package candidate) "." 
 			  (eclim--completion-candidate-class candidate)))))))
