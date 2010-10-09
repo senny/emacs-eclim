@@ -10,6 +10,9 @@
  * automatic refresh of the problems buffer
  * file-filter for the problems buffer
  * interface improvements for the problems buffer
+ * improved mechanisms for calling the eclim server
+ * rename/refactor in java code works as expected
+ * functions for find declarations and refrences of java methods and members
 
 === Bugfixes
  * fixed a problem on startup when the eclimd server was not started
