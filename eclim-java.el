@@ -344,26 +344,17 @@ a java type that can be imported."
 		      (eclim--java-organize-imports (eclim/execute-command "java_import_order" "-p")
 						    (list (eclim--completing-read "Import: " imports)))))
 
-(defun eclim--ends-with (a b)
-  (if (> (length a) (length b))
-      (string= (substring a (- (length a) (length b))) b)
-    nil))
-
 (defun eclim--fix-static-import (import-spec)
   (let ((imports (cdr (assoc 'imports import-spec)))
 	(type (cdr (assoc 'type import-spec))))
     (message "Imports %s" imports)
     (if (not (= 1 (length imports)))
 	import-spec
-      
       (if (not (stringp type))
 	  import-spec
-
 	(progn
-
 	  (message "Type: %s first element of imports: %s" type (elt imports 0))
-	  
-	  (if (eclim--ends-with (elt imports 0) type)
+	  (if (string-endswith-p (elt imports 0) type)
 	      import-spec
 	    (progn
 	      (message "Appending")

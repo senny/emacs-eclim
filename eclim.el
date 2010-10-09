@@ -74,6 +74,12 @@ saved."
   :type '(choice (const :tag "Off" nil)
                  (const :tag "On" t)))
 
+(defcustom eclim-print-debug-messages nil
+  "Determines whether debug messages should be printed."
+  :group 'eclim
+  :type '(choice (const :tag "Off" nil)
+		 (const :tag "On" t)))
+
 (defvar eclim--snippet-directory
   (concat (file-name-directory load-file-name) "snippets"))
 
@@ -123,7 +129,7 @@ error checking, and some other niceties.."
 		    (mapcar (lambda (arg) (concat " " arg))
 			    (mapcar (lambda (arg) (if (numberp arg) (number-to-string arg) arg))
 				    args)))))
-    (message cmd)
+    (if eclim-print-debug-messages (message cmd))
     (remove-if (lambda (s) (= 0 (length s)))
 	    (split-string
 	     (shell-command-to-string cmd)
