@@ -89,6 +89,15 @@ tell eclim to update its java sources."
     ;; TODO: Sometimes this isn't finished when we complete.
     (apply 'eclim--call-process "java_src_update" (eclim--expand-args (list "-p" "-f")))))
 
+(defadvice delete-file (around eclim--delete-file (filename) activate)
+  (save-excursion
+    (switch-to-buffer (find-buffer-visiting filename))
+    (let ((pr (eclim--project-name))
+	  (fn (eclim--project-current-file)))
+      ad-do-it
+      (apply 'eclim--call-process (list "java_src_update" "-p" pr "-f" fn)))))
+
+
 (defun eclim--java-current-type-name (&optional type)
   "Searches backward in the current buffer until a type
 declaration has been found. TYPE may be either 'class',
@@ -317,10 +326,10 @@ cursor at a suitable point for re-inserting new import statements."
 
 (defun eclim--java-organize-imports (imports-order &optional additional-imports unused-imports)
   "Organize the import statements in the current file according
-  to IMPORTS-ORDER. If the optional parameter ADDITIONAL-IMPORTS
-  is supplied, these import statements will be added to the
-  rest. Imports listed in the optional parameter UNUSED-IMPORTS
-  will be removed."
+to IMPORTS-ORDER. If the optional parameter ADDITIONAL-IMPORTS
+is supplied, these import statements will be added to the
+rest. Imports listed in the optional parameter UNUSED-IMPORTS
+will be removed."
   (save-excursion
     (flet ((write-imports (imports)
 			  (loop for imp in imports
