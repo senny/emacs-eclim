@@ -90,13 +90,19 @@ tell eclim to update its java sources."
     (apply 'eclim--call-process "java_src_update" (eclim--expand-args (list "-p" "-f")))))
 
 (defadvice delete-file (around eclim--delete-file (filename) activate)
-  (save-excursion
+  "Advice the `delete-file' function to trigger a source update
+in eclim when appropriate."
+  (let ((buf (current-buffer))
+	(pr nil)
+	(fn nil))
     (switch-to-buffer (find-buffer-visiting filename))
-    (let ((pr (eclim--project-name))
-	  (fn (eclim--project-current-file)))
-      ad-do-it
-      (apply 'eclim--call-process (list "java_src_update" "-p" pr "-f" fn)))))
-
+    (ignore-errors
+      (setq pr (eclim--project-name))
+      (setq fn (eclim--project-current-file)))
+    (switch-to-buffer buf)
+    ad-do-it
+    (when (and pr fn)
+      (ignore-errors (apply 'eclim--call-process (list "java_src_update" "-p" pr "-f" fn))))))
 
 (defun eclim--java-current-type-name (&optional type)
   "Searches backward in the current buffer until a type
