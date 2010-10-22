@@ -85,7 +85,7 @@ saved."
 
 ;; (defvar eclim--project-dir nil)
 ;; (make-variable-buffer-local 'eclim--project-dir)
- 
+
 ;; (defvar eclim--project-name nil)
 ;; (make-variable-buffer-local 'eclim--project-name)
 
@@ -102,8 +102,6 @@ saved."
 (defvar eclim--compressed-urls-regexp "\\(^jar:file://\\)\\|\\(^zip://\\)")
 (defvar eclim--compressed-file-path-replacement-regexp "\\\\")
 (defvar eclim--compressed-file-path-removal-regexp "^/")
-
-(defvar eclim--supress-errors nil)
 
 (defun string-startswith-p (string prefix)
   ;; TODO: there is probably already a library function that does this

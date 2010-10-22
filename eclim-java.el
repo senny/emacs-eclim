@@ -456,10 +456,12 @@ method."
   (eclim--java-complete-internal (mapcar 'second (eclim/java-complete))))
 
 ;; Request an eclipse source update when files are saved
-(add-hook 'after-save-hook (lambda ()
-			     (when (member major-mode eclim-java-major-modes)
-			       (let ((eclim--supress-errors t))
-				 (if eclim-mode (eclim/java-src-update))))
-			     t))
+(defun eclim--after-save-hook ()
+  (when (member major-mode eclim-java-major-modes)
+    (ignore-errors
+	(if eclim-mode (eclim/java-src-update))))
+  t)
 
+(add-hook 'after-save-hook 'eclim--after-save-hook)
+			     
 (provide 'eclim-java)
