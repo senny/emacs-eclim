@@ -80,12 +80,14 @@ the current buffer is contained within this list"
             (split-string line "|" nil))
           (eclim/execute-command "java_complete" "-p" "-f" "-e" ("-l" "standard") "-o")))
 
-(defun eclim/java-src-update ()
-  "If `eclim-auto-save' is non-nil, save all java buffers, then
-tell eclim to update its java sources."
+(defun eclim/java-src-update (&optional save-others)
+  "If `eclim-auto-save' is non-nil, save the current java
+buffer. In addition, if `save-others' is non-nil, also save any
+other unsaved buffer. Finally, tell eclim to update its java
+sources."
   (when eclim-auto-save
     (save-buffer) ;; auto-save current buffer, prompt on saving others
-    (save-some-buffers nil (lambda () (string-match "\\.java$" (buffer-file-name)))) 
+    (when save-others (save-some-buffers nil (lambda () (string-match "\\.java$" (buffer-file-name)))))
     ;; TODO: Sometimes this isn't finished when we complete.
     (apply 'eclim--call-process "java_src_update" (eclim--expand-args (list "-p" "-f")))))
 
@@ -465,9 +467,9 @@ method."
 (defun eclim--after-save-hook ()
   (when (member major-mode eclim-java-major-modes)
     (ignore-errors
-	(if eclim-mode (eclim/java-src-update))))
+      (if eclim-mode (eclim/java-src-update))))
   t)
 
 (add-hook 'after-save-hook 'eclim--after-save-hook)
-			     
+
 (provide 'eclim-java)
