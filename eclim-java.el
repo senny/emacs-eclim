@@ -174,7 +174,7 @@ has been found."
   "Rename the java symbol at point."
   (interactive)
   (let* ((i (eclim--java-identifier-at-point t))
-	 (n (read-string (concat "Rename " (cdr i) " to: "))))
+	 (n (read-string (concat "Rename " (cdr i) " to: ") (cdr i))))
     (eclim/with-results files ("java_refactor_rename" "-p" "-e" "-f" ("-n" n) 
 			       ("-o" (car i)) ("-l" (length (cdr i))))
 			(when (not (string= "files:" (first files)))
