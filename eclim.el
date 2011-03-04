@@ -276,7 +276,7 @@ FILENAME is given, return that file's  project name instead."
 
 (defun eclim--byte-offset (&optional text)
   ;; TODO: restricted the ugly newline counting to dos buffers => remove it all the way later
-  (let ((current-offset (position-bytes (1- (point)))))
+  (let ((current-offset (1-(position-bytes (point)))))
     (when (not current-offset) (setq current-offset 0))
     (if (string-match "dos" (symbol-name buffer-file-coding-system))
         (+ current-offset (how-many "\n" (point-min) (point)))

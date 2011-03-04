@@ -86,10 +86,10 @@ buffer. In addition, if `save-others' is non-nil, also save any
 other unsaved buffer. Finally, tell eclim to update its java
 sources."
   (when eclim-auto-save
-    (save-buffer) ;; auto-save current buffer, prompt on saving others
-    (when save-others (save-some-buffers nil (lambda () (string-match "\\.java$" (buffer-file-name)))))
+    (when (buffer-modified-p) (save-buffer)) ;; auto-save current buffer, prompt on saving others
+    (when save-others (save-some-buffers nil (lambda () (string-match "\\.java$" (buffer-file-name))))))
     ;; TODO: Sometimes this isn't finished when we complete.
-    (apply 'eclim--call-process "java_src_update" (eclim--expand-args (list "-p" "-f")))))
+  (apply 'eclim--call-process "java_src_update" (eclim--expand-args (list "-p" "-f"))))
 
 (defadvice delete-file (around eclim--delete-file (filename) activate)
   "Advice the `delete-file' function to trigger a source update

@@ -137,9 +137,10 @@
   (interactive)
   (setq eclim--problems-list (eclim--problems))
   (eclim--problems-buffer-redisplay)
-  (message "Eclim reports %d errors, %d warnings."
-	   (length (remove-if-not (lambda (p) (string-equal "e" (eclim--problem-type p))) eclim--problems-list))
-	   (length (remove-if-not (lambda (p) (string-equal "w" (eclim--problem-type p))) eclim--problems-list))))
+  ;; (when (not (current-message))
+    (message "Eclim reports %d errors, %d warnings."
+	     (length (remove-if-not (lambda (p) (string-equal "e" (eclim--problem-type p))) eclim--problems-list))
+	     (length (remove-if-not (lambda (p) (string-equal "w" (eclim--problem-type p))) eclim--problems-list))))
 
 (defun eclim--problems-cleanup-filename (filename)
   (let ((x (file-name-nondirectory (eclim--problem-file problem))))
@@ -247,10 +248,10 @@ refresh of the problems buffer."
 				 (p (get-buffer eclim--problems-buffer-name)))
 			     (if p
 				 (progn
-				   (switch-to-buffer p)
+				   (set-buffer p)
 				   (eclim-problems-buffer-refresh))
 			       (eclim--problems-mode-init))
-			     (switch-to-buffer b))))))
+			     (set-buffer b))))))
  
 (add-hook 'after-save-hook #'eclim--problems-update-maybe)
 
