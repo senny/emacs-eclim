@@ -86,8 +86,8 @@ saved."
 ;; (defvar eclim--project-dir nil)
 ;; (make-variable-buffer-local 'eclim--project-dir)
 
-;; (defvar eclim--project-name nil)
-;; (make-variable-buffer-local 'eclim--project-name)
+(defvar eclim--project-name nil)
+(make-variable-buffer-local 'eclim--project-name)
 
 (defvar eclim--project-natures-cache nil)
 (defvar eclim--projects-cache nil)
@@ -209,15 +209,17 @@ argument FILENAME is given, return that file's project root directory."
 (defun eclim--project-name (&optional filename)
   "Returns this file's project name. If the optional argument
 FILENAME is given, return that file's  project name instead."
-  (let ((project-list (eclim/project-list))
-	(project-dir (eclim--project-dir (or filename buffer-file-name))))
-    (when (and project-list project-dir)
-      (car (or (cddr (assoc project-dir project-list)) ;; sensitive match
-	       (cddr (assoc (downcase project-dir) ;; insensitive match
-			    (mapcar (lambda (project)
-				      (cons (downcase (first project))
-					    (rest project)))
-				    project-list))))))))
+  (or eclim--project-name
+      (setq eclim--project-name
+	    (let ((project-list (eclim/project-list))
+		  (project-dir (eclim--project-dir (or filename buffer-file-name))))
+	      (when (and project-list project-dir)
+		(car (or (cddr (assoc project-dir project-list)) ;; sensitive match
+			 (cddr (assoc (downcase project-dir) ;; insensitive match
+				      (mapcar (lambda (project)
+						(cons (downcase (first project))
+						      (rest project)))
+					      project-list))))))))))
 
 (defun eclim--find-file (path-to-file)
   (if (not (string-match-p "!" path-to-file))
