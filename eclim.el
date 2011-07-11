@@ -41,7 +41,7 @@
 (defun eclim-executable-find ()
   (let (file)
     (dolist (eclipse-root '("/Applications/eclipse" "/usr/lib/eclipse"
-                            "/usr/local/lib/eclipse"))
+                            "/usr/local/lib/eclipse" "/usr/share/eclipse"))
       (and (file-exists-p
             (setq file (expand-file-name "plugins" eclipse-root)))
            (setq file (car (last (directory-files file t "^org.eclim_"))))
@@ -210,17 +210,8 @@ RESULT is non-nil, BODY is executed."
 
 (defun eclim--project-name ()
   (when buffer-file-name
-    (or eclim--project-name
-        (setq eclim--project-name
-              (let* ((project-list (eclim/project-list))
-                     (downcase-project-list (mapcar (lambda (project)
-                                                      (list
-                                                       (downcase (first project))
-                                                       (second project)
-                                                       (third project))) project-list))
-                     (sensitive-match (car (cddr (assoc (eclim--project-dir) project-list))))
-                     (insensitive-match (car (cddr (assoc (downcase (eclim--project-dir)) downcase-project-list)))))
-                (or sensitive-match insensitive-match))))))
+    (setq eclim--project-name (car (eclim--call-process "project_by_resource"
+                                                        "-f" buffer-file-name)))))
 
 (defun eclim--find-file (path-to-file)
   (if (not (string-match-p "!" path-to-file))
