@@ -41,7 +41,8 @@
 (defun eclim-executable-find ()
   (let (file)
     (dolist (eclipse-root '("/Applications/eclipse" "/usr/lib/eclipse"
-                            "/usr/local/lib/eclipse"))
+                            "/usr/local/lib/eclipse"
+			    "~/apps/eclipse"))
       (and (file-exists-p
             (setq file (expand-file-name "plugins" eclipse-root)))
            (setq file (car (last (directory-files file t "^org.eclim_"))))
@@ -97,7 +98,8 @@ saved."
     ("dos" . "iso-8859-1")
     ("undecided-unix" . "iso-8859-1")
     ("utf-8-dos" . "utf-8")
-    ("utf-8-unix" . "utf-8")))
+    ("utf-8-unix" . "utf-8")
+    ("utf-8-emacs-unix" . "utf-8")))
 
 (defvar eclim--compressed-urls-regexp "\\(^jar:file://\\)\\|\\(^zip://\\)")
 (defvar eclim--compressed-file-path-replacement-regexp "\\\\")
