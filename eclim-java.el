@@ -87,9 +87,7 @@ other unsaved buffer. Finally, tell eclim to update its java
 sources."
   (when eclim-auto-save
     (when (buffer-modified-p) (save-buffer)) ;; auto-save current buffer, prompt on saving others
-    (when save-others (save-some-buffers nil (lambda () (string-match "\\.java$" (buffer-file-name))))))
-    ;; TODO: Sometimes this isn't finished when we complete.
-  (apply 'eclim--call-process "java_src_update" (eclim--expand-args (list "-p" "-f"))))
+    (when save-others (save-some-buffers nil (lambda () (string-match "\\.java$" (buffer-file-name)))))))
 
 (defadvice delete-file (around eclim--delete-file (filename) activate)
   "Advice the `delete-file' function to trigger a source update
@@ -467,7 +465,7 @@ method."
 (defun eclim--after-save-hook ()
   (when (member major-mode eclim-java-major-modes)
     (ignore-errors
-      (if eclim-mode (eclim/java-src-update))))
+      (if eclim-mode (apply 'eclim--call-process "java_src_update" (eclim--expand-args (list "-p" "-f"))))))
   t)
 
 (add-hook 'after-save-hook 'eclim--after-save-hook)
