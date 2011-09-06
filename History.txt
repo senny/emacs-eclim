@@ -17,3 +17,6 @@
 === Bugfixes
  * fixed a problem on startup when the eclimd server was not started
  * bugfix in call to eclim-call-process
+ * Added a new directory for eclipse (may only be Arch linux specific)
+ * Changed eclim--project-name to get the project name out of eclipse
+   than futz with matching dir names to workspace names.
