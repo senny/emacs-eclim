@@ -193,27 +193,42 @@ has been found."
 		     (eclim--project-current-file)
 		     (eclim--byte-offset)
 		     (eclim--current-encoding)))
+  (let ((top-node (eclim--java-insert-file-path-for-hierarchy-nodes
+		   (json-read-from-string
+		    (replace-regexp-in-string
+		     "'" "\"" (car (eclim/java-hierarchy project file offset encoding)))))))
   (pop-to-buffer "*eclim: hierarchy*" t)
   (special-mode)
   (let ((buffer-read-only nil))
     (erase-buffer)
     (eclim--java-insert-hierarchy-node
      project
-     (json-read-from-string
-      (replace-regexp-in-string
-       "'" "\"" (car (eclim/java-hierarchy project file offset encoding))))
-     0)))
+     top-node
+     0))))
+
+(defun eclim--java-insert-file-path-for-hierarchy-nodes (node)
+  ;Can't use *-find-type here because it will pop a buffer
+  ;that isn't part of the project which then breaks future
+  ;*-find-type calls and isn't what we want here anyway.
+  (eclim/with-results hits ("java_search" ("-p" (cdr (assoc 'qualified node))) ("-t" "type") ("-x" "declarations") ("-s" "workspace"))
+    (add-to-list 'node `(file-path . ,(first (split-string (first hits) "|"))))
+    (let ((children (cdr (assoc 'children node))))
+      (loop for child across children do
+	    (eclim--java-insert-file-path-for-hierarchy-nodes child)))
+    node))
 
 (defun eclim--java-insert-hierarchy-node (project node level)
   (let ((declaration (cdr (assoc 'name node)))
 	(qualified-name (cdr (assoc 'qualified node))))
     (insert (format (concat "%-"(number-to-string (* level 2)) "s=> ") ""))
-    (lexical-let ((file-path (first (first (eclim-java-find-type qualified-name)))))
-      (insert-text-button declaration
+    (lexical-let ((file-path (cdr (assoc 'file-path node))))
+      (if file-path
+	  (insert-text-button declaration
 			  'follow-link t
 			  'help-echo qualified-name
 			  'action (lambda (&rest ignore)
-				    (eclim--find-file file-path)))))
+				    (eclim--find-file file-path)))
+	(insert declaration))))
   (newline)
   (let ((children (cdr (assoc 'children node))))
     (loop for child across children do
