@@ -198,7 +198,6 @@ RESULT is non-nil, BODY is executed."
 (defun eclim--completing-read (prompt choices)
   (funcall eclim-interactive-completion-function prompt choices))
 
-<<<<<<< HEAD
 (defun eclim--project-dir (&optional filename)
   "Return this file's project root directory. If the optional
 argument FILENAME is given, return that file's project root directory."
@@ -222,21 +221,6 @@ FILENAME is given, return that file's  project name instead."
 						(cons (downcase (first project))
 						      (rest project)))
 					      project-list))))))))))
-=======
-(defun eclim--project-dir ()
-  "return this file's project root directory."
-  (or eclim--project-dir
-      (setq eclim--project-dir
-            (directory-file-name
-             (file-name-directory
-              (expand-file-name
-               (locate-dominating-file buffer-file-name ".project")))))))
-
-(defun eclim--project-name ()
-  (when buffer-file-name
-    (setq eclim--project-name (car (eclim--call-process "project_by_resource"
-                                                        "-f" buffer-file-name)))))
->>>>>>> senny/master
 
 (defun eclim--find-file (path-to-file)
   (if (not (string-match-p "!" path-to-file))
