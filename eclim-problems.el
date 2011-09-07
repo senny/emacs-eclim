@@ -137,9 +137,10 @@
   (interactive)
   (setq eclim--problems-list (eclim--problems))
   (eclim--problems-buffer-redisplay)
-  (message "Eclim reports %d errors, %d warnings."
-	   (length (remove-if-not (lambda (p) (string-equal "e" (eclim--problem-type p))) eclim--problems-list))
-	   (length (remove-if-not (lambda (p) (string-equal "w" (eclim--problem-type p))) eclim--problems-list))))
+  ;; (when (not (current-message))
+    (message "Eclim reports %d errors, %d warnings."
+	     (length (remove-if-not (lambda (p) (string-equal "e" (eclim--problem-type p))) eclim--problems-list))
+	     (length (remove-if-not (lambda (p) (string-equal "w" (eclim--problem-type p))) eclim--problems-list))))
 
 (defun eclim--problems-cleanup-filename (filename)
   (let ((x (file-name-nondirectory (eclim--problem-file problem))))
@@ -228,7 +229,7 @@
 (defun eclim-problems-refocus ()
   (interactive)
 
-  (when eclim--project-dir
+  (when (eclim--project-dir)
     (setq eclim--problems-project (eclim--project-name))
     (setq eclim--problems-file buffer-file-name)
     (with-current-buffer eclim--problems-buffer-name
@@ -237,7 +238,7 @@
 (defun eclim--problems-update-maybe ()
   "If autoupdate is enabled, this function triggers a delayed
 refresh of the problems buffer."
-  (when (and eclim--project-dir
+  (when (and (eclim--project-dir)
 	     eclim-autoupdate-problems)
     (setq eclim--problems-project (eclim--project-name))
     (setq eclim--problems-file buffer-file-name)
@@ -247,10 +248,10 @@ refresh of the problems buffer."
 				 (p (get-buffer eclim--problems-buffer-name)))
 			     (if p
 				 (progn
-				   (switch-to-buffer p)
+				   (set-buffer p)
 				   (eclim-problems-buffer-refresh))
 			       (eclim--problems-mode-init))
-			     (switch-to-buffer b))))))
+			     (set-buffer b))))))
  
 (add-hook 'after-save-hook #'eclim--problems-update-maybe)
 

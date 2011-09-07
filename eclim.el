@@ -83,8 +83,8 @@ saved."
 (defvar eclim--snippet-directory
   (concat (file-name-directory load-file-name) "snippets"))
 
-(defvar eclim--project-dir nil)
-(make-variable-buffer-local 'eclim--project-dir)
+;; (defvar eclim--project-dir nil)
+;; (make-variable-buffer-local 'eclim--project-dir)
 
 (defvar eclim--project-name nil)
 (make-variable-buffer-local 'eclim--project-name)
@@ -97,13 +97,12 @@ saved."
     ("dos" . "iso-8859-1")
     ("undecided-unix" . "iso-8859-1")
     ("utf-8-dos" . "utf-8")
-    ("utf-8-unix" . "utf-8")))
+    ("utf-8-unix" . "utf-8")
+    ("utf-8-emacs-unix" . "utf-8")))
 
 (defvar eclim--compressed-urls-regexp "\\(^jar:file://\\)\\|\\(^zip://\\)")
 (defvar eclim--compressed-file-path-replacement-regexp "\\\\")
 (defvar eclim--compressed-file-path-removal-regexp "^/")
-
-(defvar eclim--supress-errors nil)
 
 (defun string-startswith-p (string prefix)
   ;; TODO: there is probably already a library function that does this
@@ -131,9 +130,9 @@ error checking, and some other niceties.."
 				    args)))))
     (if eclim-print-debug-messages (message cmd))
     (remove-if (lambda (s) (= 0 (length s)))
-	    (split-string
-	     (shell-command-to-string cmd)
-	     "\n"))))
+	       (split-string
+		(shell-command-to-string cmd)
+		"\n"))))
 
 (setq eclim--default-args
       '(("-n" . (eclim--project-name))
@@ -162,7 +161,7 @@ lists are then appended together."
 			   (list (car a) (eval (cadr a))) 
 			 (list a (eval (cdr (or (assoc a eclim--default-args)
 						(error "sorry, no default value for: %s" a)))))))))
-    
+
 (defmacro eclim/execute-command (cmd &rest args)
   "Calls `eclim--expand-args' on ARGS, then calls eclim with the
 results. Automatically saves the current buffer (and optionally
@@ -199,6 +198,31 @@ RESULT is non-nil, BODY is executed."
 (defun eclim--completing-read (prompt choices)
   (funcall eclim-interactive-completion-function prompt choices))
 
+<<<<<<< HEAD
+(defun eclim--project-dir (&optional filename)
+  "Return this file's project root directory. If the optional
+argument FILENAME is given, return that file's project root directory."
+  (let ((root (locate-dominating-file (or filename buffer-file-name) ".project")))
+    (when root
+      (directory-file-name
+       (file-name-directory
+	(expand-file-name root))))))
+
+(defun eclim--project-name (&optional filename)
+  "Returns this file's project name. If the optional argument
+FILENAME is given, return that file's  project name instead."
+  (or eclim--project-name
+      (setq eclim--project-name
+	    (let ((project-list (eclim/project-list))
+		  (project-dir (eclim--project-dir (or filename buffer-file-name))))
+	      (when (and project-list project-dir)
+		(car (or (cddr (assoc project-dir project-list)) ;; sensitive match
+			 (cddr (assoc (downcase project-dir) ;; insensitive match
+				      (mapcar (lambda (project)
+						(cons (downcase (first project))
+						      (rest project)))
+					      project-list))))))))))
+=======
 (defun eclim--project-dir ()
   "return this file's project root directory."
   (or eclim--project-dir
@@ -212,6 +236,7 @@ RESULT is non-nil, BODY is executed."
   (when buffer-file-name
     (setq eclim--project-name (car (eclim--call-process "project_by_resource"
                                                         "-f" buffer-file-name)))))
+>>>>>>> senny/master
 
 (defun eclim--find-file (path-to-file)
   (if (not (string-match-p "!" path-to-file))
@@ -270,7 +295,7 @@ RESULT is non-nil, BODY is executed."
 
 (defun eclim--byte-offset (&optional text)
   ;; TODO: restricted the ugly newline counting to dos buffers => remove it all the way later
-  (let ((current-offset (position-bytes (1- (point)))))
+  (let ((current-offset (1-(position-bytes (point)))))
     (when (not current-offset) (setq current-offset 0))
     (if (string-match "dos" (symbol-name buffer-file-coding-system))
         (+ current-offset (how-many "\n" (point-min) (point)))
