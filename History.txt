@@ -20,3 +20,5 @@
  * Added a new directory for eclipse (may only be Arch linux specific)
  * Changed eclim--project-name to get the project name out of eclipse
    than futz with matching dir names to workspace names.
+ * Added eclim-eclipse-dirs which can be used if eclipse is not
+   installed in the standard location
