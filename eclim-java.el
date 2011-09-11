@@ -41,6 +41,7 @@
 (define-key eclim-mode-map (kbd "C-c C-e h") 'eclim-java-hierarchy)
 (define-key eclim-mode-map (kbd "C-c C-e z") 'eclim-java-implement)
 (define-key eclim-mode-map (kbd "C-c C-e d") 'eclim-java-doc-comment)
+(define-key eclim-mode-map (kbd "C-c C-e f s") 'eclim-java-format)
 
 (defgroup eclim-java nil
   "Java: editing, browsing, refactoring"
@@ -141,6 +142,11 @@ has been found."
   "Inserts or updates a javadoc comment for the element at point."
   (interactive)
   (eclim/execute-command "javadoc_comment" "-p" "-f" "-o"))
+
+(defun eclim-java-format ()
+  "Format the source code of the current java source file."
+  (interactive)
+  (eclim/execute-command "java_format" "-p" "-f" ("-b" 0) ("-e" (buffer-size))))
 
 (defun eclim-java-constructor ()
   (interactive)
