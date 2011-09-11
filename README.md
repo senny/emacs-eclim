@@ -11,6 +11,7 @@ from eclipse to emacs.
 1. download and install eclim ([eclim download page](http://github.com/ervandew/eclim/downloads))
 1. download emacs-eclim
 1. add the following code to your emacs startup script
+
         (add-to-list 'load-path (expand-file-name "/path/to/emacs-eclim/"))
         ;; only add the vendor path when you want to use the libraries provided with emacs-eclim
         (add-to-list 'load-path (expand-file-name "~/coding/git/emacs-eclim/vendor"))
