@@ -13,7 +13,6 @@ from eclipse to emacs.
 1. add the following code to your emacs startup script
 
         (add-to-list 'load-path (expand-file-name "/path/to/emacs-eclim/"))
-        ;; only add the vendor path when you want to use the libraries provided with emacs-eclim
         (add-to-list 'load-path (expand-file-name "~/coding/git/emacs-eclim/vendor"))
         (require 'eclim)
 
