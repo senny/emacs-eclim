@@ -41,6 +41,7 @@
 (define-key eclim-mode-map (kbd "C-c C-e h") 'eclim-java-hierarchy)
 (define-key eclim-mode-map (kbd "C-c C-e z") 'eclim-java-implement)
 (define-key eclim-mode-map (kbd "C-c C-e d") 'eclim-java-doc-comment)
+(define-key eclim-mode-map (kbd "C-c C-e f s") 'eclim-java-format)
 
 (defgroup eclim-java nil
   "Java: editing, browsing, refactoring"
@@ -89,7 +90,7 @@ sources."
     (when (buffer-modified-p) (save-buffer)) ;; auto-save current buffer, prompt on saving others
     (when save-others (save-some-buffers nil (lambda () (string-match "\\.java$" (buffer-file-name)))))))
 
-(defadvice delete-file (around eclim--delete-file (filename) activate)
+(defadvice delete-file (around eclim--delete-file activate)
   "Advice the `delete-file' function to trigger a source update
 in eclim when appropriate."
   (let ((buf (current-buffer))
@@ -109,7 +110,7 @@ in eclim when appropriate."
 declaration has been found. TYPE may be either 'class',
 'interface', 'enum' or nil, meaning 'match all of the above'."
   (save-excursion
-    (if (re-search-backward 
+    (if (re-search-backward
 	 (concat (or type "\\(class\\|interface\\|enum\\)") "\\s-+\\([^<{\s-]+\\)") nil t)
 	(match-string 2)
       "")))
@@ -157,6 +158,11 @@ has been found."
   (interactive)
   (eclim/execute-command "javadoc_comment" "-p" "-f" "-o"))
 
+(defun eclim-java-format ()
+  "Format the source code of the current java source file."
+  (interactive)
+  (eclim/execute-command "java_format" "-p" "-f" ("-b" 0) ("-e" (buffer-size))))
+
 (defun eclim-java-constructor ()
   (interactive)
   (eclim/execute-command "java_constructor" "-p" "-f" "-o"))
@@ -173,7 +179,7 @@ has been found."
   (interactive)
   (let* ((i (eclim--java-identifier-at-point t))
 	 (n (read-string (concat "Rename " (cdr i) " to: ") (cdr i))))
-    (eclim/with-results files ("java_refactor_rename" "-p" "-e" "-f" ("-n" n) 
+    (eclim/with-results files ("java_refactor_rename" "-p" "-e" "-f" ("-n" n)
 			       ("-o" (car i)) ("-l" (length (cdr i))))
 			(when (not (string= "files:" (first files)))
 			  (error (first files)))
@@ -283,7 +289,7 @@ start."
       (if (and full (re-search-forward boundary nil t))
 	  (backward-char))
       (let ((end (point))
-	    (start (progn 
+	    (start (progn
 		     (if (re-search-backward boundary nil t) (forward-char))
 		     (point))))
 	(cons (eclim--byte-offset)
@@ -422,14 +428,14 @@ implemnt/override, then inserts a skeleton for the chosen
 method."
   (interactive)
   (eclim/with-results response ("java_impl" "-p" "-f" "-o")
-		      (let* ((methods  
+		      (let* ((methods
 			      (remove-if (lambda (element) (string-match "//" element))
 					 (remove-if-not (lambda (element) (string-match "(.*)" element))
 							response)))
 			     (start (point)))
-			(insert 
+			(insert
 			 "@Override\n"
-			 (replace-regexp-in-string " abstract " " " 
+			 (replace-regexp-in-string " abstract " " "
 						   (eclim--completing-read "Signature: " methods)) " {}")
 			(backward-char)
 			(indent-region start (point)))))
