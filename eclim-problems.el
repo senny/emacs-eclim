@@ -90,6 +90,7 @@
   (run-mode-hooks 'eclim-problems-mode-hook))
 
 (defun eclim--problems ()
+  (interactive)
   "Calls eclipse to obtain all current problems. Returns a list of lists."
   (remove-if-not (lambda (l) (= (length l) 4)) ;; for now, ignore multiline errors
 		 (mapcar (lambda (line) (split-string line "|" nil))
@@ -138,8 +139,8 @@
   (setq eclim--problems-list (eclim--problems))
   (eclim--problems-buffer-redisplay)
   ;; (when (not (current-message))
-    (message "Eclim reports %d errors, %d warnings."
-	     (length (remove-if-not (lambda (p) (string-equal "e" (eclim--problem-type p))) eclim--problems-list))
+  (message "Eclim reports %d errors, %d warnings."
+	   (length (remove-if-not (lambda (p) (string-equal "e" (eclim--problem-type p))) eclim--problems-list))
 	     (length (remove-if-not (lambda (p) (string-equal "w" (eclim--problem-type p))) eclim--problems-list))))
 
 (defun eclim--problems-cleanup-filename (filename)
@@ -253,6 +254,37 @@ refresh of the problems buffer."
 			       (eclim--problems-mode-init))
 			     (set-buffer b))))))
  
+(defun eclim-problems-compilation-buffer ()
+  "Creates a compilation buffer from eclim error messages. This
+is convenient as it lets the user navigate between errors using
+`next-error' (\\[next-error])."
+  (interactive)
+  (let ((problems (eclim--problems))
+	(filecol-size (eclim--problems-filecol-size))
+	(project-directory (concat (eclim--project-dir buffer-file-name) "/"))
+	(compil-buffer (get-buffer-create "*compilation*")))
+    (with-current-buffer compil-buffer
+      (message "Project directory is: %s" project-directory)
+      (setq default-directory project-directory)
+      (setq buffer-read-only nil)
+      (erase-buffer)
+      (insert (concat "-*- mode: compilation; default-directory: "
+		      project-directory
+		      " -*-\n"))
+      (dolist (problem (eclim--problems-filtered))
+	(eclim--insert-problem-compilation problem filecol-size project-directory))
+      (compilation-mode))
+    (display-buffer-other-window compil-buffer)))
+    
+(defun eclim--insert-problem-compilation (problem filecol-size project-directory)
+  (let ((filename (first (split-string (eclim--problem-file problem) project-directory t)))
+	 (position (split-string (eclim--problem-pos problem) " col " t))
+	 (description (eclim--problem-description problem))
+	 (type (eclim--problem-type problem)))
+    (let ((line (first position))
+	  (col (number-to-string (1+ (string-to-number (second position))))))
+      (insert (format "%s:%s:%s: %s\n" filename line col description)))))
+
 (add-hook 'after-save-hook #'eclim--problems-update-maybe)
 
 (provide 'eclim-problems)
