@@ -20,6 +20,8 @@ from eclipse to emacs.
         (setq eclim-auto-save t)
         (global-eclim-mode)
 
+1. customize the `eclim-executable` variable to make it point to the `eclim` executable within the Eclipe directory if necessary
+
 ## Optional dependencies
 * A recent (version 0.6.0 or later) of [yasnippet](http://code.google.com/p/yasnippet/).
 
