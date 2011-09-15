@@ -90,7 +90,6 @@
   (run-mode-hooks 'eclim-problems-mode-hook))
 
 (defun eclim--problems ()
-  (interactive)
   "Calls eclipse to obtain all current problems. Returns a list of lists."
   (remove-if-not (lambda (l) (= (length l) 4)) ;; for now, ignore multiline errors
 		 (mapcar (lambda (line) (split-string line "|" nil))
