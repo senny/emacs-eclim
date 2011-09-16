@@ -184,6 +184,15 @@ an error if the connection is refused. Automatically calls
 			(revert-buffer t t t)))
 	 ,res))))
 
+(defun eclim-running-p ()
+  "Returns t if eclim is currently capable of receiving commands,
+nil otherwise."
+  (condition-case nil
+      (progn 
+	(eclim/execute-command "ping")
+	t)
+    (error nil)))
+
 (defmacro eclim/with-results (result params &rest body)
   "Convenience macro. PARAMS is a list where the first element is
 CMD to execute and the rest an ARGS list. Calls eclim with CMD
