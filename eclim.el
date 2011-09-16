@@ -207,6 +207,15 @@ RESULT is non-nil, BODY is executed."
 (defun eclim--completing-read (prompt choices)
   (funcall eclim-interactive-completion-function prompt choices))
 
+(defun eclim--file-managed-p (&optional filename)
+  "Return t if and only if this file is part of a project managed
+by eclim. If the optional argument FILENAME is given, the return
+value is computed for that file's instead."
+  (let ((file (or filename buffer-file-name)))
+    (if (and (file-exists-p file)
+	     (eclim--project-name file))
+	t)))
+
 (defun eclim--project-dir (&optional filename)
   "Return this file's project root directory. If the optional
 argument FILENAME is given, return that file's project root directory."
