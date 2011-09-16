@@ -184,7 +184,7 @@ an error if the connection is refused. Automatically calls
 			(revert-buffer t t t)))
 	 ,res))))
 
-(defun eclim-running-p ()
+(defun eclim--running-p ()
   "Returns t if eclim is currently capable of receiving commands,
 nil otherwise."
   (condition-case nil
