@@ -8,7 +8,7 @@ emacs. This project wants to bring some of the invaluable features
 from eclipse to emacs.
 
 ## Installation
-1. download and install eclim ([eclim download page](http://github.com/ervandew/eclim/downloads))
+1. [download and install](http://eclim.org/guides/install.html) eclim
 1. download emacs-eclim
 1. add the following code to your emacs startup script
 
