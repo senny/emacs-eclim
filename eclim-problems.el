@@ -273,7 +273,7 @@ is convenient as it lets the user navigate between errors using
       (dolist (problem (eclim--problems-filtered))
 	(eclim--insert-problem-compilation problem filecol-size project-directory))
       (compilation-mode))
-    (display-buffer-other-window compil-buffer)))
+    (display-buffer compil-buffer 'other-window)))
     
 (defun eclim--insert-problem-compilation (problem filecol-size project-directory)
   (let ((filename (first (split-string (eclim--problem-file problem) project-directory t)))
