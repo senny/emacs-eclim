@@ -8,7 +8,7 @@ emacs. This project wants to bring some of the invaluable features
 from eclipse to emacs.
 
 ## Installation
-1. download and install eclim ([eclim download page](http://github.com/ervandew/eclim/downloads))
+1. [download and install](http://eclim.org/guides/install.html) eclim
 1. download emacs-eclim
 1. add the following code to your emacs startup script
 
@@ -19,6 +19,8 @@ from eclipse to emacs.
 
         (setq eclim-auto-save t)
         (global-eclim-mode)
+
+1. customize the `eclim-executable` variable to make it point to the `eclim` executable within the Eclipe directory if necessary
 
 ## Optional dependencies
 * A recent (version 0.6.0 or later) of [yasnippet](http://code.google.com/p/yasnippet/).
