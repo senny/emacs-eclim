@@ -233,7 +233,8 @@ FILENAME is given, return that file's  project name instead."
 
 (defun eclim--find-file (path-to-file)
   (if (not (string-match-p "!" path-to-file))
-      (find-file-other-window path-to-file)
+      (unless (string= path-to-file (buffer-file-name))
+	(find-file-other-window path-to-file))
     (let* ((parts (split-string path-to-file "!"))
            (archive-name (replace-regexp-in-string eclim--compressed-urls-regexp "" (first parts)))
            (file-name (second parts)))
