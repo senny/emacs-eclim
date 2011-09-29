@@ -22,8 +22,7 @@ from eclipse to emacs.
 ## Configuration
 
 If you have Eclipse installed in a non-standard location (i.e. ~/opt/eclipse)
-you can override the lookup by setting adding the following to your
-startup script.
+you can override the lookup by adding the following to your startup script.
 
         (custom-set-variables
          '(eclim-eclipse-dirs '("~/opt/eclipse")))
