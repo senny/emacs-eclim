@@ -55,6 +55,7 @@
     ("w" foreground-color . "yellow")))
 
 (defconst eclim--problems-buffer-name "*eclim: problems*")
+(defconst eclim--problems-compilation-buffer-name "*compilation: eclim*")
 
 (defun eclim--problems-mode ()
   (kill-all-local-variables)
@@ -93,7 +94,7 @@
   "Calls eclipse to obtain all current problems. Returns a list of lists."
   (remove-if-not (lambda (l) (= (length l) 4)) ;; for now, ignore multiline errors
 		 (mapcar (lambda (line) (split-string line "|" nil))
-			 (eclim--call-process "problems" 
+			 (eclim--call-process "problems"
 					      "-p" eclim--problems-project))))
 
 (defun eclim--problem-file (p) (first p))
@@ -175,12 +176,21 @@
       (eclim--insert-problem problem filecol-size))
     (goto-line line-number)))
 
-(defun eclim--problems-filtered ()
-  (remove-if-not 
+(defun eclim--problems-filtered (&optional ignore-type-filter)
+  "Filter reported problems by eclim.
+
+It filters out problems using the ECLIM--PROBLEMS-FILEFILTER
+criteria. If IGNORE-TYPE-FILTER is nil (default), then problems
+are also filtered according to ECLIM--PROBLEMS-FILTER, i.e.,
+error type. Otherwise, error type is ignored. This is useful when
+other mechanisms, like compilation's mode
+COMPILATION-SKIP-THRESHOLD, implement this feature."
+  (remove-if-not
    (lambda (x) (and
 		(or (not eclim--problems-filefilter)
 		    (string= (eclim--problem-file x) eclim--problems-file))
-		(or (not eclim--problems-filter) 
+		(or ignore-type-filter
+		    (not eclim--problems-filter)
 		    (string= (eclim--problem-type x) eclim--problems-filter))))
    eclim--problems-list))
 
@@ -210,7 +220,7 @@
   (setq eclim--problems-file buffer-file-name)
   (switch-to-buffer (get-buffer-create "*eclim: problems*"))
   (eclim--problems-mode)
-  (eclim-problems-buffer-refresh) 
+  (eclim-problems-buffer-refresh)
   (beginning-of-buffer))
 
 (defun eclim-problems ()
@@ -242,7 +252,7 @@ refresh of the problems buffer."
 	     eclim-autoupdate-problems)
     (setq eclim--problems-project (eclim--project-name))
     (setq eclim--problems-file buffer-file-name)
-    (run-with-idle-timer 1 nil 
+    (run-with-idle-timer 1 nil
 			 (lambda()
 			   (let ((b (current-buffer))
 				 (p (get-buffer eclim--problems-buffer-name)))
@@ -252,7 +262,7 @@ refresh of the problems buffer."
 				   (eclim-problems-buffer-refresh))
 			       (eclim--problems-mode-init))
 			     (set-buffer b))))))
- 
+
 (defun eclim-problems-compilation-buffer ()
   "Creates a compilation buffer from eclim error messages. This
 is convenient as it lets the user navigate between errors using
@@ -261,7 +271,7 @@ is convenient as it lets the user navigate between errors using
   (let ((problems (eclim--problems))
 	(filecol-size (eclim--problems-filecol-size))
 	(project-directory (concat (eclim--project-dir buffer-file-name) "/"))
-	(compil-buffer (get-buffer-create "*compilation*")))
+	(compil-buffer (get-buffer-create eclim--problems-compilation-buffer-name)))
     (with-current-buffer compil-buffer
       (setq default-directory project-directory)
       (setq buffer-read-only nil)
@@ -269,11 +279,12 @@ is convenient as it lets the user navigate between errors using
       (insert (concat "-*- mode: compilation; default-directory: "
 		      project-directory
 		      " -*-\n"))
-      (dolist (problem (eclim--problems-filtered))
+
+      (dolist (problem (eclim--problems-filtered t))
 	(eclim--insert-problem-compilation problem filecol-size project-directory))
       (compilation-mode))
     (display-buffer compil-buffer 'other-window)))
-    
+
 (defun eclim--insert-problem-compilation (problem filecol-size project-directory)
   (let ((filename (first (split-string (eclim--problem-file problem) project-directory t)))
 	 (position (split-string (eclim--problem-pos problem) " col " t))
@@ -281,7 +292,7 @@ is convenient as it lets the user navigate between errors using
 	 (type (eclim--problem-type problem)))
     (let ((line (first position))
 	  (col (number-to-string (1+ (string-to-number (second position))))))
-      (insert (format "%s:%s:%s: %s\n" filename line col description)))))
+      (insert (format "%s:%s:%s: %s: %s\n" filename line col (upcase type) description)))))
 
 (add-hook 'after-save-hook #'eclim--problems-update-maybe)
 
