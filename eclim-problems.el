@@ -55,6 +55,7 @@
     ("w" foreground-color . "yellow")))
 
 (defconst eclim--problems-buffer-name "*eclim: problems*")
+(defconst eclim--problems-compilation-buffer-name "*compilation: eclim*")
 
 (defun eclim--problems-mode ()
   (kill-all-local-variables)
@@ -270,7 +271,7 @@ is convenient as it lets the user navigate between errors using
   (let ((problems (eclim--problems))
 	(filecol-size (eclim--problems-filecol-size))
 	(project-directory (concat (eclim--project-dir buffer-file-name) "/"))
-	(compil-buffer (get-buffer-create "*compilation*")))
+	(compil-buffer (get-buffer-create eclim--problems-compilation-buffer-name)))
     (with-current-buffer compil-buffer
       (message "Project directory is: %s" project-directory)
       (setq default-directory project-directory)
