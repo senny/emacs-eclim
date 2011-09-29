@@ -263,7 +263,6 @@ is convenient as it lets the user navigate between errors using
 	(project-directory (concat (eclim--project-dir buffer-file-name) "/"))
 	(compil-buffer (get-buffer-create "*compilation*")))
     (with-current-buffer compil-buffer
-      (message "Project directory is: %s" project-directory)
       (setq default-directory project-directory)
       (setq buffer-read-only nil)
       (erase-buffer)
