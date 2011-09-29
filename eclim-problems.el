@@ -291,7 +291,7 @@ is convenient as it lets the user navigate between errors using
 	 (description (eclim--problem-description problem))
 	 (type (eclim--problem-type problem)))
     (let ((line (first position))
-	  (col (number-to-string (1+ (string-to-number (second position))))))
+	  (col (second position)))
       (insert (format "%s:%s:%s: %s: %s\n" filename line col (upcase type) description)))))
 
 (add-hook 'after-save-hook #'eclim--problems-update-maybe)
