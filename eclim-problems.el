@@ -175,12 +175,21 @@
       (eclim--insert-problem problem filecol-size))
     (goto-line line-number)))
 
-(defun eclim--problems-filtered ()
+(defun eclim--problems-filtered (&optional ignore-type-filter)
+  "Filter reported problems by eclim.
+
+It filters out problems using the ECLIM--PROBLEMS-FILEFILTER
+criteria. If IGNORE-TYPE-FILTER is nil (default), then problems
+are also filtered according to ECLIM--PROBLEMS-FILTER, i.e.,
+error type. Otherwise, error type is ignored. This is useful when
+other mechanisms, like compilation's mode
+COMPILATION-SKIP-THRESHOLD, implement this feature."
   (remove-if-not
    (lambda (x) (and
 		(or (not eclim--problems-filefilter)
 		    (string= (eclim--problem-file x) eclim--problems-file))
-		(or (not eclim--problems-filter)
+		(or ignore-type-filter
+		    (not eclim--problems-filter)
 		    (string= (eclim--problem-type x) eclim--problems-filter))))
    eclim--problems-list))
 
@@ -270,7 +279,7 @@ is convenient as it lets the user navigate between errors using
       (insert (concat "-*- mode: compilation; default-directory: "
 		      project-directory
 		      " -*-\n"))
-      (dolist (problem (eclim--problems-filtered))
+      (dolist (problem (eclim--problems-filtered t))
 	(eclim--insert-problem-compilation problem filecol-size project-directory))
       (compilation-mode))
     (display-buffer compil-buffer 'other-window)))
@@ -282,7 +291,7 @@ is convenient as it lets the user navigate between errors using
 	 (type (eclim--problem-type problem)))
     (let ((line (first position))
 	  (col (number-to-string (1+ (string-to-number (second position))))))
-      (insert (format "%s:%s:%s: %s\n" filename line col description)))))
+      (insert (format "%s:%s:%s: %s: %s\n" filename line col (upcase type) description)))))
 
 (add-hook 'after-save-hook #'eclim--problems-update-maybe)
 
