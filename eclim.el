@@ -212,6 +212,15 @@ RESULT is non-nil, BODY is executed."
 (defun eclim--completing-read (prompt choices)
   (funcall eclim-interactive-completion-function prompt choices))
 
+(defun eclim--file-managed-p (&optional filename)
+  "Return t if and only if this file is part of a project managed
+by eclim. If the optional argument FILENAME is given, the return
+value is computed for that file's instead."
+  (let ((file (or filename buffer-file-name)))
+    (if (and (file-exists-p file)
+	     (eclim--project-name file))
+	t)))
+
 (defun eclim--project-dir (&optional filename)
   "Return this file's project root directory. If the optional
 argument FILENAME is given, return that file's project root directory."
@@ -339,10 +348,40 @@ FILENAME is given, return that file's  project name instead."
     (kill-local-variable 'eclim--project-dir)
     (kill-local-variable 'eclim--project-name)))
 
+(defcustom eclim-accepted-file-regexps
+  '("")
+    "List of regular expressions that are matched against filenames
+to decide if eclim should be automatically started on a
+particular file. By default all files part of a project managed
+by eclim can be accepted (see `eclim--accepted-filename' for more
+information). It is nevertheless possible to restrict eclim to
+some files by changing this variable. For example, a value
+of (\"\\\\.java\\\\'\" \"build\\\\.xml\\\\'\") can be used to restrict
+the use of eclim to java and ant files."
+  :group 'eclim
+  :type '(repeat regexp))
+
+(defun eclim--accepted-filename-p (filename)
+  "Return t if and only one of the regular expressions in
+`eclim-accepted-file-regexps' matches FILENAME."
+  (if (member-if
+       (lambda (regexp) (string-match regexp filename))
+       eclim-accepted-file-regexps)
+      t))
+	     
+
+(defun eclim--accepted-p (filename)
+  "Return t if and only if eclim should be automatically started on filename."
+  (and 
+       filename
+       (eclim--running-p)
+       (eclim--file-managed-p filename)
+       (eclim--accepted-filename-p filename)))
+
 (define-globalized-minor-mode global-eclim-mode eclim-mode
-  (lambda () (eclim-mode 1)))
-
-
+  (lambda ()
+    (if (eclim--accepted-p buffer-file-name)
+	(eclim-mode 1))))
 
 (require 'eclim-project)
 (require 'eclim-java)
