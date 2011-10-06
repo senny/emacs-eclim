@@ -20,7 +20,17 @@ from eclipse to emacs.
         (setq eclim-auto-save t)
         (global-eclim-mode)
 
-1. customize the `eclim-executable` variable to make it point to the `eclim` executable within the Eclipe directory if necessary
+## Configuration
+
+Eclim tries its best to locate your Eclipse installation.  If you have
+Eclipse installed in a non-standard location (i.e. ~/opt/eclipse) you
+have to options:
+
+* Either customize the `eclim-executable` variable to make it point to the `eclim` executable within the Eclipe directory if necessary
+* Or, you can override the lookup by adding the following to your startup script.
+
+        (custom-set-variables
+         '(eclim-eclipse-dirs '("~/opt/eclipse")))
 
 ## Optional dependencies
 * A recent (version 0.6.0 or later) of [yasnippet](http://code.google.com/p/yasnippet/).
