@@ -257,6 +257,14 @@
   (eclim--check-project project)
   (eclim--call-process "project_rename" "-p" project "-n" new-name))
 
+(defun eclim/project-classpath (&optional delimiter)
+  "return project classpath for the current buffer."
+  (eclim--check-project eclim--project-name)
+  (car (apply 'eclim--call-process
+              (eclim--build-command "java_classpath"
+                                    "-p" eclim--project-name
+                                    "-d" delimiter))))
+
 (defun eclim-project-rename (project name)
   (interactive (let ((project-name (eclim--project-read t)))
                  (list project-name (read-string (concat "Rename <" project-name "> To: ")))))
