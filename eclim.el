@@ -129,7 +129,7 @@ saved."
   "Calls eclim with the supplied arguments. Consider using
 `eclim/execute-command' instead, as it has argument expansion,
 error checking, and some other niceties.."
-  (let ((cmd (apply 'concat eclim-executable " -command " 
+  (let ((cmd (apply 'concat eclim-executable " -command "
 		    (mapcar (lambda (arg) (concat " " arg))
 			    (mapcar (lambda (arg) (if (numberp arg) (number-to-string arg) arg))
 				    args)))))
@@ -162,8 +162,8 @@ list. If it is a string, its default value is looked up in
 lists are then appended together."
   (mapcar (lambda (a) (if (numberp a) (number-to-string a) a))
 	  (loop for a in args
-		append (if (listp a) 
-			   (list (car a) (eval (cadr a))) 
+		append (if (listp a)
+			   (list (car a) (eval (cadr a)))
 			 (list a (eval (cdr (or (assoc a eclim--default-args)
 						(error "sorry, no default value for: %s" a)))))))))
 
@@ -193,7 +193,7 @@ an error if the connection is refused. Automatically calls
   "Returns t if eclim is currently capable of receiving commands,
 nil otherwise."
   (condition-case nil
-      (progn 
+      (progn
 	(eclim/execute-command "ping")
 	t)
     (error nil)))
@@ -247,7 +247,8 @@ FILENAME is given, return that file's  project name instead."
 
 (defun eclim--find-file (path-to-file)
   (if (not (string-match-p "!" path-to-file))
-      (find-file-other-window path-to-file)
+      (unless (string= path-to-file (buffer-file-name))
+	(find-file-other-window path-to-file))
     (let* ((parts (split-string path-to-file "!"))
            (archive-name (replace-regexp-in-string eclim--compressed-urls-regexp "" (first parts)))
            (file-name (second parts)))
