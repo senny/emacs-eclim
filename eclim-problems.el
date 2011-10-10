@@ -22,6 +22,16 @@
   :type '(choice (const :tag "Off" nil)
 		 (const :tag "On" t)))
 
+(defface eclim-problems-highlight-error-face 
+  '((t (:underline "red")))
+  "Face used for highlighting errors in code"
+  :group 'eclim)
+
+(defface eclim-problems-highlight-warning-face 
+  '((t (:underline "yellow")))
+  "Face used for highlighting errors in code"
+  :group 'eclim)
+
 (defvar eclim-autoupdate-problems t)
 
 (defvar eclim-problems-mode-hook nil)
@@ -49,10 +59,6 @@
 
 (defvar eclim--problems-filter nil) ;; nil -> all problems, w -> warnings, e -> errors
 (defvar eclim--problems-filefilter nil) ;; should filter by file name
-
-(defvar eclim--problems-faces
-  '(("e" foreground-color . "red")
-    ("w" foreground-color . "yellow")))
 
 (defconst eclim--problems-buffer-name "*eclim: problems*")
 (defconst eclim--problems-compilation-buffer-name "*compilation: eclim*")
@@ -130,9 +136,6 @@
   (interactive)
   (eclim--problems-apply-filter nil))
 
-(defvar eclim--problems-overlays 'nil)
-(make-variable-buffer-local 'eclim--problems-overlays)
-
 (defun eclim--problems-insert-highlight (problem)
   (save-excursion
     (eclim--problem-goto-pos problem)
@@ -140,7 +143,7 @@
 	   (start (car id))
 	   (end (+ (car id) (length (cdr id)))))
       (let ((highlight (make-overlay start end (current-buffer) t t)))
-	(overlay-put highlight 'face '((:underline t)))
+	(overlay-put highlight 'face 'eclim-problems-highlight-error-face)
 	(overlay-put highlight 'category 'eclim-problem)
 	(overlay-put highlight 'kbd-help (eclim--problem-description problem))))))
 
