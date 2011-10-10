@@ -136,14 +136,13 @@
 (defun eclim--problems-insert-highlight (problem)
   (save-excursion
     (eclim--problem-goto-pos problem)
-    (let ((id (eclim--java-identifier-at-point t t)))
-      (let ((highlight (make-overlay (car id) 
-				     (+ (car id) (length (cdr id)))
-				     (current-buffer) t t)))
+    (let* ((id (eclim--java-identifier-at-point t t))
+	   (start (car id))
+	   (end (+ (car id) (length (cdr id)))))
+      (let ((highlight (make-overlay start end (current-buffer) t t)))
 	(overlay-put highlight 'face '((:underline t)))
-	(overlay-put highlight 'category 'eclim-problem)))))
-
-
+	(overlay-put highlight 'category 'eclim-problem)
+	(overlay-put highlight 'kbd-help (eclim--problem-description problem))))))
 
 (defun eclim--problems-clear-highlights ()
   (remove-overlays nil nil 'category 'eclim-problem))
