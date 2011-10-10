@@ -164,9 +164,10 @@
 
 (defun eclim-problems-highlight ()
   (interactive)
-  (eclim--problems-clear-highlights)
-  (loop for problem in (remove-if-not (lambda (p) (string= (eclim--problem-file p) (buffer-file-name))) eclim--problems-list)
-	do (eclim--problems-insert-highlight problem)))
+  (when (eclim--file-managed-p)
+    (eclim--problems-clear-highlights)
+    (loop for problem in (remove-if-not (lambda (p) (string= (eclim--problem-file p) (buffer-file-name))) eclim--problems-list)
+	  do (eclim--problems-insert-highlight problem))))
 
 (defun eclim-problems-open-current ()
   (interactive)
