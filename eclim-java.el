@@ -277,12 +277,14 @@ has been found."
   (eclim/with-results hits ("java_search" ("-p" pattern) ("-t" type) ("-x" context) ("-s" scope))
 		      (eclim--find-display-results pattern (eclim--java-split-search-results hits) open-single-file)))
 
-(defun eclim--java-identifier-at-point (&optional full)
+(defun eclim--java-identifier-at-point (&optional full position)
   "Returns a cons cell (BEG . IDENTIFIER) where BEG is the start
-buffer position of the token/identifier at point, and IDENTIFIER
-is the string from BEG to (point). If argument FULL is non-nill,
-IDENTIFIER will contain the whole identifier, not just the
-start."
+buffer byte offset of the token/identifier at point, and
+IDENTIFIER is the string from BEG to (point). If argument FULL is
+non-nill, IDENTIFIER will contain the whole identifier, not just
+the start. If argument POSITION is non-nil, BEG will contain the
+position of the identifier instead of the byte offset (which only
+matters for buffers containing non-ASCII characters)."
   (let ((boundary "\\([<>()\\[\\.\s\t\n!=,;]\\|]\\)"))
     ;; TODO: make this work for dos buffers
     (save-excursion
@@ -292,7 +294,7 @@ start."
 	    (start (progn
 		     (if (re-search-backward boundary nil t) (forward-char))
 		     (point))))
-	(cons (eclim--byte-offset)
+	(cons (if position (point) (eclim--byte-offset))
 	      (buffer-substring-no-properties start end))))))
 
 (defun eclim--java-package-components (package)

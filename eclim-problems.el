@@ -102,6 +102,13 @@
 (defun eclim--problem-description (p) (third p))
 (defun eclim--problem-type (p) (fourth p))
 
+(defun eclim--problem-goto-pos (p)
+  (let ((pos (split-string (eclim--problem-pos p) " col ")))
+    (goto-line (string-to-int (first pos)))
+    (beginning-of-line)
+    (dotimes (i (1- (string-to-int (second pos))))
+      (forward-char))))
+
 (defun eclim--problems-apply-filter (f)
   (setq eclim--problems-filter f)
   (eclim--problems-buffer-redisplay))
@@ -123,15 +130,37 @@
   (interactive)
   (eclim--problems-apply-filter nil))
 
+(defvar eclim--problems-overlays 'nil)
+(make-variable-buffer-local 'eclim--problems-overlays)
+
+(defun eclim--problems-insert-highlight (problem)
+  (save-excursion
+    (eclim--problem-goto-pos problem)
+    (let ((id (eclim--java-identifier-at-point t t)))
+      (let ((highlight (make-overlay (car id) 
+				     (+ (car id) (length (cdr id)))
+				     (current-buffer) t t)))
+	(overlay-put highlight 'face '((:underline t)))
+	(overlay-put highlight 'category 'eclim-problem)))))
+
+
+
+(defun eclim--problems-clear-highlights ()
+  (remove-overlays nil nil 'category 'eclim-problem))
+
+
+(defun eclim-problems-highlight ()
+  (interactive)
+  (eclim--problems-clear-highlights)
+  (loop for problem in (remove-if-not (lambda (p) (string= (eclim--problem-file p) (buffer-file-name))) eclim--problems-list)
+	do (eclim--problems-insert-highlight problem)))
+
+
 (defun eclim-problems-open-current ()
   (interactive)
-  (let* ((p (nth (1- (line-number-at-pos)) (eclim--problems-filtered)))
-	 (pos (split-string (eclim--problem-pos p) " col ")))
+  (let* ((p (nth (1- (line-number-at-pos)) (eclim--problems-filtered))))
     (find-file-other-window (eclim--problem-file p))
-    (goto-line (string-to-int (first pos)))
-    (beginning-of-line)
-    (dotimes (i (1- (string-to-int (second pos))))
-      (forward-char))))
+    (eclim--problem-goto-pos p)))
 
 (defun eclim-problems-buffer-refresh ()
   "Refresh the problem list and draw it on screen."
@@ -261,7 +290,8 @@ refresh of the problems buffer."
 				   (set-buffer p)
 				   (eclim-problems-buffer-refresh))
 			       (eclim--problems-mode-init))
-			     (set-buffer b))))))
+			     (set-buffer b)
+			     (eclim-problems-highlight))))))
 
 (defun eclim-problems-compilation-buffer ()
   "Creates a compilation buffer from eclim error messages. This
