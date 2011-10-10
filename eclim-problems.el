@@ -279,10 +279,16 @@ is convenient as it lets the user navigate between errors using
       (insert (concat "-*- mode: compilation; default-directory: "
 		      project-directory
 		      " -*-\n"))
-
-      (dolist (problem (eclim--problems-filtered t))
-	(eclim--insert-problem-compilation problem filecol-size project-directory))
-      (compilation-mode))
+      (let ((errors 0) (warnings 0))
+	(dolist (problem (eclim--problems-filtered t))
+	  (eclim--insert-problem-compilation problem filecol-size project-directory)
+	  (cond ((string-equal (eclim--problem-type problem) "e")
+		 (setq errors (1+ errors)))
+		((string-equal (eclim--problem-type problem) "w")
+		 (setq warnings (1+ warnings)))))
+	(insert (format "\nCompilation results: %d errors and %d warnings."
+			errors warnings)))
+	(compilation-mode))
     (display-buffer compil-buffer 'other-window)))
 
 (defun eclim--insert-problem-compilation (problem filecol-size project-directory)
