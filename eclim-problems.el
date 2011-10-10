@@ -28,7 +28,7 @@
   :group 'eclim)
 
 (defface eclim-problems-highlight-warning-face 
-  '((t (:underline "yellow")))
+  '((t (:underline "orange")))
   "Face used for highlighting errors in code"
   :group 'eclim)
 
@@ -143,20 +143,30 @@
 	   (start (car id))
 	   (end (+ (car id) (length (cdr id)))))
       (let ((highlight (make-overlay start end (current-buffer) t t)))
-	(overlay-put highlight 'face 'eclim-problems-highlight-error-face)
+	(overlay-put highlight 'face 
+		     (if (string= (eclim--problem-type problem) "e")
+			 'eclim-problems-highlight-error-face
+		       'eclim-problems-highlight-warning-face))
 	(overlay-put highlight 'category 'eclim-problem)
 	(overlay-put highlight 'kbd-help (eclim--problem-description problem))))))
 
 (defun eclim--problems-clear-highlights ()
   (remove-overlays nil nil 'category 'eclim-problem))
 
+(defadvice find-file (after eclim-problems-highlight-on-find-file activate)
+  (eclim-problems-highlight))
+(defadvice find-file-other-window (after eclim-problems-highlight-on-find-file-other-window activate)
+  (eclim-problems-highlight))
+(defadvice other-window (after eclim-problems-highlight-on-other-window activate)
+  (eclim-problems-highlight))
+(defadvice switch-to-buffer (after eclim-problems-highlight-switch-to-buffer activate)
+  (eclim-problems-highlight))
 
 (defun eclim-problems-highlight ()
   (interactive)
   (eclim--problems-clear-highlights)
   (loop for problem in (remove-if-not (lambda (p) (string= (eclim--problem-file p) (buffer-file-name))) eclim--problems-list)
 	do (eclim--problems-insert-highlight problem)))
-
 
 (defun eclim-problems-open-current ()
   (interactive)
