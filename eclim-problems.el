@@ -1,36 +1,46 @@
+
+(defgroup eclim-problems nil
+  "Problems: settings for displaying the problems buffer and highlighting errors in code."
+  :group 'eclim)
+
+(defcustom eclim-problems-refresh-delay 0.5
+  "The delay (in seconds) to wait before we refresh the problem list buffer after a file is saved."
+  :group 'eclim-problems
+  :type 'number)
+
 (defcustom eclim-problems-resize-file-column t
   "Resizes file column in emacs-eclim problems mode"
-  :group 'eclim
+  :group 'eclim-problems
   :type '(choice (const :tag "Off" nil)
 		 (const :tag "On" t)))
 
 (defcustom eclim-problems-show-pos nil
   "Shows problem line/column in emacs-eclim problems mode"
-  :group 'eclim
+  :group 'eclim-problems
   :type '(choice (const :tag "Off" nil)
 		 (const :tag "On" t)))
 
 (defcustom eclim-problems-show-file-extension nil
   "Shows file extensions in emacs-eclim problems mode"
-  :group 'eclim
+  :group 'eclim-problems
   :type '(choice (const :tag "Off" nil)
 		 (const :tag "On" t)))
 
 (defcustom eclim-problems-hl-errors t
-  "Highlights errors"
-  :group 'eclim
+  "Highlights errors in the problem list buffer"
+  :group 'eclim-problems
   :type '(choice (const :tag "Off" nil)
 		 (const :tag "On" t)))
 
 (defface eclim-problems-highlight-error-face 
   '((t (:underline "red")))
   "Face used for highlighting errors in code"
-  :group 'eclim)
+  :group 'eclim-problems)
 
 (defface eclim-problems-highlight-warning-face 
   '((t (:underline "orange")))
   "Face used for highlighting errors in code"
-  :group 'eclim)
+  :group 'eclim-problems)
 
 (defvar eclim-autoupdate-problems t)
 
@@ -294,7 +304,7 @@ refresh of the problems buffer."
 	     eclim-autoupdate-problems)
     (setq eclim--problems-project (eclim--project-name))
     (setq eclim--problems-file buffer-file-name)
-    (run-with-idle-timer 1 nil
+    (run-with-idle-timer eclim-problems-refresh-delay nil
 			 (lambda()
 			   (let ((orig-buf (current-buffer))
 				 (prob-buf (get-buffer eclim--problems-buffer-name)))
