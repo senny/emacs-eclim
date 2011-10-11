@@ -120,8 +120,8 @@
 
 (defun eclim--problem-goto-pos (p)
   (let ((pos (split-string (eclim--problem-pos p) " col ")))
-    (goto-line (string-to-int (first pos)))
-    (beginning-of-line)
+    (goto-char (point-min))
+    (forward-line (1- (string-to-int (first pos))))
     (dotimes (i (1- (string-to-int (second pos))))
       (forward-char))))
 
