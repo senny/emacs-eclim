@@ -296,15 +296,18 @@ refresh of the problems buffer."
     (setq eclim--problems-file buffer-file-name)
     (run-with-idle-timer 1 nil
 			 (lambda()
-			   (let ((b (current-buffer))
-				 (p (get-buffer eclim--problems-buffer-name)))
-			     (if p
+			   (let ((orig-buf (current-buffer))
+				 (prob-buf (get-buffer eclim--problems-buffer-name)))
+			     (if prob-buf
 				 (progn
-				   (set-buffer p)
+				   (set-buffer prob-buf)
 				   (eclim-problems-buffer-refresh))
 			       (eclim--problems-mode-init))
-			     (set-buffer b)
-			     (eclim-problems-highlight))))))
+			     (set-buffer orig-buf)
+			     (save-excursion
+			       (dolist (b (mapcar #'window-buffer (window-list)))
+				 (set-buffer b)
+				 (eclim-problems-highlight))))))))
 
 (defun eclim-problems-compilation-buffer ()
   "Creates a compilation buffer from eclim error messages. This
