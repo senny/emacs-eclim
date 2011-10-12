@@ -344,8 +344,7 @@ FILENAME is given, return that file's  project name instead."
   (if eclim-mode
       (progn
         (when (and (featurep 'yasnippet) eclim-use-yasnippet)
-          (yas/load-directory eclim--snippet-directory))
-        )
+          (yas/load-directory eclim--snippet-directory)))
     (kill-local-variable 'eclim--project-dir)
     (kill-local-variable 'eclim--project-name)))
 
