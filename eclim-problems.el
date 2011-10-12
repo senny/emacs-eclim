@@ -267,13 +267,20 @@ COMPILATION-SKIP-THRESHOLD, implement this feature."
     (insert text)
     (insert "\n")))
 
-(defun eclim--problems-mode-init ()
-  (setq eclim--problems-project (eclim--project-name))
-  (setq eclim--problems-file buffer-file-name)
-  (switch-to-buffer (get-buffer-create "*eclim: problems*"))
-  (eclim--problems-mode)
-  (eclim-problems-buffer-refresh)
-  (beginning-of-buffer))
+(defun eclim--problems-mode-init (&optional quiet)
+  "Create and initialize the eclim problems buffer. If the
+argument QUIET is non-nil, open the buffer in the background
+without switching to it."
+  (let ((buf (get-buffer-create "*eclim: problems*")))
+    (save-excursion
+      (setq eclim--problems-project (eclim--project-name))
+      (setq eclim--problems-file buffer-file-name)
+      (set-buffer buf)
+      (eclim--problems-mode)
+      (eclim-problems-buffer-refresh)
+      (beginning-of-buffer))
+    (if (not quiet)
+	(switch-to-buffer buf))))
 
 (defun eclim-problems ()
   "Show current compilation problems in a separate window."
@@ -288,14 +295,38 @@ COMPILATION-SKIP-THRESHOLD, implement this feature."
     (eclim-problems)
     (select-window w)))
 
+(add-hook 'find-file-hook
+	  (lambda () (when (and (eclim--accepted-p (buffer-file-name))
+				(not (get-buffer eclim--problems-buffer-name)))
+		       (eclim--problems-mode-init t))))
+
 (defun eclim-problems-refocus ()
   (interactive)
-
   (when (eclim--project-dir)
     (setq eclim--problems-project (eclim--project-name))
     (setq eclim--problems-file buffer-file-name)
     (with-current-buffer eclim--problems-buffer-name
       (eclim-problems-buffer-refresh))))
+
+(defun eclim-problems-next ()
+  (interactive)
+  (let ((prob-buf (get-buffer eclim--problems-buffer-name)))
+    (when prob-buf
+      (set-buffer prob-buf)
+      (if eclim--problems-list-at-first
+	  (setq eclim--problems-list-at-first nil)
+	(next-line))
+      (hl-line-move hl-line-overlay)
+      (eclim-problems-open-current))))
+
+(defun eclim-problems-previous ()
+  (interactive)
+  (let ((prob-buf (get-buffer eclim--problems-buffer-name)))
+    (when prob-buf
+      (set-buffer prob-buf)
+      (previous-line)
+      (hl-line-move hl-line-overlay)
+      (eclim-problems-open-current))))
 
 (defun eclim--problems-update-maybe ()
   "If autoupdate is enabled, this function triggers a delayed
@@ -306,14 +337,13 @@ refresh of the problems buffer."
     (setq eclim--problems-file buffer-file-name)
     (run-with-idle-timer eclim-problems-refresh-delay nil
 			 (lambda()
-			   (let ((orig-buf (current-buffer))
-				 (prob-buf (get-buffer eclim--problems-buffer-name)))
-			     (if prob-buf
-				 (progn
-				   (set-buffer prob-buf)
-				   (eclim-problems-buffer-refresh))
-			       (eclim--problems-mode-init))
-			     (set-buffer orig-buf)
+			   (let ((prob-buf (get-buffer eclim--problems-buffer-name)))
+			     (save-excursion
+			       (if prob-buf
+				   (progn
+				     (set-buffer prob-buf)
+				     (eclim-problems-buffer-refresh))
+				 (eclim--problems-mode-init t)))
 			     (save-excursion
 			       (dolist (b (mapcar #'window-buffer (window-list)))
 				 (set-buffer b)
