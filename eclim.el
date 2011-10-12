@@ -217,9 +217,9 @@ RESULT is non-nil, BODY is executed."
 by eclim. If the optional argument FILENAME is given, the return
 value is computed for that file's instead."
   (let ((file (or filename buffer-file-name)))
-    (if (and (file-exists-p file)
-	     (eclim--project-name file))
-	t)))
+    (and file
+	 (file-exists-p file)
+	 (eclim--project-name file))))
 
 (defun eclim--project-dir (&optional filename)
   "Return this file's project root directory. If the optional
@@ -344,8 +344,7 @@ FILENAME is given, return that file's  project name instead."
   (if eclim-mode
       (progn
         (when (and (featurep 'yasnippet) eclim-use-yasnippet)
-          (yas/load-directory eclim--snippet-directory))
-        )
+          (yas/load-directory eclim--snippet-directory)))
     (kill-local-variable 'eclim--project-dir)
     (kill-local-variable 'eclim--project-name)))
 

@@ -185,7 +185,7 @@ available."
 	;; Otherwise, check if this is a method call
 	(if (string= "f" type)
 	    (let ((call-args (cee--method-call candidate)))
-	      (push-mark)
+	      (push-mark (point) t)
 	      (goto-char (search-backward "("))
 	      (cee--show-arg-list "("
 				  (mapcar (lambda (c) (concat (first c) " " (second c))) call-args)
