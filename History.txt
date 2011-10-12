@@ -13,6 +13,7 @@
  * improved mechanisms for calling the eclim server
  * rename/refactor in java code works as expected
  * functions for find declarations and refrences of java methods and members
+ * Error highlighting in code
 
 === Bugfixes
  * fixed a problem on startup when the eclimd server was not started
