@@ -484,13 +484,4 @@ method."
   (when eclim-auto-save (save-buffer))
   (eclim--java-complete-internal (mapcar 'second (eclim/java-complete))))
 
-;; Request an eclipse source update when files are saved
-(defun eclim--after-save-hook ()
-  (when (member major-mode eclim-java-major-modes)
-    (ignore-errors
-      (if eclim-mode (apply 'eclim--call-process "java_src_update" (eclim--expand-args (list "-p" "-f"))))))
-  t)
-
-(add-hook 'after-save-hook 'eclim--after-save-hook)
-
 (provide 'eclim-java)

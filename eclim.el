@@ -378,6 +378,16 @@ the use of eclim to java and ant files."
        (eclim--file-managed-p filename)
        (eclim--accepted-filename-p filename)))
 
+;; Request an eclipse source update when files are saved
+(defun eclim--after-save-hook ()
+  (when (eclim--accepted-p (buffer-file-name))
+    (ignore-errors
+      (if eclim-mode (apply 'eclim--call-process "java_src_update" (eclim--expand-args (list "-p" "-f"))))))
+  t)
+
+(add-hook 'after-save-hook 'eclim--after-save-hook)
+
+
 (define-globalized-minor-mode global-eclim-mode eclim-mode
   (lambda ()
     (if (eclim--accepted-p buffer-file-name)
