@@ -85,6 +85,13 @@ saved."
   :type '(choice (const :tag "Off" nil)
 		 (const :tag "On" t)))
 
+(defcustom eclim-limit-search-results t
+  "Determines if code search results should be limited to files
+  in the current workspace."
+  :group 'eclim
+  :type '(choice (const :tag "Off" nil)
+		 (const :tag "On" t)))
+
 (defvar eclim--snippet-directory
   (concat (file-name-directory load-file-name) "snippets"))
 
@@ -265,7 +272,8 @@ FILENAME is given, return that file's  project name instead."
         (kill-buffer old-buffer)))))
 
 (defun eclim--find-display-results (pattern results &optional open-single-file)
-  (let ((res (remove-if (lambda (r) (zerop (length (remove-if (lambda (r) (zerop (length r))) r)))) results)))
+  (let ((res (remove-if-not (lambda (r) (or (not eclim-limit-search-results) (eclim--accepted-p (car r))))
+			    (remove-if (lambda (r) (zerop (length (remove-if (lambda (r) (zerop (length r))) r)))) results))))
     (if (and (= 1 (length res)) open-single-file) (eclim--visit-declaration (car res))
       (pop-to-buffer (get-buffer-create "*eclim: find"))
       (let ((buffer-read-only nil))
