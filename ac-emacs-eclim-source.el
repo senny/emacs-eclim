@@ -27,6 +27,8 @@
 ;; ac-emacs-eclim-source.el -- a emacs eclime source for auto-complete-mode
 ;;
 
+(require 'eclim)
+(require 'eclim-java)
 (require 'auto-complete)
 
 (defun ac-emacs-eclim-candidates ()
@@ -72,8 +74,7 @@
     (init . ac-emacs-eclim-init)
     (action . ac-emacs-eclim-action)
     (requires . 0)
+    (cache)
     (symbol . "f")))
-
-(add-hook 'java-mode-hook (lambda () (add-to-list 'ac-sources 'ac-source-emacs-eclim)))
 
 (provide 'ac-emacs-eclim-source)
