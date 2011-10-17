@@ -344,6 +344,8 @@ FILENAME is given, return that file's  project name instead."
     map)
   "The keymap used in `eclim-mode'.")
 
+(defvar eclim-mode-hook nil)
+
 (define-minor-mode eclim-mode
   "An interface to the Eclipse IDE."
   nil
