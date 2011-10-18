@@ -46,14 +46,15 @@
   (message "Completion started at %s, ac-point is %s" (point) ac-point))
 
 (defun ac-emacs-eclim-yasnippet-convert (s)
-  "Convert a string to a yasnippet template"
+  "Convert a completion string to a yasnippet template"
   (if (string-match "\\(.*\\)(\\(.*\\))" s)
       (format "%s(%s)$0"
 	      (match-string 1 s) 
 	      (reduce (lambda (a b) (concat a ", " b))
-		      (loop for arg in (split-string (match-string 2 s) " *, *")
-			    for i from 1
-			    collect (format "${%d:%s}" i arg))))
+		      (or (loop for arg in (split-string (match-string 2 s) " *, *" t)
+				for i from 1
+				collect (format "${%d:%s}" i arg))
+			  '(""))))
     s))
 
 (defun ac-emacs-eclim-action ()
