@@ -14,6 +14,7 @@
  * rename/refactor in java code works as expected
  * functions for find declarations and refrences of java methods and members
  * Error highlighting in code
+ * Support for auto-complete-mode
 
 === Bugfixes
  * fixed a problem on startup when the eclimd server was not started

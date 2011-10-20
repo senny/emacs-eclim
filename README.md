@@ -46,6 +46,19 @@ help by adding the following to .emacs:
 	(setq help-at-pt-timer-delay 0.1)
 	(help-at-pt-set-timer)
 
+### Configuring auto-complete-mode
+
+If you wish to use [auto-complete-mode] with emacs-eclim, add the
+following to your .emacs:
+
+	;; regular auto-complete initialization
+	(require 'auto-complete-config)
+	(ac-config-default)
+
+	;; add the emacs-eclim source
+	(require 'ac-emacs-eclim-source)
+	(add-hook 'eclim-mode-hook (lambda () (add-to-list 'ac-sources 'ac-source-emacs-eclim)))
+
 ### Configuring company-mode
   
 Emacs-eclim can integrate with [company-mode] to provide pop-up
@@ -83,4 +96,5 @@ The project is under active development and we are always looking for assistance
 5. Send me a pull-request for your topic branch
 6. That's it!
 
- [company-mode]:http://nschum.de/src/emacs/company-mode/
+[company-mode]:http://nschum.de/src/emacs/company-mode/
+[auto-complete-mode]:http://cx4a.org/software/auto-complete/
