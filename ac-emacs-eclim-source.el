@@ -59,15 +59,21 @@
 
 (defun ac-emacs-eclim-action ()
     (let* ((end (point))
-	   (candidate 
-	    (replace-regexp-in-string " *[:-].*" "" 
-				      (buffer-substring-no-properties ac-emacs-eclim-point end)))
-	   (template (ac-emacs-eclim-yasnippet-convert candidate)))
-      (delete-region ac-emacs-eclim-point end)
-      (message template)
-      (if (and eclim-use-yasnippet template)
-	  (yas/expand-snippet template)
-	(insert candidate))))
+	   (completion (buffer-substring-no-properties ac-emacs-eclim-point end)))
+      (if (string-match "\\([^-:]+\\) .*?\\(- *\\(.*\\)\\)?" completion)
+	  (let* ((insertion (match-string 1 completion))
+		 (rest (match-string 3 completion))
+		 (package (if (and rest (string-match "\\w+\\(\\.\\w+\\)*" rest)) rest nil))
+		 (template (ac-emacs-eclim-yasnippet-convert insertion)))
+	    (delete-region ac-emacs-eclim-point end)
+	    (message template)
+	    (if (and eclim-use-yasnippet template (featurep 'yasnippet))
+		(yas/expand-snippet template)
+	      (insert insertion))
+	    (when package 
+	      (eclim--java-organize-imports 		      
+	       (eclim--java-organize-imports (eclim/execute-command "java_import_order" "-p"))
+	       (list (concat package "." insertion))))))))
 
 (ac-define-source emacs-eclim
   '((candidates . ac-emacs-eclim-candidates)
