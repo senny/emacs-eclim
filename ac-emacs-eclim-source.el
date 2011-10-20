@@ -31,6 +31,16 @@
 (require 'eclim-java)
 (require 'auto-complete)
 
+(defface ac-emacs-eclim-candidate-face
+  '((t (:background "gold1" :foreground "black")))
+  "Face for emacs-eclim candidate."
+  :group 'auto-complete)
+
+(defface ac-emacs-eclim-selection-face
+  '((t (:background "gold4" :foreground "white"))) 
+  "Face for the emacs-eclim selected candidate."
+  :group 'auto-complete)
+
 (defun ac-emacs-eclim-candidates ()
   (with-no-warnings
     (loop for c in (eclim/java-complete)
@@ -82,6 +92,8 @@
     (action . ac-emacs-eclim-action)
     (requires . 0)
     (cache)
+    (selection-face . ac-emacs-eclim-selection-face)
+    (candidate-face . ac-emacs-eclim-candidate-face)
     (symbol . "f")))
 
 (provide 'ac-emacs-eclim-source)
