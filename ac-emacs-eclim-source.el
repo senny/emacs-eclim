@@ -84,7 +84,8 @@
 	    (when package 
 	      (eclim--java-organize-imports 		      
 	       (eclim--java-organize-imports (eclim/execute-command "java_import_order" "-p"))
-	       (list (concat package "." insertion))))))))
+	       (list (concat package "." (substring insertion 0 (or (string-match "[<(]" insertion)
+								    (length insertion)))))))))))
 
 (ac-define-source emacs-eclim
   '((candidates . ac-emacs-eclim-candidates)
