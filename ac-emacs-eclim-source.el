@@ -57,15 +57,16 @@
 
 (defun ac-emacs-eclim-yasnippet-convert (s)
   "Convert a completion string to a yasnippet template"
-  (if (string-match "\\(.*\\)(\\(.*\\))" s)
-      (format "%s(%s)$0"
-	      (match-string 1 s) 
-	      (reduce (lambda (a b) (concat a ", " b))
-		      (or (loop for arg in (split-string (match-string 2 s) " *, *" t)
-				for i from 1
-				collect (format "${%d:%s}" i arg))
-			  '(""))))
-    s))
+  (apply #'concat
+	 (let* ((beg (string-match "[<(]" s)))
+	   (cons (substring s 0 (or beg (length s)))
+		 (loop for start = beg then (1+ end)
+		       for end = (string-match "<\\|>\\|(\\|)\\|, *" s start)
+		       with i = 0
+		       while end
+		       if (not (= start end)) collect (format "${%s:%s}" (incf i) (substring s start end)) into res
+		       collect (match-string 0 s) into res
+		       finally return (append res '("$0")))))))
 
 (defun ac-emacs-eclim-action ()
     (let* ((end (point))
