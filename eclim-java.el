@@ -307,10 +307,18 @@ matters for buffers containing non-ASCII characters)."
     (equal (butlast (eclim--java-package-components wildcard))
 	   (butlast (eclim--java-package-components package)))))
 
+(defun eclim--java-current-package ()
+  "Returns the package for the class in the current buffer."
+  (save-excursion
+    (goto-char 0)
+    (if (re-search-forward "package \\(.*?\\);")
+	(match-string-no-properties 1))))
+
 (defun eclim--java-ignore-import-p (import)
   "Return true if this IMPORT should be ignored by the import
   functions."
-  (string-match "^java\.lang\.[A-Z][^\.]*$" import))
+  (or (string-match "^java\.lang\.[A-Z][^\.]*$" import)
+      (string-match (concat "^" (eclim--java-current-package) "\.[A-Z][^\.]*$") import)))
 
 (defun eclim--java-sort-imports (imports imports-order)
   "Sorts a list of imports according to a given sort order, removing duplicates."
