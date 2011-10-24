@@ -321,26 +321,17 @@ matters for buffers containing non-ASCII characters)."
       (string-match (concat "^" (eclim--java-current-package) "\.[A-Z][^\.]*$") import)))
 
 (defun eclim--java-sort-imports (imports imports-order)
-  "Sorts a list of imports according to a given sort order, removing duplicates."
-  (flet ((sort-imports (imports-order imports result)
-		       (cond ((null imports) result)
-			     ((null imports-order)
-			      (sort-imports nil nil (append result imports)))
-			     (t
-			      (flet ((matches-prefix (x) (string-startswith-p x (first imports-order))))
-				(sort-imports (rest imports-order)
-					      (remove-if #'matches-prefix imports)
-					      (append result (remove-if-not #'matches-prefix imports)))))))
-	 (remove-duplicates (import result)
-			    (loop for imp = import then (cdr imp)
-				  for f = (first imp)
-				  for n = (second imp)
-				  while imp
-				  when (not (or (eclim--java-wildcard-includes-p f n)
-						(equal f n)))
-				  collect f)))
-    (remove-duplicates
-     (sort-imports imports-order (sort imports #'string-lessp) '()) '())))
+  (let* ((non-ordered (loop for a in imports-order
+			    for r = (cdr imports-order) then (cdr r)
+			    while (string< a (car r)) 
+			    finally return r))
+	 (sorted (make-hash-table)))
+    (loop for imp in (sort imports #'string<)
+	  for key = (or (find imp non-ordered :test #'string-startswith-p)
+			:default)
+	  do (puthash key (cons imp (gethash key sorted)) sorted))
+    (loop for key in (cons :default non-ordered)
+	  append (reverse (gethash key sorted)))))
 
 (defun eclim--java-extract-imports ()
   "Extracts (by removing) import statements of a java
