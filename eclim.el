@@ -65,7 +65,7 @@ choices interactively."
   :group 'eclim
   :type 'file)
 
-(defcustom eclim-auto-save nil
+(defcustom eclim-auto-save t
   "Determines whether to save the buffer when retrieving completions.
 eclim can only complete correctly when the buffer has been
 saved."
@@ -344,6 +344,8 @@ FILENAME is given, return that file's  project name instead."
     map)
   "The keymap used in `eclim-mode'.")
 
+(defvar eclim-mode-hook nil)
+
 (define-minor-mode eclim-mode
   "An interface to the Eclipse IDE."
   nil
@@ -390,7 +392,7 @@ the use of eclim to java and ant files."
 (defun eclim--after-save-hook ()
   (when (eclim--accepted-p (buffer-file-name))
     (ignore-errors
-      (if eclim-mode (apply 'eclim--call-process "java_src_update" (eclim--expand-args (list "-p" "-f"))))))
+      (apply 'eclim--call-process "java_src_update" (eclim--expand-args (list "-p" "-f")))))
   t)
 
 (add-hook 'after-save-hook 'eclim--after-save-hook)
