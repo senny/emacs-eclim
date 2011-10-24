@@ -349,7 +349,6 @@ cursor at a suitable point for re-inserting new import statements."
     (if (null imports)
 	(progn
 	  (end-of-line)
-	  (newline)
 	  (newline)))
     imports))
 
