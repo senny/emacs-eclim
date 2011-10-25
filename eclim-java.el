@@ -321,6 +321,8 @@ matters for buffers containing non-ASCII characters)."
       (string-match (concat "^" (eclim--java-current-package) "\.[A-Z][^\.]*$") import)))
 
 (defun eclim--java-sort-imports (imports imports-order)
+  "Sorts a list of imports according to a given sort order,
+removing duplicates."
   (let* ((non-ordered (loop for a in imports-order
 			    for r = (cdr imports-order) then (cdr r)
 			    while (string< a (car r)) 
@@ -330,8 +332,9 @@ matters for buffers containing non-ASCII characters)."
 	  for key = (or (find imp non-ordered :test #'string-startswith-p)
 			:default)
 	  do (puthash key (cons imp (gethash key sorted)) sorted))
-    (loop for key in (cons :default non-ordered)
-	  append (reverse (gethash key sorted)))))
+    (remove-duplicates (loop for key in (cons :default non-ordered)
+			     append (reverse (gethash key sorted)))
+		       :test #'string=)))
 
 (defun eclim--java-extract-imports ()
   "Extracts (by removing) import statements of a java
