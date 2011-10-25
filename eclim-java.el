@@ -346,8 +346,8 @@ cursor at a suitable point for re-inserting new import statements."
       (unless (save-match-data
 		(string-match "^\s*import\s*static" (match-string 0)))
 	(push (match-string-no-properties 1) imports)
-	(delete-region (line-beginning-position) (line-end-position))))
-    (delete-blank-lines)
+	(delete-region (line-beginning-position) (line-end-position))
+	(delete-blank-lines)))
     (if (null imports)
 	(progn
 	  (end-of-line)
