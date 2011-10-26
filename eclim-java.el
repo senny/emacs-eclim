@@ -349,9 +349,7 @@ cursor at a suitable point for re-inserting new import statements."
 	(delete-region (line-beginning-position) (line-end-position))
 	(delete-blank-lines)))
     (if (null imports)
-	(progn
-	  (end-of-line)
-	  (newline)))
+	  (forward-line))
     imports))
 
 (defun eclim--java-organize-imports (imports-order &optional additional-imports unused-imports)
