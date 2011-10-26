@@ -381,24 +381,6 @@ a java type that can be imported."
 		      (eclim--java-organize-imports (eclim/execute-command "java_import_order" "-p")
 						    (list (eclim--completing-read "Import: " imports)))))
 
-(defun eclim--fix-static-import (import-spec)
-  (let ((imports (cdr (assoc 'imports import-spec)))
-	(type (cdr (assoc 'type import-spec))))
-    (message "Imports %s" imports)
-    (if (not (= 1 (length imports)))
-	import-spec
-      (if (not (stringp type))
-	  import-spec
-	(progn
-	  (message "Type: %s first element of imports: %s" type (elt imports 0))
-	  (if (string-endswith-p (elt imports 0) type)
-	      import-spec
-	    (progn
-	      (message "Appending")
-	      (list
-	       (cons 'imports (vector (concat (elt imports 0) "." type)))
-	       (cons 'type type)))))))))
-
 (defun eclim-java-import-missing ()
   "Checks the current file for missing imports and prompts the
 user if necessary."
@@ -407,14 +389,17 @@ user if necessary."
 		      (loop for unused across
 			    (json-read-from-string
 			     (replace-regexp-in-string "'" "\"" (first (eclim/execute-command "java_import_missing" "-p" "-f"))))
-			    do (let* ((candidates (append (cdr (assoc 'imports (eclim--fix-static-import unused))) nil))
-				      (len (length candidates)))
-				 (if (= len 0) nil
-				   (eclim--java-organize-imports imports-order
-								 (if (= len 1) candidates
-								   (list
-								    (eclim--completing-read (concat "Missing type '" (cdr (assoc 'type unused)) "'")
-											    candidates)))))))))
+			    do (let* ((candidates (append (cdr (assoc 'imports unused)) nil))
+				      (type (cdr (assoc 'type unused)))
+				      (import (if (= 1 (length candidates))
+						  (car candidates)
+						(eclim--completing-read (concat "Missing type '" type "'") 
+									candidates))))
+				 (when import
+				   (eclim--java-organize-imports imports-order 
+								 (list (if (string-endswith-p import type) 
+									   import
+									 (concat import "." type)))))))))
 
 (defun eclim-java-remove-unused-imports ()
   "Remove usused import from the current java source file."
