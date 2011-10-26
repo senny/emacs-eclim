@@ -307,32 +307,34 @@ matters for buffers containing non-ASCII characters)."
     (equal (butlast (eclim--java-package-components wildcard))
 	   (butlast (eclim--java-package-components package)))))
 
+(defun eclim--java-current-package ()
+  "Returns the package for the class in the current buffer."
+  (save-excursion
+    (goto-char 0)
+    (if (re-search-forward "package \\(.*?\\);")
+	(match-string-no-properties 1))))
+
 (defun eclim--java-ignore-import-p (import)
   "Return true if this IMPORT should be ignored by the import
   functions."
-  (string-match "^java\.lang\.[A-Z][^\.]*$" import))
+  (or (string-match "^java\.lang\.[A-Z][^\.]*$" import)
+      (string-match (concat "^" (eclim--java-current-package) "\.[A-Z][^\.]*$") import)))
 
 (defun eclim--java-sort-imports (imports imports-order)
-  "Sorts a list of imports according to a given sort order, removing duplicates."
-  (flet ((sort-imports (imports-order imports result)
-		       (cond ((null imports) result)
-			     ((null imports-order)
-			      (sort-imports nil nil (append result imports)))
-			     (t
-			      (flet ((matches-prefix (x) (string-startswith-p x (first imports-order))))
-				(sort-imports (rest imports-order)
-					      (remove-if #'matches-prefix imports)
-					      (append result (remove-if-not #'matches-prefix imports)))))))
-	 (remove-duplicates (import result)
-			    (loop for imp = import then (cdr imp)
-				  for f = (first imp)
-				  for n = (second imp)
-				  while imp
-				  when (not (or (eclim--java-wildcard-includes-p f n)
-						(equal f n)))
-				  collect f)))
-    (remove-duplicates
-     (sort-imports imports-order (sort imports #'string-lessp) '()) '())))
+  "Sorts a list of imports according to a given sort order,
+removing duplicates."
+  (let* ((non-ordered (loop for a in imports-order
+			    for r = (cdr imports-order) then (cdr r)
+			    while (string< a (car r)) 
+			    finally return r))
+	 (sorted (make-hash-table)))
+    (loop for imp in (sort imports #'string<)
+	  for key = (or (find imp non-ordered :test #'string-startswith-p)
+			:default)
+	  do (puthash key (cons imp (gethash key sorted)) sorted))
+    (remove-duplicates (loop for key in (cons :default non-ordered)
+			     append (reverse (gethash key sorted)))
+		       :test #'string=)))
 
 (defun eclim--java-extract-imports ()
   "Extracts (by removing) import statements of a java
@@ -344,13 +346,10 @@ cursor at a suitable point for re-inserting new import statements."
       (unless (save-match-data
 		(string-match "^\s*import\s*static" (match-string 0)))
 	(push (match-string-no-properties 1) imports)
-	(delete-region (line-beginning-position) (line-end-position))))
-    (delete-blank-lines)
+	(delete-region (line-beginning-position) (line-end-position))
+	(delete-blank-lines)))
     (if (null imports)
-	(progn
-	  (end-of-line)
-	  (newline)
-	  (newline)))
+	  (forward-line))
     imports))
 
 (defun eclim--java-organize-imports (imports-order &optional additional-imports unused-imports)
@@ -382,24 +381,6 @@ a java type that can be imported."
 		      (eclim--java-organize-imports (eclim/execute-command "java_import_order" "-p")
 						    (list (eclim--completing-read "Import: " imports)))))
 
-(defun eclim--fix-static-import (import-spec)
-  (let ((imports (cdr (assoc 'imports import-spec)))
-	(type (cdr (assoc 'type import-spec))))
-    (message "Imports %s" imports)
-    (if (not (= 1 (length imports)))
-	import-spec
-      (if (not (stringp type))
-	  import-spec
-	(progn
-	  (message "Type: %s first element of imports: %s" type (elt imports 0))
-	  (if (string-endswith-p (elt imports 0) type)
-	      import-spec
-	    (progn
-	      (message "Appending")
-	      (list
-	       (cons 'imports (vector (concat (elt imports 0) "." type)))
-	       (cons 'type type)))))))))
-
 (defun eclim-java-import-missing ()
   "Checks the current file for missing imports and prompts the
 user if necessary."
@@ -408,14 +389,17 @@ user if necessary."
 		      (loop for unused across
 			    (json-read-from-string
 			     (replace-regexp-in-string "'" "\"" (first (eclim/execute-command "java_import_missing" "-p" "-f"))))
-			    do (let* ((candidates (append (cdr (assoc 'imports (eclim--fix-static-import unused))) nil))
-				      (len (length candidates)))
-				 (if (= len 0) nil
-				   (eclim--java-organize-imports imports-order
-								 (if (= len 1) candidates
-								   (list
-								    (eclim--completing-read (concat "Missing type '" (cdr (assoc 'type unused)) "'")
-											    candidates)))))))))
+			    do (let* ((candidates (append (cdr (assoc 'imports unused)) nil))
+				      (type (cdr (assoc 'type unused)))
+				      (import (if (= 1 (length candidates))
+						  (car candidates)
+						(eclim--completing-read (concat "Missing type '" type "'") 
+									candidates))))
+				 (when import
+				   (eclim--java-organize-imports imports-order 
+								 (list (if (string-endswith-p import type) 
+									   import
+									 (concat import "." type)))))))))
 
 (defun eclim-java-remove-unused-imports ()
   "Remove usused import from the current java source file."
