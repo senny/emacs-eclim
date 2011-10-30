@@ -190,10 +190,10 @@
   (interactive)
   (setq eclim--problems-list (eclim--problems))
   (eclim--problems-buffer-redisplay)
-  ;; (when (not (current-message))
-  (message "Eclim reports %d errors, %d warnings."
-	   (length (remove-if-not (lambda (p) (string-equal "e" (eclim--problem-type p))) eclim--problems-list))
-	     (length (remove-if-not (lambda (p) (string-equal "w" (eclim--problem-type p))) eclim--problems-list))))
+  (if (not (minibuffer-window-active-p (minibuffer-window)))
+      (message "Eclim reports %d errors, %d warnings."
+	       (length (remove-if-not (lambda (p) (string-equal "e" (eclim--problem-type p))) eclim--problems-list))
+	       (length (remove-if-not (lambda (p) (string-equal "w" (eclim--problem-type p))) eclim--problems-list)))))
 
 (defun eclim--problems-cleanup-filename (filename)
   (let ((x (file-name-nondirectory (eclim--problem-file problem))))
