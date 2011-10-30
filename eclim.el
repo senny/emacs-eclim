@@ -400,7 +400,9 @@ the use of eclim to java and ant files."
 
 (define-globalized-minor-mode global-eclim-mode eclim-mode
   (lambda ()
-    (if (eclim--accepted-p buffer-file-name)
+    (if (and buffer-file-name
+	     (eclim--running-p)
+	     (eclim--project-dir buffer-file-name))
 	(eclim-mode 1))))
 
 (require 'eclim-project)
