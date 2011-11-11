@@ -199,11 +199,9 @@ an error if the connection is refused. Automatically calls
 (defun eclim--running-p ()
   "Returns t if eclim is currently capable of receiving commands,
 nil otherwise."
-  (condition-case nil
-      (progn
-	(eclim/execute-command "ping")
-	t)
-    (error nil)))
+  (ignore-errors
+    (eclim/execute-command "ping")
+    t))
 
 (defmacro eclim/with-results (result params &rest body)
   "Convenience macro. PARAMS is a list where the first element is
@@ -223,10 +221,11 @@ RESULT is non-nil, BODY is executed."
   "Return t if and only if this file is part of a project managed
 by eclim. If the optional argument FILENAME is given, the return
 value is computed for that file's instead."
-  (let ((file (or filename buffer-file-name)))
-    (and file
-	 (file-exists-p file)
-	 (eclim--project-name file))))
+  (ignore-errors 
+    (let ((file (or filename buffer-file-name)))
+      (and file
+	   (file-exists-p file)
+	   (eclim--project-name file)))))
 
 (defun eclim--project-dir (&optional filename)
   "Return this file's project root directory. If the optional
