@@ -53,7 +53,7 @@
 
 (defun ac-emacs-eclim-init ()
   (setq ac-emacs-eclim-point ac-point)
-  (message "Completion started at %s, ac-point is %s" (point) ac-point))
+  (when eclim-print-debug-messages (message "Completion started at %s, ac-point is %s" (point) ac-point)))
 
 (defun ac-emacs-eclim-yasnippet-convert (s)
   "Convert a completion string to a yasnippet template"
@@ -77,7 +77,6 @@
 		 (package (if (and rest (string-match "\\w+\\(\\.\\w+\\)*" rest)) rest nil))
 		 (template (ac-emacs-eclim-yasnippet-convert insertion)))
 	    (delete-region ac-emacs-eclim-point end)
-	    (message template)
 	    (if (and eclim-use-yasnippet template (featurep 'yasnippet))
 		(yas/expand-snippet template)
 	      (insert insertion))

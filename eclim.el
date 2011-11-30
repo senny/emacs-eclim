@@ -183,16 +183,21 @@ an error if the connection is refused. Automatically calls
 `eclim--check-project' if neccessary."
   (let ((res (gensym))
 	(expargs (gensym))
+	(attrs-before (gensym))
 	(sync (eclim--args-contains args '("-f" "-o")))
 	(check (eclim--args-contains args '("-p"))))
     `(let* ((,expargs (eclim--expand-args (quote ,args))))
        ,(when sync '(eclim/java-src-update))
        ,(when check '(eclim--check-project (eclim--project-name)))
-       (let ((,res (apply 'eclim--call-process ,cmd ,expargs)))
+       (let ((,attrs-before (if ,sync (file-attributes (buffer-file-name)) nil))
+	     (,res (apply 'eclim--call-process ,cmd ,expargs)))
 	 (when (and ,res (or (string-match "connect:\s+\\(.*\\)" (first ,res))
 			     (string-match "Missing argument for required option:\s*\\(.*\\)" (first ,res))))
 	   (error (match-string 1 (first ,res))))
-	 ,(when sync `(when (file-exists-p (buffer-file-name))
+	 ,(when sync `(when (and (file-exists-p (buffer-file-name))
+				 ,attrs-before
+				 (not (= (second (sixth ,attrs-before))
+					 (second (sixth (file-attributes (buffer-file-name)))))))
 			(revert-buffer t t t)))
 	 ,res))))
 
