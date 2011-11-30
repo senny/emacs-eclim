@@ -23,7 +23,7 @@
 ;; "eclim--<descriptive-name>", and name eclim command invocations
 ;; "eclim/command-name", like eclim/project-list.
 ;;; Description
-;; 
+;;
 ;; ac-emacs-eclim-source.el -- a emacs eclime source for auto-complete-mode
 ;;
 
@@ -37,7 +37,7 @@
   :group 'auto-complete)
 
 (defface ac-emacs-eclim-selection-face
-  '((t (:background "gold4" :foreground "white"))) 
+  '((t (:background "gold4" :foreground "white")))
   "Face for the emacs-eclim selected candidate."
   :group 'auto-complete)
 
@@ -60,8 +60,8 @@
   (apply #'concat
 	 (let* ((beg (string-match "[<(]" s)))
 	   (cons (substring s 0 (or beg (length s)))
-		 (loop for start = beg then (1+ end)
-		       for end = (string-match "<\\|>\\|(\\|)\\|, *" s start)
+		 (loop for start = beg then (match-end 0)
+		       for end = (string-match "(\\|)\\|, *" s start)
 		       with i = 0
 		       while end
 		       if (not (= start end)) collect (format "${%s:%s}" (incf i) (substring s start end)) into res
@@ -80,8 +80,8 @@
 	    (if (and eclim-use-yasnippet template (featurep 'yasnippet))
 		(yas/expand-snippet template)
 	      (insert insertion))
-	    (when package 
-	      (eclim--java-organize-imports 		      
+	    (when package
+	      (eclim--java-organize-imports
 	       (eclim/execute-command "java_import_order" "-p")
 	       (list (concat package "." (substring insertion 0 (or (string-match "[<(]" insertion)
 								    (length insertion)))))))))))
