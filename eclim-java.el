@@ -456,7 +456,7 @@ method."
 	      (with-output-to-temp-buffer "*Completions*"
 		(display-completion-list list word)))
 	  ;; Complete
-	  (delete-region beg (point))
+	  (delete-region (1+ beg) (point))
 	  (insert compl)
 	  ;; close completion buffer if there's one
 	  (let ((win (get-buffer-window "*Completions*" 0)))
