@@ -228,19 +228,20 @@ error checking, and some other niceties.."
                             (mapcar (lambda (arg) (if (numberp arg) (number-to-string arg) arg))
                                     args)))))
     (if eclim-print-debug-messages (message cmd))
-    (eclim--with-async-buffer buf
+    (lexical-let ((handler handler)
+                  (buf (eclim--get-async-buffer)))
       (message "Using async buffer %s" buf)
-      (lexical-let ((handler handler))
-        (let ((proc (start-process-shell-command "eclim" buf cmd)))
-          (let ((sentinel (lambda (process signal)
-                            (save-excursion
-                              (set-buffer (process-buffer process))
-                              (funcall handler
-                                       (remove-if (lambda (s) (= 0 (length s)))
-                                                  (split-string
-                                                   (buffer-substring 1 (point-max))
-                                                   "\n")))))))
-            (set-process-sentinel proc sentinel)))))))
+      (let ((proc (start-process-shell-command "eclim" buf cmd)))
+        (let ((sentinel (lambda (process signal)
+                          (save-excursion
+                            (set-buffer (process-buffer process))
+                            (funcall handler
+                                     (remove-if (lambda (s) (= 0 (length s)))
+                                                (split-string
+                                                 (buffer-substring 1 (point-max))
+                                                 "\n")))
+                            (push buf eclim-async-buffers)))))
+          (set-process-sentinel proc sentinel))))))
 
 (defmacro eclim/execute-command-async (callback cmd &rest args)
   "Calls `eclim--expand-args' on ARGS, then calls eclim with the
@@ -273,16 +274,15 @@ an error if the connection is refused. Automatically calls
 
 (setq eclim-async-buffers nil)
 
-(defmacro eclim--with-async-buffer (buf &rest forms)
-  (declare (indent defun))
-  `(let ((,buf (if eclim-async-buffers (pop eclim-async-buffers)
-                 (get-buffer-create (generate-new-buffer-name "*eclim-async*")))))
-     (unwind-protect
-         (save-excursion
-           (set-buffer ,buf)
-           (erase-buffer))
-         (progn ,@forms)
-       (push ,buf eclim-async-buffers))))
+(defun eclim--get-async-buffer ()
+  (if eclim-async-buffers (let ((buf (pop eclim-async-buffers)))
+                            (if (buffer-name buf)
+                                (save-excursion
+                                  (set-buffer buf)
+                                  (erase-buffer)
+                                  buf)
+                              (eclim--get-async-buffer)))
+    (get-buffer-create (generate-new-buffer-name "*eclim-async*"))))
 
 (defmacro eclim/with-results-async (result params &rest body)
   "Convenience macro. PARAMS is a list where the first element is
@@ -296,10 +296,6 @@ RESULT is non-nil, BODY is executed."
           (let ((eclim-auto-save (and eclim-auto-save (not ,sync))))
             (when ,result ,@body)))
           ,@params)))
-
-(eclim/with-results-async r1 ("problems" ("-p" "sp-web-pbwebapp"))
-  (eclim/with-results-async r2 ("problems" ("-p" "sp-web-pbwebapp"))
-    (message "antal: %s" (length r2))))
 
 (defun eclim--completing-read (prompt choices)
   (funcall eclim-interactive-completion-function prompt choices))
