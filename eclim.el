@@ -39,7 +39,7 @@
   :group 'tools)
 
 (defcustom eclim-eclipse-dirs '("/Applications/eclipse" "/usr/lib/eclipse"
-                            "/usr/local/lib/eclipse" "/usr/share/eclipse")
+                                "/usr/local/lib/eclipse" "/usr/share/eclipse")
   "Path to the eclipse directory"
   :type '(sexp)
   :group 'eclim)
@@ -83,14 +83,14 @@ saved."
   "Determines whether debug messages should be printed."
   :group 'eclim
   :type '(choice (const :tag "Off" nil)
-		 (const :tag "On" t)))
+                 (const :tag "On" t)))
 
 (defcustom eclim-limit-search-results t
   "Determines if code search results should be limited to files
   in the current workspace."
   :group 'eclim
   :type '(choice (const :tag "Off" nil)
-		 (const :tag "On" t)))
+                 (const :tag "On" t)))
 
 (defvar eclim--snippet-directory
   (concat (file-name-directory load-file-name) "snippets"))
@@ -126,39 +126,39 @@ saved."
 
 (defun eclim--build-command (command &rest args)
   (cons command
-	(loop for a = args then (rest (rest a))
-	      for arg = (first a)
-	      for val = (second a)
-	      while arg when val append (list arg val))))
+        (loop for a = args then (rest (rest a))
+              for arg = (first a)
+              for val = (second a)
+              while arg when val append (list arg val))))
 
 (defun eclim--call-process (&rest args)
   "Calls eclim with the supplied arguments. Consider using
 `eclim/execute-command' instead, as it has argument expansion,
 error checking, and some other niceties.."
   (let ((cmd (apply 'concat eclim-executable " -command "
-		    (mapcar (lambda (arg) (concat " " arg))
-			    (mapcar (lambda (arg) (if (numberp arg) (number-to-string arg) arg))
-				    args)))))
+                    (mapcar (lambda (arg) (concat " " arg))
+                            (mapcar (lambda (arg) (if (numberp arg) (number-to-string arg) arg))
+                                    args)))))
     (if eclim-print-debug-messages (message cmd))
     (remove-if (lambda (s) (= 0 (length s)))
-	       (split-string
-		(shell-command-to-string cmd)
-		"\n"))))
+               (split-string
+                (shell-command-to-string cmd)
+                "\n"))))
 
 (setq eclim--default-args
       '(("-n" . (eclim--project-name))
-	("-p" . (eclim--project-name))
-	("-e" . (eclim--current-encoding))
-	("-f" . (eclim--project-current-file))
-	("-o" . (eclim--byte-offset))
-	("-s" . "project")))
+        ("-p" . (eclim--project-name))
+        ("-e" . (eclim--current-encoding))
+        ("-f" . (eclim--project-current-file))
+        ("-o" . (eclim--byte-offset))
+        ("-s" . "project")))
 
 (defun eclim--args-contains (args flags)
   "Check if an (unexpanded) ARGS list contains any of the
 specified FLAGS."
   (loop for f in flags
-	when (find f args :test #'string= :key (lambda (a) (if (listp a) (car a) a)))
-	return t))
+        when (find f args :test #'string= :key (lambda (a) (if (listp a) (car a) a)))
+        return t))
 
 (defun eclim--expand-args (args)
   "Takes a list of command-line arguments with which to call the
@@ -167,11 +167,11 @@ list. If it is a string, its default value is looked up in
 `eclim--default-args' and used to construct a list. The argument
 lists are then appended together."
   (mapcar (lambda (a) (if (numberp a) (number-to-string a) a))
-	  (loop for a in args
-		append (if (listp a)
-			   (list (car a) (eval (cadr a)))
-			 (list a (eval (cdr (or (assoc a eclim--default-args)
-						(error "sorry, no default value for: %s" a)))))))))
+          (loop for a in args
+                append (if (listp a)
+                           (list (car a) (eval (cadr a)))
+                         (list a (eval (cdr (or (assoc a eclim--default-args)
+                                                (error "sorry, no default value for: %s" a)))))))))
 
 (defmacro eclim/execute-command (cmd &rest args)
   "Calls `eclim--expand-args' on ARGS, then calls eclim with the
@@ -181,24 +181,24 @@ operation, and refreshes the current buffer if necessary. Raises
 an error if the connection is refused. Automatically calls
 `eclim--check-project' if neccessary."
   (let ((res (gensym))
-	(expargs (gensym))
-	(attrs-before (gensym))
-	(sync (eclim--args-contains args '("-f" "-o")))
-	(check (eclim--args-contains args '("-p"))))
+        (expargs (gensym))
+        (attrs-before (gensym))
+        (sync (eclim--args-contains args '("-f" "-o")))
+        (check (eclim--args-contains args '("-p"))))
     `(let* ((,expargs (eclim--expand-args (quote ,args))))
        ,(when sync '(eclim/java-src-update))
        ,(when check '(eclim--check-project (eclim--project-name)))
        (let ((,attrs-before (if ,sync (file-attributes (buffer-file-name)) nil))
-	     (,res (apply 'eclim--call-process ,cmd ,expargs)))
-	 (when (and ,res (or (string-match "connect:\s+\\(.*\\)" (first ,res))
-			     (string-match "Missing argument for required option:\s*\\(.*\\)" (first ,res))))
-	   (error (match-string 1 (first ,res))))
-	 ,(when sync `(when (and (file-exists-p (buffer-file-name))
-				 ,attrs-before
-				 (not (= (second (sixth ,attrs-before))
-					 (second (sixth (file-attributes (buffer-file-name)))))))
-			(revert-buffer t t t)))
-	 ,res))))
+             (,res (apply 'eclim--call-process ,cmd ,expargs)))
+         (when (and ,res (or (string-match "connect:\s+\\(.*\\)" (first ,res))
+                             (string-match "Missing argument for required option:\s*\\(.*\\)" (first ,res))))
+           (error (match-string 1 (first ,res))))
+         ,(when sync `(when (and (file-exists-p (buffer-file-name))
+                                 ,attrs-before
+                                 (not (= (second (sixth ,attrs-before))
+                                         (second (sixth (file-attributes (buffer-file-name)))))))
+                        (revert-buffer t t t)))
+         ,res))))
 
 (defun eclim--running-p ()
   "Returns t if eclim is currently capable of receiving commands,
@@ -214,9 +214,92 @@ and the expanded ARGS list and binds RESULT to the results. If
 RESULT is non-nil, BODY is executed."
   (let ((sync (eclim--args-contains (rest params) (list "-f" "-o"))))
     `(let* ((,result (eclim/execute-command ,@params))
-	    (eclim-auto-save (and eclim-auto-save (not ,sync))))
+            (eclim-auto-save (and eclim-auto-save (not ,sync))))
        (when ,result
-	 ,@body))))
+         ,@body))))
+
+
+(defun eclim--call-process-async (handler &rest args)
+  "Calls eclim with the supplied arguments. Consider using
+`eclim/execute-command' instead, as it has argument expansion,
+error checking, and some other niceties.."
+  (let ((cmd (apply 'concat eclim-executable " -command "
+                    (mapcar (lambda (arg) (concat " " arg))
+                            (mapcar (lambda (arg) (if (numberp arg) (number-to-string arg) arg))
+                                    args)))))
+    (if eclim-print-debug-messages (message cmd))
+    (eclim--with-async-buffer buf
+      (message "Using async buffer %s" buf)
+      (lexical-let ((handler handler))
+        (let ((proc (start-process-shell-command "eclim" buf cmd)))
+          (let ((sentinel (lambda (process signal)
+                            (save-excursion
+                              (set-buffer (process-buffer process))
+                              (funcall handler
+                                       (remove-if (lambda (s) (= 0 (length s)))
+                                                  (split-string
+                                                   (buffer-substring 1 (point-max))
+                                                   "\n")))))))
+            (set-process-sentinel proc sentinel)))))))
+
+(defmacro eclim/execute-command-async (callback cmd &rest args)
+  "Calls `eclim--expand-args' on ARGS, then calls eclim with the
+results. Automatically saves the current buffer (and optionally
+other java buffers as well), performs an eclim java_src_update
+operation, and refreshes the current buffer if necessary. Raises
+an error if the connection is refused. Automatically calls
+`eclim--check-project' if neccessary."
+  (let ((res (gensym))
+        (expargs (gensym))
+        (attrs-before (gensym))
+        (sync (eclim--args-contains args '("-f" "-o")))
+        (check (eclim--args-contains args '("-p"))))
+    `(let* ((,expargs (eclim--expand-args (quote ,args))))
+       ,(when sync '(eclim/java-src-update))
+       ,(when check '(eclim--check-project (eclim--project-name)))
+       (let ((,attrs-before (if ,sync (file-attributes (buffer-file-name)) nil)))
+         (apply 'eclim--call-process-async
+                (lambda (,res)
+                  (when (and ,res (or (string-match "connect:\s+\\(.*\\)" (first ,res))
+                                      (string-match "Missing argument for required option:\s*\\(.*\\)" (first ,res))))
+                    (error (match-string 1 (first ,res))))
+                  ,(when sync `(when (and (file-exists-p (buffer-file-name))
+                                          ,attrs-before
+                                          (not (= (second (sixth ,attrs-before))
+                                                  (second (sixth (file-attributes (buffer-file-name)))))))
+                                 (revert-buffer t t t)))
+                  (funcall ,callback ,res))
+                ,cmd ,expargs)))))
+
+(setq eclim-async-buffers nil)
+
+(defmacro eclim--with-async-buffer (buf &rest forms)
+  (declare (indent defun))
+  `(let ((,buf (if eclim-async-buffers (pop eclim-async-buffers)
+                 (get-buffer-create (generate-new-buffer-name "*eclim-async*")))))
+     (unwind-protect
+         (save-excursion
+           (set-buffer ,buf)
+           (erase-buffer))
+         (progn ,@forms)
+       (push ,buf eclim-async-buffers))))
+
+(defmacro eclim/with-results-async (result params &rest body)
+  "Convenience macro. PARAMS is a list where the first element is
+CMD to execute and the rest an ARGS list. Calls eclim with CMD
+and the expanded ARGS list and binds RESULT to the results. If
+RESULT is non-nil, BODY is executed."
+  (declare (indent defun))
+  (let ((sync (eclim--args-contains (rest params) (list "-f" "-o"))))
+    `(eclim/execute-command-async
+        (lambda (,result)
+          (let ((eclim-auto-save (and eclim-auto-save (not ,sync))))
+            (when ,result ,@body)))
+          ,@params)))
+
+(eclim/with-results-async r1 ("problems" ("-p" "sp-web-pbwebapp"))
+  (eclim/with-results-async r2 ("problems" ("-p" "sp-web-pbwebapp"))
+    (message "antal: %s" (length r2))))
 
 (defun eclim--completing-read (prompt choices)
   (funcall eclim-interactive-completion-function prompt choices))
@@ -228,8 +311,8 @@ value is computed for that file's instead."
   (ignore-errors
     (let ((file (or filename buffer-file-name)))
       (and file
-	   (file-exists-p file)
-	   (eclim--project-name file)))))
+           (file-exists-p file)
+           (eclim--project-name file)))))
 
 (defun eclim--project-dir (&optional filename)
   "Return this file's project root directory. If the optional
@@ -238,27 +321,27 @@ argument FILENAME is given, return that file's project root directory."
     (when root
       (directory-file-name
        (file-name-directory
-	(expand-file-name root))))))
+        (expand-file-name root))))))
 
 (defun eclim--project-name (&optional filename)
   "Returns this file's project name. If the optional argument
 FILENAME is given, return that file's  project name instead."
   (or eclim--project-name
       (setq eclim--project-name
-	    (let ((project-list (eclim/project-list))
-		  (project-dir (eclim--project-dir (or filename buffer-file-name))))
-	      (when (and project-list project-dir)
-		(car (or (cddr (assoc project-dir project-list)) ;; sensitive match
-			 (cddr (assoc (downcase project-dir) ;; insensitive match
-				      (mapcar (lambda (project)
-						(cons (downcase (first project))
-						      (rest project)))
-					      project-list))))))))))
+            (let ((project-list (eclim/project-list))
+                  (project-dir (eclim--project-dir (or filename buffer-file-name))))
+              (when (and project-list project-dir)
+                (car (or (cddr (assoc project-dir project-list)) ;; sensitive match
+                         (cddr (assoc (downcase project-dir) ;; insensitive match
+                                      (mapcar (lambda (project)
+                                                (cons (downcase (first project))
+                                                      (rest project)))
+                                              project-list))))))))))
 
 (defun eclim--find-file (path-to-file)
   (if (not (string-match-p "!" path-to-file))
       (unless (string= path-to-file (buffer-file-name))
-	(find-file-other-window path-to-file))
+        (find-file-other-window path-to-file))
     (let* ((parts (split-string path-to-file "!"))
            (archive-name (replace-regexp-in-string eclim--compressed-urls-regexp "" (first parts)))
            (file-name (second parts)))
@@ -276,19 +359,19 @@ FILENAME is given, return that file's  project name instead."
 
 (defun eclim--find-display-results (pattern results &optional open-single-file)
   (let ((res (remove-if-not (lambda (r) (or (not eclim-limit-search-results) (eclim--accepted-p (car r))))
-			    (remove-if (lambda (r) (zerop (length (remove-if (lambda (r) (zerop (length r))) r)))) results))))
+                            (remove-if (lambda (r) (zerop (length (remove-if (lambda (r) (zerop (length r))) r)))) results))))
     (if (and (= 1 (length res)) open-single-file) (eclim--visit-declaration (car res))
       (pop-to-buffer (get-buffer-create "*eclim: find"))
       (let ((buffer-read-only nil))
-	(erase-buffer)
-	(insert (concat "-*- mode: eclim-find; default-directory: " default-directory " -*-"))
-	(newline 2)
-	(insert (concat "eclim java_search -p " pattern))
-	(newline)
-	(dolist (result res)
-	  (insert (eclim--convert-find-result-to-string result default-directory))
-	  (newline))
-	(grep-mode)))))
+        (erase-buffer)
+        (insert (concat "-*- mode: eclim-find; default-directory: " default-directory " -*-"))
+        (newline 2)
+        (insert (concat "eclim java_search -p " pattern))
+        (newline)
+        (dolist (result res)
+          (insert (eclim--convert-find-result-to-string result default-directory))
+          (newline))
+        (grep-mode)))))
 
 (defun eclim--convert-find-result-to-string (line &optional directory)
   (let ((converted-directory (replace-regexp-in-string "\\\\" "/" (car line))))
@@ -363,7 +446,7 @@ FILENAME is given, return that file's  project name instead."
 
 (defcustom eclim-accepted-file-regexps
   '("")
-    "List of regular expressions that are matched against filenames
+  "List of regular expressions that are matched against filenames
 to decide if eclim should be automatically started on a
 particular file. By default all files part of a project managed
 by eclim can be accepted (see `eclim--accepted-filename' for more
@@ -386,10 +469,10 @@ the use of eclim to java and ant files."
 (defun eclim--accepted-p (filename)
   "Return t if and only if eclim should be automatically started on filename."
   (and
-       filename
-       (eclim--running-p)
-       (eclim--file-managed-p filename)
-       (eclim--accepted-filename-p filename)))
+   filename
+   (eclim--running-p)
+   (eclim--file-managed-p filename)
+   (eclim--accepted-filename-p filename)))
 
 ;; Request an eclipse source update when files are saved
 (defun eclim--after-save-hook ()
@@ -404,9 +487,9 @@ the use of eclim to java and ant files."
 (define-globalized-minor-mode global-eclim-mode eclim-mode
   (lambda ()
     (if (and buffer-file-name
-	     (eclim--running-p)
-	     (eclim--project-dir buffer-file-name))
-	(eclim-mode 1))))
+             (eclim--running-p)
+             (eclim--project-dir buffer-file-name))
+        (eclim-mode 1))))
 
 (require 'eclim-project)
 (require 'eclim-java)
