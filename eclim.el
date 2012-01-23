@@ -157,8 +157,7 @@ error checking, and some other niceties.."
   "Check if an (unexpanded) ARGS list contains any of the
 specified FLAGS."
   (loop for f in flags
-        when (find f args :test #'string= :key (lambda (a) (if (listp a) (car a) a)))
-        return t))
+        return (find f args :test #'string= :key (lambda (a) (if (listp a) (car a) a)))))
 
 (defun eclim--expand-args (args)
   "Takes a list of command-line arguments with which to call the
@@ -257,7 +256,7 @@ an error if the connection is refused. Automatically calls
         (check (eclim--args-contains args '("-p"))))
     `(let* ((,expargs (eclim--expand-args (quote ,args))))
        ,(when sync '(eclim/java-src-update))
-       ,(when check '(eclim--check-project (eclim--project-name)))
+       ,(when check `(eclim--check-project ,(if (listp check) (second check) '(eclim--project-name))))
        (let ((,attrs-before (if ,sync (file-attributes (buffer-file-name)) nil)))
          (apply 'eclim--call-process-async
                 (lambda (,res)
