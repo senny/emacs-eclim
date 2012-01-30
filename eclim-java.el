@@ -311,8 +311,8 @@ matters for buffers containing non-ASCII characters)."
   "Returns the package for the class in the current buffer."
   (save-excursion
     (goto-char 0)
-    (if (re-search-forward "package \\(.*?\\);")
-	(match-string-no-properties 1))))
+    (if (re-search-forward "package \\(.*?\\);" (point-max) t)
+        (match-string-no-properties 1))))
 
 (defun eclim--java-ignore-import-p (import)
   "Return true if this IMPORT should be ignored by the import
@@ -325,7 +325,7 @@ matters for buffers containing non-ASCII characters)."
 removing duplicates."
   (let* ((non-ordered (loop for a in imports-order
 			    for r = (cdr imports-order) then (cdr r)
-			    while (string< a (car r)) 
+			    while (string< a (car r))
 			    finally return r))
 	 (sorted (make-hash-table)))
     (loop for imp in (sort imports #'string<)
@@ -393,11 +393,11 @@ user if necessary."
 				      (type (cdr (assoc 'type unused)))
 				      (import (if (= 1 (length candidates))
 						  (car candidates)
-						(eclim--completing-read (concat "Missing type '" type "'") 
+						(eclim--completing-read (concat "Missing type '" type "'")
 									candidates))))
 				 (when import
-				   (eclim--java-organize-imports imports-order 
-								 (list (if (string-endswith-p import type) 
+				   (eclim--java-organize-imports imports-order
+								 (list (if (string-endswith-p import type)
 									   import
 									 (concat import "." type)))))))))
 
