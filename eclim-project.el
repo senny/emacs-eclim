@@ -240,7 +240,7 @@
 
 (defun eclim/project-file-locate (pattern scope &optional project)
   (when project (eclim--check-project project))
-  (if project 
+  (if project
       (apply 'eclim--call-process (eclim--build-command "locate_file"
 							"-p" pattern
 							"-s" scope

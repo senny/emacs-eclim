@@ -189,8 +189,8 @@
   "Refresh the problem list and draw it on screen."
   (interactive)
   (message "refreshing... %s " (current-buffer))
-  (message "%d async buffers remaining" (length eclim-async-buffers))
   (eclim/with-results-async res ("problems" ("-p" eclim--problems-project))
+    (message "%d async buffers remaining" (length eclim-async-buffers))
     (setq eclim--problems-list
           (remove-if-not (lambda (l) (= (length l) 4)) ;; for now, ignore multiline errors
                          (mapcar (lambda (line) (split-string line "|" nil)) res)))
@@ -359,18 +359,9 @@ without switching to it."
 refresh of the problems buffer."
   (when (and (eclim--project-dir)
              eclim-autoupdate-problems)
-;;    (eclim-problems-buffer-refresh) ;;))
-    ;; (setq eclim--problems-project (eclim--project-name))
-    ;; (setq eclim--problems-file buffer-file-name)
-    (run-with-idle-timer eclim-problems-refresh-delay nil
-                         (lambda()
-                           ;; (let ((prob-buf (get-buffer eclim--problems-buffer-name)))
-                           ;;   (save-excursion
-                           ;;     (if prob-buf
-                           ;;         (progn
-                           ;;           (set-buffer prob-buf)
-                           (eclim-problems-buffer-refresh)))))
-                                 ;; (eclim--problems-mode-init t)))
+    (setq eclim--problems-project (eclim--project-name))
+    (setq eclim--problems-file buffer-file-name)
+    (run-with-idle-timer eclim-problems-refresh-delay nil (lambda () (eclim-problems-buffer-refresh)))))
 
 (defun eclim-problems-compilation-buffer ()
   "Creates a compilation buffer from eclim error messages. This
