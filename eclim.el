@@ -141,14 +141,19 @@ eclimd."
                     (mapcar (lambda (arg) (concat " " arg))
                             (mapcar (lambda (arg) (if (numberp arg) (number-to-string arg) arg))
                                     args)))))
-    (if eclim-print-debug-messages (message cmd))
+    (if eclim-print-debug-messages (message "Executing: %s" cmd))
     cmd))
 
 (defun eclim--parse-result (result)
-  "Handles the text result of an eclim operation by splitting
-it into a list lines (removing empty elements)."
-  (remove-if (lambda (s) (= 0 (length s)))
-             (split-string result "\n")))
+  "Handles the text result of an eclim operation by splitting it
+into a list lines (removing empty elements). Also performs some
+elementary error checking."
+  (let ((res (remove-if (lambda (s) (= 0 (length s)))
+                        (split-string result "\n"))))
+    (when (and res (or (string-match "connect:\s+\\(.*\\)" (first res))
+                       (string-match "Missing argument for required option:\s*\\(.*\\)" (first res))))
+      (error (match-string 1 (first ,res))))
+    res))
 
 (defun eclim--call-process (&rest args)
   "Calls eclim with the supplied arguments. Consider using
@@ -157,19 +162,36 @@ error checking, and some other niceties.."
   (eclim--parse-result
    (shell-command-to-string (eclim--make-command args))))
 
+
+(defvar eclim--async-buffers nil
+  "Holds a list of available buffers for making async calls. We
+  try to reuse them as much as possible.")
+
+(defun eclim--get-async-buffer ()
+  "Get an buffer from ECLIM--ASYNC-BUFFERS, or create a new one
+if there are no unused ones."
+  (if eclim-async-buffers (let ((buf (pop eclim--async-buffers)))
+                            (if (buffer-name buf)
+                                (save-excursion
+                                  (set-buffer buf)
+                                  (erase-buffer)
+                                  buf)
+                              (eclim--get-async-buffer)))
+    (get-buffer-create (generate-new-buffer-name "*eclim-async*"))))
+
 (defun eclim--call-process-async (callback &rest args)
   "Like `eclim--call-process', but the call is executed
 asynchronously. CALLBACK is a function that accepts a list of
 strings and will be called on completion."
     (lexical-let ((handler callback)
                   (buf (eclim--get-async-buffer)))
-      (message "Using async buffer %s" buf)
+      (when eclim-print-debug-messages (message "Using async buffer %s" buf))
       (let ((proc (start-process-shell-command "eclim" buf (eclim--make-command args))))
         (let ((sentinel (lambda (process signal)
                           (save-excursion
                             (set-buffer (process-buffer process))
                             (funcall handler (eclim--parse-result (buffer-substring 1 (point-max))))
-                            (push buf eclim-async-buffers)))))
+                            (push buf eclim--async-buffers)))))
           (set-process-sentinel proc sentinel)))))
 
 (setq eclim--default-args
@@ -199,6 +221,22 @@ lists are then appended together."
                          (list a (eval (cdr (or (assoc a eclim--default-args)
                                                 (error "sorry, no default value for: %s" a)))))))))
 
+(defun eclim--execute-command-internal (executor cmd args)
+  (lexical-let* ((expargs (eclim--expand-args args))
+                 (sync (eclim--args-contains args '("-f" "-o")))
+                 (check (eclim--args-contains args '("-p"))))
+    (when sync (eclim/java-src-update))
+    (when check (eclim--check-project (if (listp check) (eval (second check)) (eclim--project-name))))
+    (let ((attrs-before (if sync (file-attributes (buffer-file-name)) nil)))
+      (funcall executor (cons cmd expargs)
+               (lambda ()
+                 (when sync
+                   (when (and (file-exists-p (buffer-file-name))
+                              attrs-before
+                              (not (= (second (sixth ,attrs-before))
+                                      (second (sixth (file-attributes (buffer-file-name)))))))
+                        (revert-buffer t t t))))))))
+
 (defmacro eclim/execute-command (cmd &rest args)
   "Calls `eclim--expand-args' on ARGS, then calls eclim with the
 results. Automatically saves the current buffer (and optionally
@@ -206,25 +244,12 @@ other java buffers as well), performs an eclim java_src_update
 operation, and refreshes the current buffer if necessary. Raises
 an error if the connection is refused. Automatically calls
 `eclim--check-project' if neccessary."
-  (let ((res (gensym))
-        (expargs (gensym))
-        (attrs-before (gensym))
-        (sync (eclim--args-contains args '("-f" "-o")))
-        (check (eclim--args-contains args '("-p"))))
-    `(let* ((,expargs (eclim--expand-args (quote ,args))))
-       ,(when sync '(eclim/java-src-update))
-       ,(when check '(eclim--check-project (eclim--project-name)))
-       (let ((,attrs-before (if ,sync (file-attributes (buffer-file-name)) nil))
-             (,res (apply 'eclim--call-process ,cmd ,expargs)))
-         (when (and ,res (or (string-match "connect:\s+\\(.*\\)" (first ,res))
-                             (string-match "Missing argument for required option:\s*\\(.*\\)" (first ,res))))
-           (error (match-string 1 (first ,res))))
-         ,(when sync `(when (and (file-exists-p (buffer-file-name))
-                                 ,attrs-before
-                                 (not (= (second (sixth ,attrs-before))
-                                         (second (sixth (file-attributes (buffer-file-name)))))))
-                        (revert-buffer t t t)))
-         ,res))))
+  `(eclim--execute-command-internal
+    (lambda (command-line cleaner)
+      (let ((res (apply 'eclim--call-process command-line)))
+        (funcall cleaner)
+        res))
+    ,cmd ',args))
 
 (defmacro eclim/execute-command-async (callback cmd &rest args)
   "Calls `eclim--expand-args' on ARGS, then calls eclim with the
@@ -233,27 +258,15 @@ other java buffers as well), performs an eclim java_src_update
 operation, and refreshes the current buffer if necessary. Raises
 an error if the connection is refused. Automatically calls
 `eclim--check-project' if neccessary."
-  (let ((res (gensym))
-        (expargs (gensym))
-        (attrs-before (gensym))
-        (sync (eclim--args-contains args '("-f" "-o")))
-        (check (eclim--args-contains args '("-p"))))
-    `(let* ((,expargs (eclim--expand-args (quote ,args))))
-       ,(when sync '(eclim/java-src-update))
-       ,(when check `(eclim--check-project ,(if (listp check) (second check) '(eclim--project-name))))
-       (let ((,attrs-before (if ,sync (file-attributes (buffer-file-name)) nil)))
-         (apply 'eclim--call-process-async
-                (lambda (,res)
-                  (when (and ,res (or (string-match "connect:\s+\\(.*\\)" (first ,res))
-                                      (string-match "Missing argument for required option:\s*\\(.*\\)" (first ,res))))
-                    (error (match-string 1 (first ,res))))
-                  ,(when sync `(when (and (file-exists-p (buffer-file-name))
-                                          ,attrs-before
-                                          (not (= (second (sixth ,attrs-before))
-                                                  (second (sixth (file-attributes (buffer-file-name)))))))
-                                 (revert-buffer t t t)))
-                  (funcall ,callback ,res))
-                ,cmd ,expargs)))))
+  `(eclim--execute-command-internal
+    (lambda (command-line cleaner)
+      (lexical-let ((cleaner cleaner))
+        (apply 'eclim--call-process-async
+         (lambda (res)
+           (funcall cleaner)
+           (funcall ,callback res))
+         command-line)))
+    ,cmd ',args))
 
 (defun eclim--running-p ()
   "Returns t if eclim is currently capable of receiving commands,
@@ -272,18 +285,6 @@ RESULT is non-nil, BODY is executed."
             (eclim-auto-save (and eclim-auto-save (not ,sync))))
        (when ,result
          ,@body))))
-
-(setq eclim-async-buffers nil)
-
-(defun eclim--get-async-buffer ()
-  (if eclim-async-buffers (let ((buf (pop eclim-async-buffers)))
-                            (if (buffer-name buf)
-                                (save-excursion
-                                  (set-buffer buf)
-                                  (erase-buffer)
-                                  buf)
-                              (eclim--get-async-buffer)))
-    (get-buffer-create (generate-new-buffer-name "*eclim-async*"))))
 
 (defmacro eclim/with-results-async (result params &rest body)
   "Convenience macro. PARAMS is a list where the first element is
