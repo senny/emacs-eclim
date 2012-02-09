@@ -281,32 +281,29 @@
   (eclim--project-buffer-refresh)
   (message "projects refreshed..."))
 
-(defun eclim-project-file-locate (pattern)
-  (interactive "MPattern: ")
-  ;; TODO: the search command returns strange results
-  (let ((matches (eclim/project-file-locate (eclim--project-name) pattern)))
-    (when (get-buffer "*eclim: find*") (kill-buffer "*eclim: find*"))
+(defun eclim--display-file-matches (header matches)
+  (when (get-buffer "*eclim: find*") (kill-buffer "*eclim: find*"))
     (pop-to-buffer "*eclim: find*" t)
+    (when header (insert header))
     (insert "searching for: " pattern "..." "\n\n")
     (dolist (match matches)
       (when match
-        (insert (second (split-string match "|")) ":0:")))
-    (grep-mode)))
+        (insert (third (split-string match "|")) ":0:\t"
+                (first (split-string match "|"))
+                "\n")))
+    (grep-mode))
 
+(defun eclim-project-file-locate (pattern)
+  (interactive "MPattern: ")
+  (eclim/with-results matches ("locate_file" ("-p" pattern) ("-s" "project") ("-n" (eclim--project-name)))
+    (eclim--display-file-matches nil matches)))
 
 (defun eclim-file-locate (pattern)
   (interactive "MPattern: ")
-  (let ((matches (eclim/project-file-locate pattern "workspace")))
-    (when (get-buffer "*eclim: find*") (kill-buffer "*eclim: find*"))
-    (pop-to-buffer "*eclim: find*" t)
-    (insert "-*- mode: grep; default-directory: \"" (eclim/workspace-dir) "\" -*-")
-    (insert "searching for: " pattern "..." "\n\n")
-    (dolist (match matches)
-      (when match
-	(insert (third (split-string match "|")) ":0:\t"
-		(first (split-string match "|"))
-		"\n")))
-    (grep-mode)))
+  (eclim/with-results matches ("locate_file" ("-p" pattern) ("-s" "workspace"))
+    (eclim--display-file-matches
+     (concat "-*- mode: grep; default-directory: \"" (eclim/workspace-dir) "\" -*-")
+     matches)))
 
 (defun eclim-file-locate-fuzzy (pattern)
   (interactive "MPattern: ")
