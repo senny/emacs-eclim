@@ -138,9 +138,12 @@ shell. The first element in ARGS is the name of the eclim
 operation, and the rest are flags/values to be passed on to
 eclimd."
   (let ((cmd (apply 'concat eclim-executable " -command "
-                    (mapcar (lambda (arg) (concat " " arg))
-                            (mapcar (lambda (arg) (if (numberp arg) (number-to-string arg) arg))
-                                    args)))))
+                    (first args) " "
+                    (loop for a = (rest args) then (rest (rest a))
+                          for arg = (first a)
+                          for val = (second a)
+                          do (print val)
+                          while arg when val collect (concat arg " " (if (numberp val) (number-to-string val) val) " ")))))
     (if eclim-print-debug-messages (message "Executing: %s" cmd))
     cmd))
 
