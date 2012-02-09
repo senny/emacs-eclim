@@ -190,7 +190,6 @@
   (interactive)
   (message "refreshing... %s " (current-buffer))
   (eclim/with-results-async res ("problems" ("-p" eclim--problems-project))
-    (message "%d async buffers remaining" (length eclim-async-buffers))
     (setq eclim--problems-list
           (remove-if-not (lambda (l) (= (length l) 4)) ;; for now, ignore multiline errors
                          (mapcar (lambda (line) (split-string line "|" nil)) res)))

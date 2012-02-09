@@ -170,7 +170,7 @@ error checking, and some other niceties.."
 (defun eclim--get-async-buffer ()
   "Get an buffer from ECLIM--ASYNC-BUFFERS, or create a new one
 if there are no unused ones."
-  (if eclim-async-buffers (let ((buf (pop eclim--async-buffers)))
+  (if eclim--async-buffers (let ((buf (pop eclim--async-buffers)))
                             (if (buffer-name buf)
                                 (save-excursion
                                   (set-buffer buf)
@@ -226,7 +226,9 @@ lists are then appended together."
                  (sync (eclim--args-contains args '("-f" "-o")))
                  (check (eclim--args-contains args '("-p"))))
     (when sync (eclim/java-src-update))
-    (when check (eclim--check-project (if (listp check) (eval (second check)) (eclim--project-name))))
+    (when check
+      (ignore-errors
+        (eclim--check-project (if (listp check) (eval (second check)) (eclim--project-name)))))
     (let ((attrs-before (if sync (file-attributes (buffer-file-name)) nil)))
       (funcall executor (cons cmd expargs)
                (lambda ()
@@ -280,6 +282,7 @@ nil otherwise."
 CMD to execute and the rest an ARGS list. Calls eclim with CMD
 and the expanded ARGS list and binds RESULT to the results. If
 RESULT is non-nil, BODY is executed."
+  (declare (indent defun))
   (let ((sync (eclim--args-contains (rest params) (list "-f" "-o"))))
     `(let* ((,result (eclim/execute-command ,@params))
             (eclim-auto-save (and eclim-auto-save (not ,sync))))
