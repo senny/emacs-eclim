@@ -228,26 +228,8 @@
   (eclim--check-project project)
   (eclim--call-process "project_refresh_file" "-p" project "-f" file))
 
-(defun eclim/project-update (project &optional buildfile settings)
-  (eclim--check-project project)
-  (apply 'eclim--call-process (eclim--build-command "project_update"
-						    "-p" project
-						    "-b" buildfile
-						    "-s" settings)))
-
 (defun eclim/project-nature-aliases ()
   (eclim--call-process "project_nature_aliases"))
-
-(defun eclim/project-file-locate (pattern scope &optional project)
-  (when project (eclim--check-project project))
-  (if project
-      (apply 'eclim--call-process (eclim--build-command "locate_file"
-							"-p" pattern
-							"-s" scope
-							"-n" project))
-    (apply 'eclim--call-process (eclim--build-command "locate_file"
-						      "-p" pattern
-						      "-s" scope))))
 
 (defun eclim/project-links (project)
   (eclim--check-project project)
@@ -335,7 +317,7 @@
   (interactive (list (eclim--project-read)))
   (when (not (listp projects)) (set 'projects (list projects)))
   (dolist (project projects)
-    (eclim/project-update project))
+    (eclim/execute-command "project_update" ("-p" project)))
   (eclim--project-buffer-refresh))
 
 (defun eclim-project-open (projects)
