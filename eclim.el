@@ -124,6 +124,7 @@ saved."
          (s (- w (string-width prefix))))
     (when (wholenump s) (eq t (compare-strings string (- w (string-width prefix)) w prefix nil nil)))))
 
+;; TODO: this function is probably not really needed anymore
 (defun eclim--build-command (command &rest args)
   (cons command
         (loop for a = args then (rest (rest a))
@@ -131,19 +132,45 @@ saved."
               for val = (second a)
               while arg when val append (list arg val))))
 
-(defun eclim--call-process (&rest args)
-  "Calls eclim with the supplied arguments. Consider using
-`eclim/execute-command' instead, as it has argument expansion,
-error checking, and some other niceties.."
+(defun eclim--make-command (args)
+  "Creates a command string that can be executed from the
+shell. The first element in ARGS is the name of the eclim
+operation, and the rest are flags/values to be passed on to
+eclimd."
   (let ((cmd (apply 'concat eclim-executable " -command "
                     (mapcar (lambda (arg) (concat " " arg))
                             (mapcar (lambda (arg) (if (numberp arg) (number-to-string arg) arg))
                                     args)))))
     (if eclim-print-debug-messages (message cmd))
-    (remove-if (lambda (s) (= 0 (length s)))
-               (split-string
-                (shell-command-to-string cmd)
-                "\n"))))
+    cmd))
+
+(defun eclim--parse-result (result)
+  "Handles the text result of an eclim operation by splitting
+it into a list lines (removing empty elements)."
+  (remove-if (lambda (s) (= 0 (length s)))
+             (split-string result "\n")))
+
+(defun eclim--call-process (&rest args)
+  "Calls eclim with the supplied arguments. Consider using
+`eclim/execute-command' instead, as it has argument expansion,
+error checking, and some other niceties.."
+  (eclim--parse-result
+   (shell-command-to-string (eclim--make-command args))))
+
+(defun eclim--call-process-async (callback &rest args)
+  "Like `eclim--call-process', but the call is executed
+asynchronously. CALLBACK is a function that accepts a list of
+strings and will be called on completion."
+    (lexical-let ((handler callback)
+                  (buf (eclim--get-async-buffer)))
+      (message "Using async buffer %s" buf)
+      (let ((proc (start-process-shell-command "eclim" buf (eclim--make-command args))))
+        (let ((sentinel (lambda (process signal)
+                          (save-excursion
+                            (set-buffer (process-buffer process))
+                            (funcall handler (eclim--parse-result (buffer-substring 1 (point-max))))
+                            (push buf eclim-async-buffers)))))
+          (set-process-sentinel proc sentinel)))))
 
 (setq eclim--default-args
       '(("-n" . (eclim--project-name))
@@ -199,49 +226,6 @@ an error if the connection is refused. Automatically calls
                         (revert-buffer t t t)))
          ,res))))
 
-(defun eclim--running-p ()
-  "Returns t if eclim is currently capable of receiving commands,
-nil otherwise."
-  (ignore-errors
-    (eclim/execute-command "ping")
-    t))
-
-(defmacro eclim/with-results (result params &rest body)
-  "Convenience macro. PARAMS is a list where the first element is
-CMD to execute and the rest an ARGS list. Calls eclim with CMD
-and the expanded ARGS list and binds RESULT to the results. If
-RESULT is non-nil, BODY is executed."
-  (let ((sync (eclim--args-contains (rest params) (list "-f" "-o"))))
-    `(let* ((,result (eclim/execute-command ,@params))
-            (eclim-auto-save (and eclim-auto-save (not ,sync))))
-       (when ,result
-         ,@body))))
-
-
-(defun eclim--call-process-async (handler &rest args)
-  "Calls eclim with the supplied arguments. Consider using
-`eclim/execute-command' instead, as it has argument expansion,
-error checking, and some other niceties.."
-  (let ((cmd (apply 'concat eclim-executable " -command "
-                    (mapcar (lambda (arg) (concat " " arg))
-                            (mapcar (lambda (arg) (if (numberp arg) (number-to-string arg) arg))
-                                    args)))))
-    (if eclim-print-debug-messages (message cmd))
-    (lexical-let ((handler handler)
-                  (buf (eclim--get-async-buffer)))
-      (message "Using async buffer %s" buf)
-      (let ((proc (start-process-shell-command "eclim" buf cmd)))
-        (let ((sentinel (lambda (process signal)
-                          (save-excursion
-                            (set-buffer (process-buffer process))
-                            (funcall handler
-                                     (remove-if (lambda (s) (= 0 (length s)))
-                                                (split-string
-                                                 (buffer-substring 1 (point-max))
-                                                 "\n")))
-                            (push buf eclim-async-buffers)))))
-          (set-process-sentinel proc sentinel))))))
-
 (defmacro eclim/execute-command-async (callback cmd &rest args)
   "Calls `eclim--expand-args' on ARGS, then calls eclim with the
 results. Automatically saves the current buffer (and optionally
@@ -270,6 +254,24 @@ an error if the connection is refused. Automatically calls
                                  (revert-buffer t t t)))
                   (funcall ,callback ,res))
                 ,cmd ,expargs)))))
+
+(defun eclim--running-p ()
+  "Returns t if eclim is currently capable of receiving commands,
+nil otherwise."
+  (ignore-errors
+    (eclim/execute-command "ping")
+    t))
+
+(defmacro eclim/with-results (result params &rest body)
+  "Convenience macro. PARAMS is a list where the first element is
+CMD to execute and the rest an ARGS list. Calls eclim with CMD
+and the expanded ARGS list and binds RESULT to the results. If
+RESULT is non-nil, BODY is executed."
+  (let ((sync (eclim--args-contains (rest params) (list "-f" "-o"))))
+    `(let* ((,result (eclim/execute-command ,@params))
+            (eclim-auto-save (and eclim-auto-save (not ,sync))))
+       (when ,result
+         ,@body))))
 
 (setq eclim-async-buffers nil)
 
