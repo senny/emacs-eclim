@@ -142,7 +142,6 @@ eclimd."
                     (loop for a = (rest args) then (rest (rest a))
                           for arg = (first a)
                           for val = (second a)
-                          do (print val)
                           while arg when val collect (concat arg " " (if (numberp val) (number-to-string val) val) " ")))))
     (if eclim-print-debug-messages (message "Executing: %s" cmd))
     cmd))
@@ -238,7 +237,7 @@ lists are then appended together."
                  (when sync
                    (when (and (file-exists-p (buffer-file-name))
                               attrs-before
-                              (not (= (second (sixth ,attrs-before))
+                              (not (= (second (sixth attrs-before))
                                       (second (sixth (file-attributes (buffer-file-name)))))))
                         (revert-buffer t t t))))))))
 
