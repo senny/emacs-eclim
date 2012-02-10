@@ -117,13 +117,12 @@ saved."
 (defvar eclim--compressed-file-path-removal-regexp "^/")
 
 (defun string-startswith-p (string prefix)
-  ;; TODO: there is probably already a library function that does this
-  (equal (substring-no-properties string 0 (string-width prefix)) prefix))
+  (eq t (compare-strings string nil (string-width prefix) prefix nil nil)))
 
 (defun string-endswith-p (string prefix)
-  ;; TODO: there is probably already a library function that does this
-  (let ((w (string-width string)))
-    (equal (substring-no-properties string (- w (string-width prefix)) w) prefix)))
+  (let* ((w (string-width string))
+         (s (- w (string-width prefix))))
+    (when (wholenump s) (eq t (compare-strings string (- w (string-width prefix)) w prefix nil nil)))))
 
 (defun eclim--build-command (command &rest args)
   (cons command
@@ -226,7 +225,7 @@ RESULT is non-nil, BODY is executed."
   "Return t if and only if this file is part of a project managed
 by eclim. If the optional argument FILENAME is given, the return
 value is computed for that file's instead."
-  (ignore-errors 
+  (ignore-errors
     (let ((file (or filename buffer-file-name)))
       (and file
 	   (file-exists-p file)
@@ -382,11 +381,11 @@ the use of eclim to java and ant files."
        (lambda (regexp) (string-match regexp filename))
        eclim-accepted-file-regexps)
       t))
-	     
+
 
 (defun eclim--accepted-p (filename)
   "Return t if and only if eclim should be automatically started on filename."
-  (and 
+  (and
        filename
        (eclim--running-p)
        (eclim--file-managed-p filename)
