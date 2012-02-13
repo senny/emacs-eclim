@@ -118,7 +118,7 @@ declaration has been found. TYPE may be either 'class',
 (defun eclim--java-current-class-name ()
   "Searches backward in the current buffer until a class declaration
 has been found."
-  (eclim--java-current-type-name "class"))
+  (eclim--java-current-type-name "\\(class\\)"))
 
 (defun eclim--completion-candidate-type (candidate)
   "Returns the type of a candidate."
@@ -467,5 +467,16 @@ method."
   (interactive)
   (when eclim-auto-save (save-buffer))
   (eclim--java-complete-internal (mapcar 'second (eclim/java-complete))))
+
+(defun eclim-package-and-class ()
+  (concat (eclim--java-current-package) "." (eclim--java-current-class-name)))
+
+(defun eclim-run-class()
+  "Run the current class."
+  (interactive)
+  (if (not (string= major-mode "java-mode"))
+      (message "Sorry cannot run current buffer.")
+    (compile (concat eclim-executable " -command java -p "  eclim--project-name
+                     " -c " (eclim-package-and-class)))))
 
 (provide 'eclim-java)
