@@ -155,6 +155,16 @@ has been found."
   (interactive)
   (eclim/execute-command "javadoc_comment" "-p" "-f" "-o"))
 
+(defun eclim-run-java-doc ()
+  "Run Javadoc on current or all projects."
+  (interactive)
+  (let ((project-list (mapcar 'third (eclim/project-list))))
+    (if (y-or-n-p "Run Javadoc for all projects?")
+        (dolist (project project-list)
+          (eclim/execute-command "javadoc" ("-p" project)))
+      (eclim/execute-command "javadoc" "-p"))
+    (message "Javadoc creation finished.")))
+
 (defun eclim-java-format ()
   "Format the source code of the current java source file."
   (interactive)
@@ -464,7 +474,7 @@ method."
 (defun eclim-package-and-class ()
   (concat (eclim--java-current-package) "." (eclim--java-current-class-name)))
 
-(defun eclim-run-class()
+(defun eclim-run-class ()
   "Run the current class."
   (interactive)
   (if (not (string= major-mode "java-mode"))
