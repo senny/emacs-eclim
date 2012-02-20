@@ -70,19 +70,18 @@
 
 (defun eclim--check-project (project)
   (let ((projects (or eclim--projects-cache
-                      (setq eclim--projects-cache (mapcar 'third (eclim/project-list))))))
+                      (setq eclim--projects-cache (mapcar (lambda (p) (assoc-default 'name p)) (eclim/project-list))))))
     (when (not (assoc-string project projects))
-      (error (concat "invalid project: " project)))))
+      (error (concat "invalid project: " project))))) ;
 
 (defun eclim--project-read (&optional single)
   (interactive)
-  (if (eq major-mode
-          'eclim-project-mode)
+  (if (eq major-mode 'eclim-project-mode)
       (progn
         (or (if single nil (eclim--project-get-marked))
             (eclim--project-current-line)))
     (eclim--completing-read "Project: "
-                            (mapcar (lambda (row) (nth 2 row)) (eclim/project-list)))))
+                            (mapcar (lambda (p) (assoc-default 'name p)) (eclim/project-list)))))
 
 (defun eclim--project-mode-init ()
   (switch-to-buffer (get-buffer-create "*eclim: projects*"))
@@ -112,17 +111,15 @@
     (let ((inhibit-read-only t)
           (line-number (line-number-at-pos)))
       (erase-buffer)
-      (dolist (project (eclim/project-list))
-        (eclim--insert-project project))
+      (loop for project across (eclim/project-list)
+            do (eclim--insert-project project))
       (goto-line line-number))))
 
 (defun eclim--insert-project (project)
-  ;; TODO: remove fixed whitespace size and insert dynamic columns
-  (let ((name (truncate-string-to-width (third project) 30 0 nil t))
-        (status (second project))
-        (path (first project)))
-    (insert (format "  | %-6s | %-30s | %s" status name path))
-    (insert "\n")))
+  (insert (format "  | %-6s | %-30s | %s\n"
+                  (if (eq :json-false (assoc-default 'open project)) "closed" "open")
+                  (truncate-string-to-width (assoc-default 'name project) 30 0 nil t)
+                  (assoc-default 'path project))))
 
 (defun eclim--project-insert-mark-current (face)
   (let ((inhibit-read-only t))
@@ -164,9 +161,7 @@
                           (eclim--project-column-end 3)))))
 
 (defun eclim/project-list ()
-  (eclim/with-results res ("project_list")
-		      (mapcar (lambda (line) (nreverse (split-string line " +- +" nil))) res)))
-
+  (eclim/execute-command "project_list"))
 
 (defun eclim/project-import (folder)
   (eclim--project-clear-cache)
@@ -353,8 +348,11 @@
 
 (defun eclim-project-goto (project)
   (interactive (list (eclim--project-read t)))
-  (let ((path (cdr (assoc project (mapcar (lambda (row) (cons (nth 2 row) (nth 0 row))) (eclim/project-list))))))
-    (ido-find-file-in-dir path)))
+  (ido-find-file-in-dir
+   (assoc-default 'path
+                  (find project (eclim/project-list)
+                        :key (lambda (e) (assoc-default 'name e))
+                        :test #'string=))))
 
 (defun eclim-project-info (project)
   (interactive (list (eclim--project-read t)))
@@ -362,15 +360,14 @@
         (project-info "")
         (project-settings ""))
     (switch-to-buffer (get-buffer-create "*eclim: info*"))
-    (insert (dolist (line (eclim/project-info project) project-info)
-              (set 'project-info (concat project-info line "\n"))))
+    (loop for attr in (eclim/project-info project)
+          do (insert (format "%s: %s\n" (car attr) (cdr attr))))
     (insert "\n\nSETTINGS:\n")
-    (insert (dolist (line (eclim/project-settings project) project-settings)
-              (set 'project-settings (concat project-settings line "\n"))))
+    (loop for attr across (eclim/project-settings project)
+          do (insert (format "%s: %s\n" (assoc-default 'name attr) (assoc-default 'value attr))))
     (local-set-key (kbd "q") (lambda ()
                                (interactive)
                                (kill-buffer)))
-
     (beginning-of-buffer)
     (setq major-mode 'special-mode
           mode-name "eclim/project-info"

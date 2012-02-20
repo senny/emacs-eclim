@@ -150,12 +150,10 @@ eclimd."
   "Handles the text result of an eclim operation by splitting it
 into a list lines (removing empty elements). Also performs some
 elementary error checking."
-  (let ((res (remove-if (lambda (s) (= 0 (length s)))
-                        (split-string result "\n"))))
-    (when (and res (or (string-match "connect:\s+\\(.*\\)" (first res))
-                       (string-match "Missing argument for required option:\s*\\(.*\\)" (first res))))
-      (error (match-string 1 (first res))))
-    res))
+  (when (and result (or (string-match "connect:\s+\\(.*\\)" result)
+                        (string-match "Missing argument for required option:\s*\\(.*\\)" result)))
+    (error (match-string 1 (first result))))
+  (json-read-from-string result))
 
 (defun eclim--call-process (&rest args)
   "Calls eclim with the supplied arguments. Consider using
@@ -414,7 +412,7 @@ FILENAME is given, return that file's  project name instead."
     (if mapped-coding-system mapped-coding-system coding-system)))
 
 (defun eclim/workspace-dir ()
-  (car (eclim--call-process "workspace_dir")))
+  (eclim--call-process "workspace_dir"))
 
 (defun eclim/jobs (&optional family)
   (eclim--call-process (eclim--build-command "jobs"
