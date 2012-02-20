@@ -162,7 +162,6 @@ error checking, and some other niceties.."
   (eclim--parse-result
    (shell-command-to-string (eclim--make-command args))))
 
-
 (defvar eclim--async-buffers nil
   "Holds a list of available buffers for making async calls. We
   try to reuse them as much as possible.")
