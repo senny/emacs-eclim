@@ -228,26 +228,8 @@
   (eclim--check-project project)
   (eclim--call-process "project_refresh_file" "-p" project "-f" file))
 
-(defun eclim/project-update (project &optional buildfile settings)
-  (eclim--check-project project)
-  (apply 'eclim--call-process (eclim--build-command "project_update"
-						    "-p" project
-						    "-b" buildfile
-						    "-s" settings)))
-
 (defun eclim/project-nature-aliases ()
   (eclim--call-process "project_nature_aliases"))
-
-(defun eclim/project-file-locate (pattern scope &optional project)
-  (when project (eclim--check-project project))
-  (if project 
-      (apply 'eclim--call-process (eclim--build-command "locate_file"
-							"-p" pattern
-							"-s" scope
-							"-n" project))
-    (apply 'eclim--call-process (eclim--build-command "locate_file"
-						      "-p" pattern
-						      "-s" scope))))
 
 (defun eclim/project-links (project)
   (eclim--check-project project)
@@ -259,11 +241,7 @@
 
 (defun eclim/project-classpath (&optional delimiter)
   "return project classpath for the current buffer."
-  (eclim--check-project eclim--project-name)
-  (car (apply 'eclim--call-process
-              (eclim--build-command "java_classpath"
-                                    "-p" eclim--project-name
-                                    "-d" delimiter))))
+  (eclim/execute-command "java_classpath" "-p" ("-d" delimiter)))
 
 (defun eclim-project-rename (project name)
   (interactive (let ((project-name (eclim--project-read t)))
@@ -299,32 +277,29 @@
   (eclim--project-buffer-refresh)
   (message "projects refreshed..."))
 
-(defun eclim-project-file-locate (pattern)
-  (interactive "MPattern: ")
-  ;; TODO: the search command returns strange results
-  (let ((matches (eclim/project-file-locate (eclim--project-name) pattern)))
-    (when (get-buffer "*eclim: find*") (kill-buffer "*eclim: find*"))
+(defun eclim--display-file-matches (header matches)
+  (when (get-buffer "*eclim: find*") (kill-buffer "*eclim: find*"))
     (pop-to-buffer "*eclim: find*" t)
+    (when header (insert header))
     (insert "searching for: " pattern "..." "\n\n")
     (dolist (match matches)
       (when match
-        (insert (second (split-string match "|")) ":0:")))
-    (grep-mode)))
+        (insert (third (split-string match "|")) ":0:\t"
+                (first (split-string match "|"))
+                "\n")))
+    (grep-mode))
 
+(defun eclim-project-file-locate (pattern)
+  (interactive "MPattern: ")
+  (eclim/with-results matches ("locate_file" ("-p" pattern) ("-s" "project") ("-n" (eclim--project-name)))
+    (eclim--display-file-matches nil matches)))
 
 (defun eclim-file-locate (pattern)
   (interactive "MPattern: ")
-  (let ((matches (eclim/project-file-locate pattern "workspace")))
-    (when (get-buffer "*eclim: find*") (kill-buffer "*eclim: find*"))
-    (pop-to-buffer "*eclim: find*" t)
-    (insert "-*- mode: grep; default-directory: \"" (eclim/workspace-dir) "\" -*-")
-    (insert "searching for: " pattern "..." "\n\n")
-    (dolist (match matches)
-      (when match
-	(insert (third (split-string match "|")) ":0:\t"
-		(first (split-string match "|"))
-		"\n")))
-    (grep-mode)))
+  (eclim/with-results matches ("locate_file" ("-p" pattern) ("-s" "workspace"))
+    (eclim--display-file-matches
+     (concat "-*- mode: grep; default-directory: \"" (eclim/workspace-dir) "\" -*-")
+     matches)))
 
 (defun eclim-file-locate-fuzzy (pattern)
   (interactive "MPattern: ")
@@ -335,7 +310,7 @@
   (interactive (list (eclim--project-read)))
   (when (not (listp projects)) (set 'projects (list projects)))
   (dolist (project projects)
-    (eclim/project-update project))
+    (eclim/execute-command "project_update" ("-p" project)))
   (eclim--project-buffer-refresh))
 
 (defun eclim-project-open (projects)
