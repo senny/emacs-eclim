@@ -154,7 +154,7 @@ elementary error checking."
                         (split-string result "\n"))))
     (when (and res (or (string-match "connect:\s+\\(.*\\)" (first res))
                        (string-match "Missing argument for required option:\s*\\(.*\\)" (first res))))
-      (error (match-string 1 (first ,res))))
+      (error (match-string 1 (first res))))
     res))
 
 (defun eclim--call-process (&rest args)
