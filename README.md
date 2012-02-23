@@ -1,7 +1,8 @@
 ## Overview
-Eclim is an Eclipse plugin which exposes Eclipse features through a
-server interface.  When this server is started, the command line utility
-eclim can be used to issue requests to that server.
+[Eclim](http://eclim.org) is an Eclipse plugin which exposes Eclipse
+features through a server interface.  When this server is started, the
+command line utility eclim can be used to issue requests to that
+server.
 
 Emacs-eclim uses the eclim server to integrate eclipse with
 emacs. This project wants to bring some of the invaluable features
@@ -41,7 +42,7 @@ emacs-eclim uses the local help feature in emacs to display the
 corresponding error message in the echo area. You can either invoke
 `(display-local-help)` manually or activate automatic display of local
 help by adding the following to .emacs:
-        
+
 	(setq help-at-pt-display-when-idle t)
 	(setq help-at-pt-timer-delay 0.1)
 	(help-at-pt-set-timer)
@@ -60,7 +61,7 @@ following to your .emacs:
 	(add-hook 'eclim-mode-hook (lambda () (add-to-list 'ac-sources 'ac-source-emacs-eclim)))
 
 ### Configuring company-mode
-  
+
 Emacs-eclim can integrate with [company-mode] to provide pop-up
 dialogs for auto-completion. To activate this, you need to add the
 following to your .emacs:
@@ -71,12 +72,14 @@ following to your .emacs:
 	(global-company-mode t)
 
 ## Optional dependencies
-* A recent version (0.6.0 or later) of [yasnippet](http://code.google.com/p/yasnippet/).
+* A recent version (0.6.0 or later) of [yasnippet]
 * A recent version (tested with 0.5) of [company-mode]
+* A recent version (tested with 1.4) version of [auto-complete-mode]
 * ido-mode (part of emacs as of version 22)
 
 ## Usage
-To get started just lunch the eclim executable that the placed in your Eclipse installation directory.
+To get started just launch the eclim executable that the placed in
+your Eclipse installation directory.
 
 * [Projects](http://wiki.github.com/senny/emacs-eclim/projects)
 * [Code Completion](http://wiki.github.com/senny/emacs-eclim/code-completion)
@@ -87,7 +90,10 @@ To get started just lunch the eclim executable that the placed in your Eclipse i
 
 ## Contributing
 
-The project is under active development and we are always looking for assistance.
+The project is under active development and we are always looking for
+assistance. See the
+[Roadmap](http://wiki.github.com/senny/emacs-eclim/maven) wiki page
+for more information.
 
 1. Fork emacs-eclim
 2. Create a topic branch - `git checkout -b my_branch`
@@ -96,5 +102,6 @@ The project is under active development and we are always looking for assistance
 5. Send me a pull-request for your topic branch
 6. That's it!
 
+[yasnippet]:http://code.google.com/p/yasnippet/
 [company-mode]:http://nschum.de/src/emacs/company-mode/
 [auto-complete-mode]:http://cx4a.org/software/auto-complete/
