@@ -146,7 +146,6 @@
   (eclim--problems-apply-filter nil))
 
 (defun eclim--problems-insert-highlight (problem)
-  (message "inserting %s" problem)
   (save-excursion
     (eclim--problem-goto-pos problem)
     (let* ((id (eclim--java-identifier-at-point t t))
