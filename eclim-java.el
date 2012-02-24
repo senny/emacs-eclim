@@ -77,9 +77,7 @@ the current buffer is contained within this list"
                                       "references"))
 
 (defun eclim/java-complete ()
-  (mapcar (lambda (line)
-            (split-string line "|" nil))
-          (eclim/execute-command "java_complete" "-p" "-f" "-e" ("-l" "standard") "-o")))
+  (eclim/execute-command "java_complete" "-p" "-f" "-e" ("-l" "standard") "-o"))
 
 (defun eclim/java-src-update (&optional save-others)
   "If `eclim-auto-save' is non-nil, save the current java
@@ -122,15 +120,15 @@ has been found."
 
 (defun eclim--completion-candidate-type (candidate)
   "Returns the type of a candidate."
-  (first candidate))
+  (assoc-default 'type candidate))
 
 (defun eclim--completion-candidate-class (candidate)
   "Returns the class name of a candidate."
-  (second candidate))
+  (assoc-default 'info candidate))
 
 (defun eclim--completion-candidate-doc (candidate)
   "Returns the documentation for a candidate."
-  (third candidate))
+  (assoc-default 'menu candidate))
 
 (defun eclim--completion-candidate-package (candidate)
   "Returns the package name of a candidate."
