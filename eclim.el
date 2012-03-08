@@ -134,7 +134,7 @@ eclimd."
                     (loop for a = (rest args) then (rest (rest a))
                           for arg = (first a)
                           for val = (second a)
-                          while arg when val collect (concat arg " " (if (numberp val) (number-to-string val) val) " ")))))
+                          while arg when val collect (concat arg " '" (if (numberp val) (number-to-string val) val) "' ")))))
     (if eclim-print-debug-messages (message "Executing: %s" cmd))
     cmd))
 
@@ -155,7 +155,6 @@ elementary error checking."
 error checking, and some other niceties.."
   (eclim--parse-result
    (shell-command-to-string (eclim--make-command args))))
-
 
 (defvar eclim--async-buffers nil
   "Holds a list of available buffers for making async calls. We
