@@ -124,14 +124,6 @@ saved."
          (s (- w (string-width prefix))))
     (when (wholenump s) (eq t (compare-strings string (- w (string-width prefix)) w prefix nil nil)))))
 
-;; TODO: this function is probably not really needed anymore
-(defun eclim--build-command (command &rest args)
-  (cons command
-        (loop for a = args then (rest (rest a))
-              for arg = (first a)
-              for val = (second a)
-              while arg when val append (list arg val))))
-
 (defun eclim--make-command (args)
   "Creates a command string that can be executed from the
 shell. The first element in ARGS is the name of the eclim
@@ -417,8 +409,7 @@ FILENAME is given, return that file's  project name instead."
   (car (eclim--call-process "workspace_dir")))
 
 (defun eclim/jobs (&optional family)
-  (eclim--call-process (eclim--build-command "jobs"
-                                             "-f" family)))
+  (eclim/execute-command "jobs" ("-f" family)))
 
 (defun eclim-complete ()
   (interactive)
