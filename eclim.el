@@ -112,7 +112,7 @@ saved."
     ("utf-8-unix" . "utf-8")
     ("utf-8-emacs-unix" . "utf-8")))
 
-(defvar eclim--compressed-urls-regexp "\\(^jar:file://\\)\\|\\(^zip://\\)")
+(defvar eclim--compressed-urls-regexp "^\\(\\(?:jar\\|file\\|zip\\)://\\)")
 (defvar eclim--compressed-file-path-replacement-regexp "\\\\")
 (defvar eclim--compressed-file-path-removal-regexp "^/")
 
