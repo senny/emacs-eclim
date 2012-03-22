@@ -129,6 +129,8 @@ saved."
 shell. The first element in ARGS is the name of the eclim
 operation, and the rest are flags/values to be passed on to
 eclimd."
+  (when (not eclim-executable)
+    (error "Eclim installation not found. Please set eclim-executable."))
   (let ((cmd (apply 'concat eclim-executable " -command "
                     (first args) " "
                     (loop for a = (rest args) then (rest (rest a))
