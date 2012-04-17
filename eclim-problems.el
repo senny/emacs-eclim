@@ -238,7 +238,8 @@
           (erase-buffer)
           (dolist (problem (eclim--problems-filtered))
             (eclim--insert-problem problem filecol-size))
-          (goto-line line-number))))))
+          (goto-char (point-min))
+          (forward-line (1- line-number)))))))
 
 (defun eclim--problems-filtered (&optional ignore-type-filter)
   "Filter reported problems by eclim.
@@ -290,7 +291,7 @@ create and initialize a new buffer."
           (set-buffer buf)
           (eclim--problems-mode)
           ;(eclim-problems-buffer-refresh)
-          (beginning-of-buffer)))))
+          (goto-char (point-min))))))
 
 (defun eclim--problems-mode-init (&optional quiet)
   "Create and initialize the eclim problems buffer. If the
@@ -303,7 +304,7 @@ without switching to it."
       (set-buffer buf)
       (eclim--problems-mode)
       (eclim-problems-buffer-refresh)
-      (beginning-of-buffer))
+      (goto-char (point-min)))
     (if (not quiet)
         (switch-to-buffer buf))))
 
