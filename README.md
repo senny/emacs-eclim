@@ -9,7 +9,9 @@ emacs. This project wants to bring some of the invaluable features
 from eclipse to emacs.
 
 ## Installation
-1. [download and install](http://eclim.org/guides/install.html) eclim
+1. [download and install](http://eclim.org/guides/install.html)
+   eclim. Please note that emacs-eclim does *not* yet work with eclim
+   1.7.3 or later. You need version 1.7.2.
 1. download emacs-eclim
 1. add the following code to your emacs startup script
 
