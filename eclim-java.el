@@ -237,25 +237,19 @@ has been found."
     (loop for child across children do
 	  (eclim--java-insert-hierarchy-node project child (+ level 1)))))
 
-(defun eclim--java-split-search-results (res)
-  (mapcar (lambda (l) (split-string l "|" nil)) res))
-
 (defun eclim-java-find-declaration ()
   "Find and display the declaration of the java identifier at point."
   (interactive)
   (let ((i (eclim--java-identifier-at-point t)))
     (eclim/with-results hits ("java_search" "-n" "-f" ("-o" (car i)) ("-l" (length (cdr i))) ("-x" "declaration"))
-			(let ((r (eclim--java-split-search-results hits)))
-			  (if (= (length r) 1)
-			      (eclim--visit-declaration (car r))
-			    (eclim--find-display-results (cdr i) r))))))
+			(eclim--find-display-results (cdr i) hits t))))
 
 (defun eclim-java-find-references ()
   "Find and display references for the java identifier at point."
   (interactive)
   (let ((i (eclim--java-identifier-at-point t)))
     (eclim/with-results hits ("java_search" "-n" "-f" ("-o" (car i)) ("-l" (length (cdr i))) ("-x" "references"))
-			(eclim--find-display-results (cdr i) (eclim--java-split-search-results hits)))))
+			(eclim--find-display-results (cdr i) hits))))
 
 (defun eclim-java-find-type (type-name)
   "Searches the project for a given class. The TYPE-NAME is the pattern, which will be used for the search."
@@ -272,7 +266,7 @@ has been found."
 		     (eclim--completing-read "Type: " eclim--java-search-types)
 		     (read-string "Pattern: ")))
   (eclim/with-results hits ("java_search" ("-p" pattern) ("-t" type) ("-x" context) ("-s" scope))
-		      (eclim--find-display-results pattern (eclim--java-split-search-results hits) open-single-file)))
+		      (eclim--find-display-results pattern hits open-single-file)))
 
 (defun eclim--java-identifier-at-point (&optional full position)
   "Returns a cons cell (BEG . IDENTIFIER) where BEG is the start

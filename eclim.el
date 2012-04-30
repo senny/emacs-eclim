@@ -354,9 +354,7 @@ FILENAME is given, return that file's  project name instead."
         (kill-buffer old-buffer)))))
 
 (defun eclim--find-display-results (pattern results &optional open-single-file)
-  (let ((res (remove-if-not (lambda (r) (or (not eclim-limit-search-results) (eclim--accepted-p (car r))))
-                            (remove-if (lambda (r) (zerop (length (remove-if (lambda (r) (zerop (length r))) r)))) results))))
-    (if (and (= 1 (length res)) open-single-file) (eclim--visit-declaration (car res))
+    (if (and (= 1 (length results)) open-single-file) (eclim--visit-declaration (elt results 0))
       (pop-to-buffer (get-buffer-create "*eclim: find"))
       (let ((buffer-read-only nil))
         (erase-buffer)
@@ -364,26 +362,27 @@ FILENAME is given, return that file's  project name instead."
         (newline 2)
         (insert (concat "eclim java_search -p " pattern))
         (newline)
-        (dolist (result res)
-          (insert (eclim--convert-find-result-to-string result default-directory))
-          (newline))
-        (grep-mode)))))
+        (loop for result across results
+              do (progn
+                   (insert (eclim--convert-find-result-to-string result default-directory))
+                   (newline)))
+        (goto-char 0)
+        (grep-mode))))
 
 (defun eclim--convert-find-result-to-string (line &optional directory)
-  (let ((converted-directory (replace-regexp-in-string "\\\\" "/" (car line))))
-    (concat (if converted-directory
+  (let ((converted-directory (replace-regexp-in-string "\\\\" "/" (assoc-default 'filename line))))
+    (format "%s:%d:%d:%s"
+            (if converted-directory
                 (replace-regexp-in-string (concat (regexp-quote directory) "/?") "" converted-directory)
               converted-directory)
-            ":" (replace-regexp-in-string " col " ":" (second line)) " "
-            (third line))))
+            (assoc-default 'line line)
+            (assoc-default 'column line)
+            (assoc-default 'message line))))
 
-(defun eclim--visit-declaration (eclim-response)
-  (let* ((file-name (car eclim-response))
-         (line-and-column (cadr eclim-response))
-         (position (split-string line-and-column " col ")))
-    (eclim--find-file file-name)
-    (goto-line (string-to-number (car position)))
-    (move-to-column (- (string-to-number (cadr position)) 1))))
+(defun eclim--visit-declaration (line)
+    (eclim--find-file (assoc-default 'filename line))
+    (goto-line (assoc-default 'line line))
+    (move-to-column (- (assoc-default 'column line) 1)))
 
 (defun eclim--string-strip (content)
   (replace-regexp-in-string "\s*$" "" content))
