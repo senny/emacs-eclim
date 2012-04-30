@@ -169,7 +169,6 @@
 
 (defun eclim/project-create (folder natures name &optional depends)
   ;; TODO: allow multiple natures
-  ;; (eclim--check-nature natures)
   (eclim--project-clear-cache)
   (eclim--call-process "project_create" "-f" folder "-n" natures "-p" name))
 
@@ -183,7 +182,6 @@
   (eclim--call-process "project_open" "-p" project))
 
 (defun eclim/project-close (project)
-  (message (concat "CLOSING: " project))
   (eclim--check-project project)
   (eclim--call-process "project_close" "-p" project))
 
@@ -249,14 +247,14 @@
   (when (not (listp projects)) (set 'projects (list projects)))
   (dolist (project projects)
     (when (yes-or-no-p (concat "Delete Project: <" project"> "))
-      (message (first (eclim/project-delete project)))))
+      (message (eclim/project-delete project))))
   (eclim--project-buffer-refresh))
 
 (defun eclim-project-create (name path nature)
   (interactive (list (read-string "Name: ")
                      (expand-file-name (read-directory-name "Project Directory: "))
                      (eclim--project-nature-read)))
-  (message (first (eclim/project-create path nature name)))
+  (message (eclim/project-create path nature name))
   (eclim--project-buffer-refresh))
 
 (defun eclim-project-import (folder)
@@ -265,7 +263,7 @@
   (eclim--project-buffer-refresh))
 
 (defun eclim--project-nature-read ()
-  (completing-read "Type: " (eclim/project-nature-aliases)))
+  (completing-read "Type: " (append (eclim/project-nature-aliases) '())))
 
 (defun eclim-project-mode-refresh ()
   (interactive)
