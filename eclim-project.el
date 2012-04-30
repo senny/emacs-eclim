@@ -239,7 +239,7 @@
 (defun eclim-project-rename (project name)
   (interactive (let ((project-name (eclim--project-read t)))
                  (list project-name (read-string (concat "Rename <" project-name "> To: ")))))
-  (message (first (eclim/project-rename project name)))
+  (message (eclim/project-rename project name))
   (eclim--project-buffer-refresh))
 
 (defun eclim-project-delete (projects)
@@ -259,7 +259,7 @@
 
 (defun eclim-project-import (folder)
   (interactive "DProject Directory: ")
-  (message (first (eclim/project-import folder)))
+  (message (eclim/project-import folder))
   (eclim--project-buffer-refresh))
 
 (defun eclim--project-nature-read ()
