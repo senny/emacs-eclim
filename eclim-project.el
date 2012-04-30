@@ -275,11 +275,11 @@
     (pop-to-buffer "*eclim: find*" t)
     (when header (insert header))
     (insert "searching for: " pattern "..." "\n\n")
-    (dolist (match matches)
-      (when match
-        (insert (third (split-string match "|")) ":0:\t"
-                (first (split-string match "|"))
-                "\n")))
+    (loop for match across matches
+          do (insert (format "%s:0:\t%s\n"
+                             (assoc-default 'path match)
+                             (assoc-default 'name match))))
+    (goto-char 0)
     (grep-mode))
 
 (defun eclim-project-file-locate (pattern)
