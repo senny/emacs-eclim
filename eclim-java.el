@@ -377,27 +377,26 @@ a java type that can be imported."
 user if necessary."
   (interactive)
   (eclim/with-results imports-order ("java_import_order" "-p")
-		      (loop for unused across
-			    (json-read-from-string
-			     (replace-regexp-in-string "'" "\"" (first (eclim/execute-command "java_import_missing" "-p" "-f"))))
+    (loop for unused across (eclim/execute-command "java_import_missing" "-p" "-f")
 			    do (let* ((candidates (append (cdr (assoc 'imports unused)) nil))
-				      (type (cdr (assoc 'type unused)))
-				      (import (if (= 1 (length candidates))
-						  (car candidates)
-						(eclim--completing-read (concat "Missing type '" type "'")
-									candidates))))
-				 (when import
-				   (eclim--java-organize-imports imports-order
-								 (list (if (string-endswith-p import type)
-									   import
-									 (concat import "." type)))))))))
+                    (type (cdr (assoc 'type unused)))
+                    (import (if (= 1 (length candidates))
+                                (car candidates)
+                              (eclim--completing-read (concat "Missing type '" type "'")
+                                                      candidates))))
+               (when import
+                 (eclim--java-organize-imports imports-order
+                                               (list (if (string-endswith-p import type)
+                                                         import
+                                                       (concat import "." type)))))))))
 
 (defun eclim-java-remove-unused-imports ()
   "Remove usused import from the current java source file."
   (interactive)
   (eclim/with-results unused ("java_imports_unused" "-p" "-f")
-		      (let ((imports-order (eclim/execute-command "java_import_order" "-p")))
-			(eclim--java-organize-imports imports-order nil unused))))
+    (print unused)
+    (let ((imports-order (eclim/execute-command "java_import_order" "-p")))
+      (eclim--java-organize-imports imports-order nil (append unused '())))))
 
 (defun eclim-java-implement ()
   "Lets the user select from a list of methods to
