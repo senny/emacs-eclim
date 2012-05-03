@@ -404,10 +404,13 @@ implemnt/override, then inserts a skeleton for the chosen
 method."
   (interactive)
   (eclim/with-results response ("java_impl" "-p" "-f" "-o")
-		      (let* ((methods
-			      (remove-if (lambda (element) (string-match "//" element))
-					 (remove-if-not (lambda (element) (string-match "(.*)" element))
-							response)))
+    (let* ((methods
+            (mapcar (lambda (x) (replace-regexp-in-string " *\n *" " " x))
+                    (mapcar (lambda (x) (assoc-default 'signature x))
+                            (remove-if-not (lambda (x) (eq :json-false (assoc-default 'implemented x)))
+                                           (apply 'append
+                                                  (mapcar (lambda (x) (append (assoc-default 'methods x) nil))
+                                                          (assoc-default 'superTypes response)))))))
 			     (start (point)))
 			(insert
 			 "@Override\n"
