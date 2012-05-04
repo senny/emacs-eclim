@@ -176,15 +176,14 @@ has been found."
   (interactive)
   (let* ((i (eclim--java-identifier-at-point t))
 	 (n (read-string (concat "Rename " (cdr i) " to: ") (cdr i))))
-    (eclim/with-results files ("java_refactor_rename" "-p" "-e" "-f" ("-n" n)
-			       ("-o" (car i)) ("-l" (length (cdr i))))
-			(when (not (string= "files:" (first files)))
-			  (error (first files)))
+    (eclim/with-results res ("java_refactor_rename" "-p" "-e" "-f" ("-n" n)
+                               ("-o" (car i)) ("-l" (length (cdr i))))
+      (when (stringp res) (error res))
 			(when (not (file-exists-p (buffer-file-name)))
 			  (kill-buffer)
 			  (eclim-java-find-type n))
 			(let ((current (current-buffer)))
-			  (loop for file in files
+			  (loop for file in (mapcar (lambda (x) (assoc-default 'file x)) res)
 				for buf = (get-file-buffer (file-name-nondirectory file))
 				when buf do (progn (switch-to-buffer buf)
 						   (revert-buffer t t t)))
@@ -197,9 +196,7 @@ has been found."
 		     (eclim--byte-offset)
 		     (eclim--current-encoding)))
   (let ((top-node (eclim--java-insert-file-path-for-hierarchy-nodes
-		   (json-read-from-string
-		    (replace-regexp-in-string
-		     "'" "\"" (car (eclim/java-hierarchy project file offset encoding)))))))
+                   (eclim/java-hierarchy project file offset encoding))))
   (pop-to-buffer "*eclim: hierarchy*" t)
   (special-mode)
   (let ((buffer-read-only nil))
@@ -214,7 +211,7 @@ has been found."
   ;that isn't part of the project which then breaks future
   ;*-find-type calls and isn't what we want here anyway.
   (eclim/with-results hits ("java_search" ("-p" (cdr (assoc 'qualified node))) ("-t" "type") ("-x" "declarations") ("-s" "workspace"))
-    (add-to-list 'node `(file-path . ,(first (split-string (first hits) "|"))))
+    (add-to-list 'node `(file-path . ,(assoc-default 'message (elt hits 0))))
     (let ((children (cdr (assoc 'children node))))
       (loop for child across children do
 	    (eclim--java-insert-file-path-for-hierarchy-nodes child)))
