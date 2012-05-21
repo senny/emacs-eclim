@@ -332,7 +332,7 @@ FILENAME is given, return that file's  project name instead."
                                       :test #'string=)
                                 (find project-dir project-list ;; case insensitive
                                       :key (lambda (e) (assoc-default 'path e))
-                                      :test (lambda (s1 (downcase s2)))))))))))
+                                      :test (lambda (s1 s2) (string= s1 (downcase s2)))))))))))
 
 (defun eclim--find-file (path-to-file)
   (if (not (string-match-p "!" path-to-file))
