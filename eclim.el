@@ -141,13 +141,12 @@ eclimd."
     cmd))
 
 (defun eclim--parse-result (result)
-  "Handles the text result of an eclim operation by splitting it
-into a list lines (removing empty elements). Also performs some
-elementary error checking."
-  (when (and result (or (string-match "connect:\s+\\(.*\\)" result)
-                        (string-match "Missing argument for required option:\s*\\(.*\\)" result)))
-    (error (match-string 1 (first result))))
-  (json-read-from-string result))
+  "Parses the result of an eclim operation, raising an error if
+the result is not valid JSON."
+  (condition-case nil
+      (json-read-from-string result)
+    ('json-readtable-error
+     (error result))))
 
 (defun eclim--call-process (&rest args)
   "Calls eclim with the supplied arguments. Consider using
