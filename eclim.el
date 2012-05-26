@@ -146,7 +146,7 @@ into a list lines (removing empty elements). Also performs some
 elementary error checking."
   (when (and result (or (string-match "connect:\s+\\(.*\\)" result)
                         (string-match "Missing argument for required option:\s*\\(.*\\)" result)))
-    (error (match-string 1 (first result))))
+    (error (match-string 1 result)))
   (json-read-from-string result))
 
 (defun eclim--call-process (&rest args)
