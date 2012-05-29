@@ -37,7 +37,8 @@
 Set to nil to auto-discover from `eclim-executable' value (the default value).
 Set to \"eclimd\" if eclim and eclimd are in `exec-path'. Otherwise, set to
 the full path to eclimd executable."
-  :type 'string
+  :type '(choice (const :tag "Same directory as eclim-executable variable" nil)
+                 (string :tag "Custom value" "eclimd"))
   :group 'eclimd)
 
 (defcustom eclimd-default-workspace
