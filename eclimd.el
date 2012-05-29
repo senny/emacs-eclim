@@ -46,6 +46,17 @@ the full path to eclimd executable."
   :type 'directory
   :group 'eclimd)
 
+(defcustom eclimd-wait-for-process
+  t
+  "Set to t if you want `start-eclimd' to wait until the eclimd process is ready.
+When this variable is nil, `start-eclimd' returns immediately after
+eclimd process is started. Since the eclimd process startup takes a few seconds,
+running eclim commands immediately after the function returns may cause failures.
+You can freeze emacs until eclimd is ready to accept commands with this variable."
+  :tag "Wait until eclimd is ready"
+  :type 'boolean
+  :group 'eclimd)
+
 (defvar eclimd-process-buffer nil
   "Buffer used for communication with eclimd process")
 
@@ -92,7 +103,7 @@ The caller must use `save-match-data' to preserve the match data if necessary."
   "Wait for the eclimd server to become active.
 This function also waits for the eclimd server to report that it is started.
 It returns the port it is listening on"
-  (let ((eclimd-start-regexp "Eclim Server Started on: \\(?:[0-9]+\\.\\)\\{3\\}[0-9]+:\\([0-9]+\\)"))
+  (let ((eclimd-start-regexp "Eclim Server Started on\\(?: port\\|:\\) \\(?:\\(?:[0-9]+\\.\\)\\{3\\}[0-9]+:\\)?\\([0-9]+\\)"))
     (save-match-data
       (let ((output (eclimd--match-process-output eclimd-start-regexp eclimd-process)))
 	(when output
@@ -116,7 +127,8 @@ It returns the port it is listening on"
                            (concat "-Dosgi.instance.area.default="
                                    (replace-regexp-in-string "~" "@user.home" workspace-dir))))
         (setq eclimd-process (get-buffer-process eclimd-process-buffer))
-        (wait-eclimd-start)))))
+        (when eclimd-wait-for-process
+          (wait-eclimd-start))))))
 
 (defun stop-eclimd ()
   (interactive)
