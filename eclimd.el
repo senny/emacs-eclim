@@ -32,8 +32,11 @@
   :group 'eclim)
 
 (defcustom eclimd-executable
-  "eclimd"
-  "Full path to eclimd executable - if it is not in `exec-path'"
+  nil
+  "The eclimd executable to use.
+Set to nil to auto-discover from `eclim-executable' value (the default value).
+Set to \"eclimd\" if eclim and eclimd are in `exec-path'. Otherwise, set to
+the full path to eclimd executable."
   :type 'string
   :group 'eclimd)
 
@@ -52,7 +55,10 @@
 (defconst eclimd-process-buffer-name "eclimd")
 
 (defun eclimd--executable-path ()
-  (executable-find eclimd-executable))
+  (if eclimd-executable
+      (executable-find eclimd-executable)
+    (let ((eclim-prog (executable-find eclim-executable)))
+      (expand-file-name "eclimd" (file-name-directory eclim-prog)))))
 
 (defun eclimd--running-p ()
   (not (null (get-buffer-process eclimd-process-buffer))))
@@ -96,19 +102,21 @@ It returns the port it is listening on"
 
 (defun start-eclimd (workspace-dir)
   (interactive (list (read-directory-name "Workspace directory: "
-					    eclimd-default-workspace nil t)))
+                                          eclimd-default-workspace nil t)))
   (let ((eclimd-prog (eclimd--executable-path)))
-    (when (and eclimd-prog
-	       (not (eclimd--running-p)))
-      (message (concat "Starting eclimd for workspace: " workspace-dir "..."))
-      (setq eclimd-process-buffer
-	    (make-comint eclimd-process-buffer-name
-			 eclimd-prog
-			 nil
-			 (concat "-Dosgi.instance.area.default="
-				 (replace-regexp-in-string "~" "@user.home" workspace-dir))))
-      (setq eclimd-process (get-buffer-process eclimd-process-buffer))
-      (wait-eclimd-start))))
+    (if (not eclimd-prog)
+        (message "Cannot start eclimd: check eclimd-executable variable.")
+      (if (eclimd--running-p)
+          (message "Cannot start eclimd: eclimd is already running.")
+        (message (concat "Starting eclimd for workspace: " workspace-dir "..."))
+        (setq eclimd-process-buffer
+              (make-comint eclimd-process-buffer-name
+                           eclimd-prog
+                           nil
+                           (concat "-Dosgi.instance.area.default="
+                                   (replace-regexp-in-string "~" "@user.home" workspace-dir))))
+        (setq eclimd-process (get-buffer-process eclimd-process-buffer))
+        (wait-eclimd-start)))))
 
 (defun stop-eclimd ()
   (interactive)
