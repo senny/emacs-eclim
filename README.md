@@ -11,10 +11,21 @@ from eclipse to emacs.
 It is also possible to start and stop the eclim daemon from emacs using the
 `eclimd` package.
 
+## A note about Eclim versions
+
+Prior to version 1.7.3, eclim used a proprietary protocol for
+communication with the eclim server. If you are running one of these
+older versions, you need version 0.1 of emacs-eclim.
+
+Eclim versions 1.7.3 however, serves responses using a standard JSON
+format. These are supported by emacs-eclim versions 0.2 and later.
+
+Emacs-eclim versions are tagged with the appropriate version
+number. You can see and download previous releases
+[here](https://github.com/senny/emacs-eclim/tags).
+
 ## Installation
-1. [download and install](http://eclim.org/guides/install.html)
-   eclim. Please note that emacs-eclim does *not* yet work with eclim
-   1.7.3 or later. You need version 1.7.2.
+1. [download and install](http://eclim.org/guides/install.html) eclim.
 1. download emacs-eclim
 1. add the following code to your emacs startup script
 
