@@ -43,8 +43,8 @@
 
 (defun ac-emacs-eclim-candidates ()
   (with-no-warnings
-    (loop for c in (eclim/java-complete)
-          collect (nth 2 c))))
+    (mapcar (lambda (c) (assoc-default 'info c))
+            (eclim/java-complete))))
 
 (defun ac-emacs-eclim-available ()
   (eclim--accepted-p (buffer-file-name)))
