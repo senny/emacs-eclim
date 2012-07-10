@@ -23,7 +23,7 @@
 ;; "eclim--<descriptive-name>", and name eclim command invocations
 ;; "eclim/command-name", like eclim/project-list.
 ;;; Description
-;; 
+;;
 ;; company-emacs-eclim.el -- a company-mode backend that replaces company-eclim
 ;;
 ;; To activate this backend, replace company-eclim with
@@ -58,21 +58,21 @@
   "If we are lookup at a list of method call completions, check
   if we have already typed part of this call."
   (cond ((every (lambda (c) (string= "f" (eclim--completion-candidate-type c))) candidates)
-	 ;; When completing a method call that have alread been completed
-	 ;; up to the 'method(' point, eclim still reports the
-	 ;; completions as 'method(arg1, arg2, ...)', which is not what
-	 ;; company-mode expects. 
-	 (let ((common (try-completion "" (mapcar 'eclim--completion-candidate-doc candidates))))
-	   (save-excursion
-	     (if (search-backward common (- (point) (length common)) t)
-		 (mapcar (lambda (c)
-			   (list 
-			    (eclim--completion-candidate-type c)
-			    (eclim--completion-candidate-class c)
-			    (substring (eclim--completion-candidate-doc c) (length common))))
-			 candidates)
-	       candidates))))
-	(t candidates)))
+         ;; When completing a method call that have alread been completed
+         ;; up to the 'method(' point, eclim still reports the
+         ;; completions as 'method(arg1, arg2, ...)', which is not what
+         ;; company-mode expects.
+         (let ((common (try-completion "" (mapcar 'eclim--completion-candidate-doc candidates))))
+           (save-excursion
+             (if (search-backward common (- (point) (length common)) t)
+                 (mapcar (lambda (c)
+                           (list
+                            (eclim--completion-candidate-type c)
+                            (eclim--completion-candidate-class c)
+                            (substring (eclim--completion-candidate-doc c) (length common))))
+                         candidates)
+               candidates))))
+        (t candidates)))
 
 (defun cee--candidates (prefix)
   "Calls eclim to get a list of matching completion candidates."
@@ -132,7 +132,7 @@ COMPANY-POINT - 1."
   (let ((doc (eclim--completion-candidate-doc candidate)))
     (if (or (string-match "\\(.*\\)(\\(.*\\))" doc)
 	    (string-match "\\(\\)\\(.*\\))" doc))
-	(mapcar (lambda (e) (split-string e " ")) 
+	(mapcar (lambda (e) (split-string e " "))
 		(split-string (match-string 2 doc) ", " t)))))
 
 (defun cee--join-list (lst glue)
@@ -148,13 +148,13 @@ inserted between each element."
   "Displays/inserts an argument list at point, using yasnippet if
 available."
   (flet ((args-to-string (arg-list)
-			 (apply 'concat 
-				(append 
+			 (apply 'concat
+				(append
 				 (when start-delim (list start-delim))
 				 (cee--join-list arg-list glue)
 				 (when end-delim (list end-delim))))))
     (if (and eclim-use-yasnippet (featurep 'yasnippet))
-	(yas/expand-snippet (args-to-string 
+	(yas/expand-snippet (args-to-string
 			     (loop for arg in args
 				   for i from 1
 				   collect (concat "${" (int-to-string i) ":" arg "}"))))
@@ -165,36 +165,36 @@ available."
 (defun cee--completion-finished (arg)
   "Post-completion hook after running company-mode completions."
   (let* ((candidate (cee--lookup-candidate arg))
-	 (type (eclim--completion-candidate-type candidate)))
+         (type (eclim--completion-candidate-type candidate)))
     (when candidate
       (if (string= "c" type)
-	  ;; If this is a class, first check if this is a completion of generic argumends
-	  (let ((gen-args (cee--generic-args candidate)))
-	    (if gen-args 
-		(progn 
-		  (delete-region company-point (point))
-		  (cee--show-arg-list nil gen-args ", " ">"))
-	      (progn
-		;; otherwise, remove the doc string and insert an import statement
-		(cee--delete-backward " - ")
-		(eclim--java-organize-imports 
-		 (eclim/execute-command "java_import_order" "-p")
-		 (list 
-		  (concat (eclim--completion-candidate-package candidate) "." 
-			  (eclim--completion-candidate-class candidate)))))))
-	;; Otherwise, check if this is a method call
-	(if (string= "f" type)
-	    (let ((call-args (cee--method-call candidate)))
-	      (push-mark (point) t)
-	      (goto-char (search-backward "("))
-	      (cee--show-arg-list "("
-				  (mapcar (lambda (c) (concat (first c) " " (second c))) call-args)
-				  ", " ")")
-	      (save-excursion
-		(delete-region (1- (search-forward "(")) (mark t)))
-	      (pop-mark))
-	  ;; Otherwise, just delete the doc string
-	  (cee--delete-backward " : "))))))
+          ;; If this is a class, first check if this is a completion of generic argumends
+          (let ((gen-args (cee--generic-args candidate)))
+            (if gen-args
+                (progn
+                  (delete-region company-point (point))
+                  (cee--show-arg-list nil gen-args ", " ">"))
+              (progn
+                ;; otherwise, remove the doc string and insert an import statement
+                (cee--delete-backward " - ")
+                (eclim--java-organize-imports
+                 (eclim/execute-command "java_import_order" "-p")
+                 (list
+                  (concat (eclim--completion-candidate-package candidate) "."
+                          (eclim--completion-candidate-class candidate)))))))
+        ;; Otherwise, check if this is a method call
+        (if (string= "f" type)
+            (let ((call-args (cee--method-call candidate)))
+              (push-mark (point) t)
+              (goto-char (search-backward "("))
+              (cee--show-arg-list "("
+                                  (mapcar (lambda (c) (concat (first c) " " (second c))) call-args)
+                                  ", " ")")
+              (save-excursion
+                (delete-region (1- (search-forward "(")) (mark t)))
+              (pop-mark))
+          ;; Otherwise, just delete the doc string
+          (cee--delete-backward " : "))))))
 
 (add-hook 'company-completion-finished-hook
 	  'cee--completion-finished)

@@ -76,9 +76,7 @@ the current buffer is contained within this list"
                                       "references"))
 
 (defun eclim/java-complete ()
-  (mapcar (lambda (line)
-            (split-string line "|" nil))
-          (eclim/execute-command "java_complete" "-p" "-f" "-e" ("-l" "standard") "-o")))
+  (eclim/execute-command "java_complete" "-p" "-f" "-e" ("-l" "standard") "-o"))
 
 (defun eclim/java-src-update (&optional save-others)
   "If `eclim-auto-save' is non-nil, save the current java
@@ -121,15 +119,15 @@ has been found."
 
 (defun eclim--completion-candidate-type (candidate)
   "Returns the type of a candidate."
-  (first candidate))
+  (assoc-default 'type candidate))
 
 (defun eclim--completion-candidate-class (candidate)
   "Returns the class name of a candidate."
-  (second candidate))
+  (assoc-default 'info candidate))
 
 (defun eclim--completion-candidate-doc (candidate)
   "Returns the documentation for a candidate."
-  (third candidate))
+  (assoc-default 'menu candidate))
 
 (defun eclim--completion-candidate-package (candidate)
   "Returns the package name of a candidate."
@@ -178,15 +176,14 @@ has been found."
   (interactive)
   (let* ((i (eclim--java-identifier-at-point t))
 	 (n (read-string (concat "Rename " (cdr i) " to: ") (cdr i))))
-    (eclim/with-results files ("java_refactor_rename" "-p" "-e" "-f" ("-n" n)
-			       ("-o" (car i)) ("-l" (length (cdr i))))
-			(when (not (string= "files:" (first files)))
-			  (error (first files)))
+    (eclim/with-results res ("java_refactor_rename" "-p" "-e" "-f" ("-n" n)
+                               ("-o" (car i)) ("-l" (length (cdr i))))
+      (when (stringp res) (error res))
 			(when (not (file-exists-p (buffer-file-name)))
 			  (kill-buffer)
 			  (eclim-java-find-type n))
 			(let ((current (current-buffer)))
-			  (loop for file in files
+			  (loop for file in (mapcar (lambda (x) (assoc-default 'file x)) res)
 				for buf = (get-file-buffer (file-name-nondirectory file))
 				when buf do (progn (switch-to-buffer buf)
 						   (revert-buffer t t t)))
@@ -199,9 +196,7 @@ has been found."
 		     (eclim--byte-offset)
 		     (eclim--current-encoding)))
   (let ((top-node (eclim--java-insert-file-path-for-hierarchy-nodes
-		   (json-read-from-string
-		    (replace-regexp-in-string
-		     "'" "\"" (car (eclim/java-hierarchy project file offset encoding)))))))
+                   (eclim/java-hierarchy project file offset encoding))))
   (pop-to-buffer "*eclim: hierarchy*" t)
   (special-mode)
   (let ((buffer-read-only nil))
@@ -216,7 +211,7 @@ has been found."
   ;that isn't part of the project which then breaks future
   ;*-find-type calls and isn't what we want here anyway.
   (eclim/with-results hits ("java_search" ("-p" (cdr (assoc 'qualified node))) ("-t" "type") ("-x" "declarations") ("-s" "workspace"))
-    (add-to-list 'node `(file-path . ,(first (split-string (first hits) "|"))))
+    (add-to-list 'node `(file-path . ,(assoc-default 'message (elt hits 0))))
     (let ((children (cdr (assoc 'children node))))
       (loop for child across children do
 	    (eclim--java-insert-file-path-for-hierarchy-nodes child)))
@@ -239,25 +234,19 @@ has been found."
     (loop for child across children do
 	  (eclim--java-insert-hierarchy-node project child (+ level 1)))))
 
-(defun eclim--java-split-search-results (res)
-  (mapcar (lambda (l) (split-string l "|" nil)) res))
-
 (defun eclim-java-find-declaration ()
   "Find and display the declaration of the java identifier at point."
   (interactive)
   (let ((i (eclim--java-identifier-at-point t)))
     (eclim/with-results hits ("java_search" "-n" "-f" ("-o" (car i)) ("-l" (length (cdr i))) ("-x" "declaration"))
-			(let ((r (eclim--java-split-search-results hits)))
-			  (if (= (length r) 1)
-			      (eclim--visit-declaration (car r))
-			    (eclim--find-display-results (cdr i) r))))))
+			(eclim--find-display-results (cdr i) hits t))))
 
 (defun eclim-java-find-references ()
   "Find and display references for the java identifier at point."
   (interactive)
   (let ((i (eclim--java-identifier-at-point t)))
     (eclim/with-results hits ("java_search" "-n" "-f" ("-o" (car i)) ("-l" (length (cdr i))) ("-x" "references"))
-			(eclim--find-display-results (cdr i) (eclim--java-split-search-results hits)))))
+			(eclim--find-display-results (cdr i) hits))))
 
 (defun eclim-java-find-type (type-name)
   "Searches the project for a given class. The TYPE-NAME is the pattern, which will be used for the search."
@@ -274,7 +263,7 @@ has been found."
 		     (eclim--completing-read "Type: " eclim--java-search-types)
 		     (read-string "Pattern: ")))
   (eclim/with-results hits ("java_search" ("-p" pattern) ("-t" type) ("-x" context) ("-s" scope))
-		      (eclim--find-display-results pattern (eclim--java-split-search-results hits) open-single-file)))
+		      (eclim--find-display-results pattern hits open-single-file)))
 
 (defun eclim--java-identifier-at-point (&optional full position)
   "Returns a cons cell (BEG . IDENTIFIER) where BEG is the start
@@ -385,27 +374,26 @@ a java type that can be imported."
 user if necessary."
   (interactive)
   (eclim/with-results imports-order ("java_import_order" "-p")
-		      (loop for unused across
-			    (json-read-from-string
-			     (replace-regexp-in-string "'" "\"" (first (eclim/execute-command "java_import_missing" "-p" "-f"))))
+    (loop for unused across (eclim/execute-command "java_import_missing" "-p" "-f")
 			    do (let* ((candidates (append (cdr (assoc 'imports unused)) nil))
-				      (type (cdr (assoc 'type unused)))
-				      (import (if (= 1 (length candidates))
-						  (car candidates)
-						(eclim--completing-read (concat "Missing type '" type "'")
-									candidates))))
-				 (when import
-				   (eclim--java-organize-imports imports-order
-								 (list (if (string-endswith-p import type)
-									   import
-									 (concat import "." type)))))))))
+                    (type (cdr (assoc 'type unused)))
+                    (import (if (= 1 (length candidates))
+                                (car candidates)
+                              (eclim--completing-read (concat "Missing type '" type "'")
+                                                      candidates))))
+               (when import
+                 (eclim--java-organize-imports imports-order
+                                               (list (if (string-endswith-p import type)
+                                                         import
+                                                       (concat import "." type)))))))))
 
 (defun eclim-java-remove-unused-imports ()
   "Remove usused import from the current java source file."
   (interactive)
   (eclim/with-results unused ("java_imports_unused" "-p" "-f")
-		      (let ((imports-order (eclim/execute-command "java_import_order" "-p")))
-			(eclim--java-organize-imports imports-order nil unused))))
+    (print unused)
+    (let ((imports-order (eclim/execute-command "java_import_order" "-p")))
+      (eclim--java-organize-imports imports-order nil (append unused '())))))
 
 (defun eclim-java-implement ()
   "Lets the user select from a list of methods to
@@ -413,10 +401,13 @@ implemnt/override, then inserts a skeleton for the chosen
 method."
   (interactive)
   (eclim/with-results response ("java_impl" "-p" "-f" "-o")
-		      (let* ((methods
-			      (remove-if (lambda (element) (string-match "//" element))
-					 (remove-if-not (lambda (element) (string-match "(.*)" element))
-							response)))
+    (let* ((methods
+            (mapcar (lambda (x) (replace-regexp-in-string " *\n *" " " x))
+                    (mapcar (lambda (x) (assoc-default 'signature x))
+                            (remove-if-not (lambda (x) (eq :json-false (assoc-default 'implemented x)))
+                                           (apply 'append
+                                                  (mapcar (lambda (x) (append (assoc-default 'methods x) nil))
+                                                          (assoc-default 'superTypes response)))))))
 			     (start (point)))
 			(insert
 			 "@Override\n"

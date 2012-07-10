@@ -141,15 +141,12 @@ eclimd."
     cmd))
 
 (defun eclim--parse-result (result)
-  "Handles the text result of an eclim operation by splitting it
-into a list lines (removing empty elements). Also performs some
-elementary error checking."
-  (let ((res (remove-if (lambda (s) (= 0 (length s)))
-                        (split-string result "\n"))))
-    (when (and res (or (string-match "connect:\s+\\(.*\\)" (first res))
-                       (string-match "Missing argument for required option:\s*\\(.*\\)" (first res))))
-      (error (match-string 1 (first res))))
-    res))
+  "Parses the result of an eclim operation, raising an error if
+the result is not valid JSON."
+  (condition-case nil
+      (json-read-from-string result)
+    ('json-readtable-error
+     (error result))))
 
 (defun eclim--call-process (&rest args)
   "Calls eclim with the supplied arguments. Consider using
@@ -327,12 +324,14 @@ FILENAME is given, return that file's  project name instead."
             (let ((project-list (eclim/project-list))
                   (project-dir (eclim--project-dir (or filename buffer-file-name))))
               (when (and project-list project-dir)
-                (car (or (cddr (assoc project-dir project-list)) ;; sensitive match
-                         (cddr (assoc (downcase project-dir) ;; insensitive match
-                                      (mapcar (lambda (project)
-                                                (cons (downcase (first project))
-                                                      (rest project)))
-                                              project-list))))))))))
+                (assoc-default 'name
+                               (or
+                                (find project-dir project-list ;; case sensitive
+                                      :key (lambda (e) (assoc-default 'path e))
+                                      :test #'string=)
+                                (find project-dir project-list ;; case insensitive
+                                      :key (lambda (e) (assoc-default 'path e))
+                                      :test (lambda (s1 s2) (string= s1 (downcase s2)))))))))))
 
 (defun eclim--find-file (path-to-file)
   (if (not (string-match-p "!" path-to-file))
@@ -354,9 +353,7 @@ FILENAME is given, return that file's  project name instead."
         (kill-buffer old-buffer)))))
 
 (defun eclim--find-display-results (pattern results &optional open-single-file)
-  (let ((res (remove-if-not (lambda (r) (or (not eclim-limit-search-results) (eclim--accepted-p (car r))))
-                            (remove-if (lambda (r) (zerop (length (remove-if (lambda (r) (zerop (length r))) r)))) results))))
-    (if (and (= 1 (length res)) open-single-file) (eclim--visit-declaration (car res))
+    (if (and (= 1 (length results)) open-single-file) (eclim--visit-declaration (elt results 0))
       (pop-to-buffer (get-buffer-create "*eclim: find"))
       (let ((buffer-read-only nil))
         (erase-buffer)
@@ -364,26 +361,27 @@ FILENAME is given, return that file's  project name instead."
         (newline 2)
         (insert (concat "eclim java_search -p " pattern))
         (newline)
-        (dolist (result res)
-          (insert (eclim--convert-find-result-to-string result default-directory))
-          (newline))
-        (grep-mode)))))
+        (loop for result across results
+              do (progn
+                   (insert (eclim--convert-find-result-to-string result default-directory))
+                   (newline)))
+        (goto-char 0)
+        (grep-mode))))
 
 (defun eclim--convert-find-result-to-string (line &optional directory)
-  (let ((converted-directory (replace-regexp-in-string "\\\\" "/" (car line))))
-    (concat (if converted-directory
+  (let ((converted-directory (replace-regexp-in-string "\\\\" "/" (assoc-default 'filename line))))
+    (format "%s:%d:%d:%s"
+            (if converted-directory
                 (replace-regexp-in-string (concat (regexp-quote directory) "/?") "" converted-directory)
               converted-directory)
-            ":" (replace-regexp-in-string " col " ":" (second line)) " "
-            (third line))))
+            (assoc-default 'line line)
+            (assoc-default 'column line)
+            (assoc-default 'message line))))
 
-(defun eclim--visit-declaration (eclim-response)
-  (let* ((file-name (car eclim-response))
-         (line-and-column (cadr eclim-response))
-         (position (split-string line-and-column " col ")))
-    (eclim--find-file file-name)
-    (goto-line (string-to-number (car position)))
-    (move-to-column (- (string-to-number (cadr position)) 1))))
+(defun eclim--visit-declaration (line)
+    (eclim--find-file (assoc-default 'filename line))
+    (goto-line (assoc-default 'line line))
+    (move-to-column (- (assoc-default 'column line) 1)))
 
 (defun eclim--string-strip (content)
   (replace-regexp-in-string "\s*$" "" content))
@@ -407,7 +405,7 @@ FILENAME is given, return that file's  project name instead."
     (if mapped-coding-system mapped-coding-system coding-system)))
 
 (defun eclim/workspace-dir ()
-  (car (eclim--call-process "workspace_dir")))
+  (eclim--call-process "workspace_dir"))
 
 (defun eclim/jobs (&optional family)
   (eclim/execute-command "jobs" ("-f" family)))
