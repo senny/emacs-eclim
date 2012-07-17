@@ -143,10 +143,12 @@ eclimd."
 (defun eclim--parse-result (result)
   "Parses the result of an eclim operation, raising an error if
 the result is not valid JSON."
-  (condition-case nil
-      (json-read-from-string result)
-    ('json-readtable-error
-     (error result))))
+  (let ((whitespace-regexp (rx string-start (zero-or-more (any " " "\n" "\t")) string-end)))
+    (condition-case nil
+        ;; "" isn't valid JSON, but eclim can return it
+        (json-read-from-string (if (string-match whitespace-regexp result) "{}" result))
+      ('json-readtable-error
+       (error result)))))
 
 (defun eclim--call-process (&rest args)
   "Calls eclim with the supplied arguments. Consider using
