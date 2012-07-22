@@ -44,7 +44,7 @@
 (defun ac-emacs-eclim-candidates ()
   (with-no-warnings
     (mapcar (lambda (c) (assoc-default 'info c))
-            (eclim/java-complete))))
+            (assoc-default 'completions (eclim/java-complete)))))
 
 (defun ac-emacs-eclim-available ()
   (eclim--accepted-p (buffer-file-name)))

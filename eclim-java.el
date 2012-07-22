@@ -456,6 +456,9 @@ method."
 (defun eclim-java-complete ()
   (interactive)
   (when eclim-auto-save (save-buffer))
-  (eclim--java-complete-internal (mapcar 'second (eclim/java-complete))))
+  (eclim--java-complete-internal
+   (mapcar 'cdr
+           (mapcar 'second
+                   (assoc-default 'completions (eclim/java-complete))))))
 
 (provide 'eclim-java)

@@ -80,7 +80,7 @@
   (let ((project-file (eclim--project-current-file))
         (project-name (eclim--project-name)))
     (eclim/java-src-update)
-    (setq cee--candidates  (cee--correct-completions (eclim/java-complete))))
+    (setq cee--candidates  (cee--correct-completions (assoc-default 'completions (eclim/java-complete)))))
   (let ((completion-ignore-case nil))
     (all-completions prefix (mapcar 'eclim--completion-candidate-doc cee--candidates))))
 
@@ -167,8 +167,8 @@ available."
   (let* ((candidate (cee--lookup-candidate arg))
          (type (eclim--completion-candidate-type candidate)))
     (when candidate
-      (if (string= "c" type)
-          ;; If this is a class, first check if this is a completion of generic argumends
+      (if (string= "t" type)
+          ;; If this is a type, first check if this is a completion of generic argumends
           (let ((gen-args (cee--generic-args candidate)))
             (if gen-args
                 (progn
