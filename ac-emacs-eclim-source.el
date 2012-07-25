@@ -97,4 +97,16 @@
     (candidate-face . ac-emacs-eclim-candidate-face)
     (symbol . "f")))
 
+(ac-define-source emacs-eclim-c-dot
+  '((candidates . ac-emacs-eclim-candidates)
+    (available . ac-emacs-eclim-available)
+    (init . ac-emacs-eclim-init)
+    (action . ac-emacs-eclim-action)
+    (prefix . c-dot)
+    (requires . 0)
+    (cache)
+    (selection-face . ac-emacs-eclim-selection-face)
+    (candidate-face . ac-emacs-eclim-candidate-face)
+    (symbol . "f")))
+
 (provide 'ac-emacs-eclim-source)
