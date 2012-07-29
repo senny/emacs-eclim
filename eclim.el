@@ -136,7 +136,7 @@ eclimd."
                     (loop for a = (rest args) then (rest (rest a))
                           for arg = (first a)
                           for val = (second a)
-                          while arg when val collect (concat arg " '" (if (numberp val) (number-to-string val) val) "' ")))))
+                          while arg when val collect (concat arg " " (shell-quote-argument (if (numberp val) (number-to-string val) val)))))))
     (if eclim-print-debug-messages (message "Executing: %s" cmd))
     cmd))
 
@@ -331,7 +331,7 @@ FILENAME is given, return that file's  project name instead."
                                       :test #'string=)
                                 (find project-dir project-list ;; case insensitive
                                       :key (lambda (e) (assoc-default 'path e))
-                                      :test (lambda (s1 s2) (string= s1 (downcase s2)))))))))))
+                                      :test (lambda (s1 s2) (string= (downcase s1) (downcase s2)))))))))))
 
 (defun eclim--find-file (path-to-file)
   (if (not (string-match-p "!" path-to-file))
