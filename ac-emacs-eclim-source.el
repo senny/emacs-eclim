@@ -43,8 +43,8 @@
 
 (defun ac-emacs-eclim-candidates ()
   (with-no-warnings
-    (loop for c in (eclim/java-complete)
-          collect (nth 2 c))))
+    (mapcar (lambda (c) (assoc-default 'info c))
+            (assoc-default 'completions (eclim/java-complete)))))
 
 (defun ac-emacs-eclim-available ()
   (eclim--accepted-p (buffer-file-name)))
@@ -91,6 +91,18 @@
     (available . ac-emacs-eclim-available)
     (init . ac-emacs-eclim-init)
     (action . ac-emacs-eclim-action)
+    (requires . 0)
+    (cache)
+    (selection-face . ac-emacs-eclim-selection-face)
+    (candidate-face . ac-emacs-eclim-candidate-face)
+    (symbol . "f")))
+
+(ac-define-source emacs-eclim-c-dot
+  '((candidates . ac-emacs-eclim-candidates)
+    (available . ac-emacs-eclim-available)
+    (init . ac-emacs-eclim-init)
+    (action . ac-emacs-eclim-action)
+    (prefix . c-dot)
     (requires . 0)
     (cache)
     (selection-face . ac-emacs-eclim-selection-face)
