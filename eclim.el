@@ -136,9 +136,9 @@ eclimd."
                     (loop for a = (rest args) then (rest (rest a))
                           for arg = (first a)
                           for val = (second a)
-                          while arg when val collect (concat arg " " (shell-quote-argument (if (numberp val) (number-to-string val) val)))))))
+                          while arg when val collect (concat arg " " (shell-quote-argument (if (numberp val) (number-to-string val) val)) " ")))))
     (if eclim-print-debug-messages (message "Executing: %s" cmd))
-    cmd))
+    cmd)) 
 
 (defun eclim--parse-result (result)
   "Parses the result of an eclim operation, raising an error if
