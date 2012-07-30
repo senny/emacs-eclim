@@ -115,7 +115,7 @@ declaration has been found. TYPE may be either 'class',
 (defun eclim--java-current-class-name ()
   "Searches backward in the current buffer until a class declaration
 has been found."
-  (eclim--java-current-type-name "class"))
+  (eclim--java-current-type-name "\\(class\\)"))
 
 (defun eclim--completion-candidate-type (candidate)
   "Returns the type of a candidate."
@@ -154,6 +154,16 @@ has been found."
   "Inserts or updates a javadoc comment for the element at point."
   (interactive)
   (eclim/execute-command "javadoc_comment" "-p" "-f" "-o"))
+
+(defun eclim-run-java-doc ()
+  "Run Javadoc on current or all projects."
+  (interactive)
+  (let ((project-list (mapcar 'third (eclim/project-list))))
+    (if (y-or-n-p "Run Javadoc for all projects?")
+        (dolist (project project-list)
+          (eclim/execute-command "javadoc" ("-p" project)))
+      (eclim/execute-command "javadoc" "-p"))
+    (message "Javadoc creation finished.")))
 
 (defun eclim-java-format ()
   "Format the source code of the current java source file."
@@ -460,5 +470,16 @@ method."
    (mapcar 'cdr
            (mapcar 'second
                    (assoc-default 'completions (eclim/java-complete))))))
+
+(defun eclim-package-and-class ()
+  (concat (eclim--java-current-package) "." (eclim--java-current-class-name)))
+
+(defun eclim-run-class ()
+  "Run the current class."
+  (interactive)
+  (if (not (string= major-mode "java-mode"))
+      (message "Sorry cannot run current buffer.")
+    (compile (concat eclim-executable " -command java -p "  eclim--project-name
+                     " -c " (eclim-package-and-class)))))
 
 (provide 'eclim-java)
