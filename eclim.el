@@ -244,9 +244,9 @@ operation, and refreshes the current buffer if necessary. Raises
 an error if the connection is refused. Automatically calls
 `eclim--check-project' if neccessary."
   `(eclim--execute-command-internal
-    (lambda (command-line cleaner)
+    (lambda (command-line on-complete-fn)
       (let ((res (apply 'eclim--call-process command-line)))
-        (funcall cleaner)
+        (funcall on-complete-fn)
         res))
     ,cmd ',args))
 
@@ -256,14 +256,16 @@ results. Automatically saves the current buffer (and optionally
 other java buffers as well), performs an eclim java_src_update
 operation, and refreshes the current buffer if necessary. Raises
 an error if the connection is refused. Automatically calls
-`eclim--check-project' if neccessary."
+`eclim--check-project' if neccessary. CALLBACK is a lambda
+expression which is called with the results of the operation."
   `(eclim--execute-command-internal
-    (lambda (command-line cleaner)
-      (lexical-let ((cleaner cleaner))
+    (lambda (command-line on-complete-fn)
+      (lexical-let ((on-complete-fn on-complete-fn))
         (apply 'eclim--call-process-async
          (lambda (res)
-           (funcall cleaner)
-           (funcall ,callback res))
+           (funcall on-complete-fn)
+           (when ,callback
+             (funcall ,callback res)))
          command-line)))
     ,cmd ',args))
 
