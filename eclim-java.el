@@ -168,7 +168,7 @@ has been found."
 (defun eclim-java-format ()
   "Format the source code of the current java source file."
   (interactive)
-  (eclim/execute-command "java_format" "-p" "-f" ("-b" 0) ("-e" (buffer-size))))
+  (eclim/execute-command "java_format" "-p" "-f" ("-b" 0) ("-e" (1- (point-max)))))
 
 (defun eclim-java-constructor ()
   (interactive)
