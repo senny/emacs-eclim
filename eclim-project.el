@@ -371,6 +371,13 @@
           mode-name "eclim/project-info"
           buffer-read-only t)))
 
+(defun eclim-project-build ()
+  "Triggers a build of the current project"
+  (interactive)
+  (eclim/execute-command-async
+   (lambda (res) (message res))
+   "project_build" "-p"))
+
 (defun eclim-manage-projects ()
   (interactive)
   (eclim--project-clear-cache)
