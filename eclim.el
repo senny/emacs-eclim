@@ -1,6 +1,6 @@
 ;; eclim.el --- an interface to the Eclipse IDE.
 ;;
-;; Copyright (C) 2009  Tassilo Horn <tassilo@member.fsf.org>
+;; Copyright (C) 2009, 2012  Tassilo Horn <tassilo@member.fsf.org>
 ;;
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -53,6 +53,17 @@
            (file-exists-p (setq file (expand-file-name "bin/eclim" file)))
            (return file)))))
 
+(defun eclim-homedir-executable-find ()
+  (let ((file "~/.eclipse"))
+    (and (file-exists-p
+          (setq file (expand-file-name file)))
+         (setq file (car (last (directory-files file t "^org.eclipse.platform_"))))
+         (file-exists-p
+          (setq file (expand-file-name "plugins" file)))
+         (setq file (car (last (directory-files file t "^org.eclim_"))))
+         (file-exists-p (setq file (expand-file-name "bin/eclim" file)))
+         file)))
+
 (defcustom eclim-interactive-completion-function (if ido-mode 'ido-completing-read 'completing-read)
   "Defines a function which is used by eclim to complete a list of
 choices interactively."
@@ -60,7 +71,7 @@ choices interactively."
   :type 'function)
 
 (defcustom eclim-executable
-  (or (executable-find "eclim") (eclim-executable-find))
+  (or (executable-find "eclim") (eclim-homedir-executable-find) (eclim-executable-find))
   "Location of eclim executable."
   :group 'eclim
   :type 'file)
