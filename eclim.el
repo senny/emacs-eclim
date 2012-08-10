@@ -138,7 +138,7 @@ eclimd."
                           for val = (second a)
                           while arg when val collect (concat arg " " (shell-quote-argument (if (numberp val) (number-to-string val) val)) " ")))))
     (if eclim-print-debug-messages (message "Executing: %s" cmd))
-    cmd)) 
+    cmd))
 
 (defun eclim--parse-result (result)
   "Parses the result of an eclim operation, raising an error if
@@ -146,7 +146,12 @@ the result is not valid JSON."
   (condition-case nil
       (json-read-from-string result)
     ('json-readtable-error
-     (error result))))
+     (cond ((string-match "java.io.UnsupportedEncodingException: \\(.*\\)" result)
+            (let ((e (match-string 1 result)))
+              (error "Eclim doesn't know how to handle the encoding %s. You can avoid this by evaluating
+(add-to-list 'eclim--file-coding-system-mapping '(\"%s\" . \"<encoding>\"))
+where <encoding> is the corresponding java name for this encoding." e e)))
+           (t (error result))))))
 
 (defun eclim--call-process (&rest args)
   "Calls eclim with the supplied arguments. Consider using
