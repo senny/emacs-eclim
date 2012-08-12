@@ -154,7 +154,7 @@ eclimd."
 (defun eclim--parse-result (result)
   "Parses the result of an eclim operation, raising an error if
 the result is not valid JSON."
-  (if (string-match "^[ \\n\\t]*$" result)
+  (if (string-match (rx string-start (zero-or-more (any " " "\n" "\t")) string-end) result)
       nil
     (condition-case nil
         (json-read-from-string result)
