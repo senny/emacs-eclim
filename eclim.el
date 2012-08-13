@@ -173,21 +173,10 @@ error checking, and some other niceties.."
   (eclim--parse-result
    (shell-command-to-string (eclim--make-command args))))
 
-(defvar eclim--async-buffers nil
-  "Holds a list of available buffers for making async calls. We
-  try to reuse them as much as possible.")
-
 (defun eclim--get-async-buffer ()
   "Get an buffer from ECLIM--ASYNC-BUFFERS, or create a new one
 if there are no unused ones."
-  (if eclim--async-buffers (let ((buf (pop eclim--async-buffers)))
-                            (if (buffer-name buf)
-                                (save-excursion
-                                  (set-buffer buf)
-                                  (erase-buffer)
-                                  buf)
-                              (eclim--get-async-buffer)))
-    (get-buffer-create (generate-new-buffer-name "*eclim-async*"))))
+  (get-buffer-create (generate-new-buffer-name "*eclim-async*")))
 
 (defun eclim--call-process-async (callback &rest args)
   "Like `eclim--call-process', but the call is executed
@@ -201,7 +190,7 @@ strings and will be called on completion."
                           (save-excursion
                             (set-buffer (process-buffer process))
                             (funcall handler (eclim--parse-result (buffer-substring 1 (point-max))))
-                            (push buf eclim--async-buffers)))))
+                            (kill-buffer buf)))))
           (set-process-sentinel proc sentinel)))))
 
 (setq eclim--default-args
