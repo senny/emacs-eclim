@@ -246,7 +246,7 @@ lists are then appended together."
                               attrs-before
                               (not (= (second (sixth attrs-before))
                                       (second (sixth (file-attributes (buffer-file-name)))))))
-                        (revert-buffer t t t))))))))
+                     (revert-buffer t t t))))))))
 
 (defmacro eclim/execute-command (cmd &rest args)
   "Calls `eclim--expand-args' on ARGS, then calls eclim with the
@@ -274,11 +274,11 @@ expression which is called with the results of the operation."
     (lambda (command-line on-complete-fn)
       (lexical-let ((on-complete-fn on-complete-fn))
         (apply 'eclim--call-process-async
-         (lambda (res)
-           (funcall on-complete-fn)
-           (when ,callback
-             (funcall ,callback res)))
-         command-line)))
+               (lambda (res)
+                 (funcall on-complete-fn)
+                 (when ,callback
+                   (funcall ,callback res)))
+               command-line)))
     ,cmd ',args))
 
 (defun eclim--running-p ()
@@ -308,10 +308,10 @@ RESULT is non-nil, BODY is executed."
   (declare (indent defun))
   (let ((sync (eclim--args-contains (rest params) (list "-f" "-o"))))
     `(eclim/execute-command-async
-        (lambda (,result)
-          (let ((eclim-auto-save (and eclim-auto-save (not ,sync))))
-            (when ,result ,@body)))
-          ,@params)))
+      (lambda (,result)
+        (let ((eclim-auto-save (and eclim-auto-save (not ,sync))))
+          (when ,result ,@body)))
+      ,@params)))
 
 (defun eclim--completing-read (prompt choices)
   (funcall eclim-interactive-completion-function prompt choices))
@@ -372,20 +372,20 @@ FILENAME is given, return that file's  project name instead."
         (kill-buffer old-buffer)))))
 
 (defun eclim--find-display-results (pattern results &optional open-single-file)
-    (if (and (= 1 (length results)) open-single-file) (eclim--visit-declaration (elt results 0))
-      (pop-to-buffer (get-buffer-create "*eclim: find"))
-      (let ((buffer-read-only nil))
-        (erase-buffer)
-        (insert (concat "-*- mode: eclim-find; default-directory: " default-directory " -*-"))
-        (newline 2)
-        (insert (concat "eclim java_search -p " pattern))
-        (newline)
-        (loop for result across results
-              do (progn
-                   (insert (eclim--convert-find-result-to-string result default-directory))
-                   (newline)))
-        (goto-char 0)
-        (grep-mode))))
+  (if (and (= 1 (length results)) open-single-file) (eclim--visit-declaration (elt results 0))
+    (pop-to-buffer (get-buffer-create "*eclim: find"))
+    (let ((buffer-read-only nil))
+      (erase-buffer)
+      (insert (concat "-*- mode: eclim-find; default-directory: " default-directory " -*-"))
+      (newline 2)
+      (insert (concat "eclim java_search -p " pattern))
+      (newline)
+      (loop for result across results
+            do (progn
+                 (insert (eclim--convert-find-result-to-string result default-directory))
+                 (newline)))
+      (goto-char 0)
+      (grep-mode))))
 
 (defun eclim--convert-find-result-to-string (line &optional directory)
   (let ((converted-directory (replace-regexp-in-string "\\\\" "/" (assoc-default 'filename line))))
@@ -398,9 +398,9 @@ FILENAME is given, return that file's  project name instead."
             (assoc-default 'message line))))
 
 (defun eclim--visit-declaration (line)
-    (eclim--find-file (assoc-default 'filename line))
-    (goto-line (assoc-default 'line line))
-    (move-to-column (- (assoc-default 'column line) 1)))
+  (eclim--find-file (assoc-default 'filename line))
+  (goto-line (assoc-default 'line line))
+  (move-to-column (- (assoc-default 'column line) 1)))
 
 (defun eclim--string-strip (content)
   (replace-regexp-in-string "\s*$" "" content))

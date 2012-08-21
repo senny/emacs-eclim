@@ -113,11 +113,6 @@
                          (eclim--call-process "problems"
                                               "-p" eclim--problems-project))))
 
-;; (defun eclim--problem-file (p) (assoc-default 'filename p))
-;; (defun eclim--problem-pos (p) (second p))
-;; (defun eclim--problem-description (p) (assoc-default 'message p))
-;; (defun eclim--problem-type (p) (fourth p))
-
 (defun eclim--problem-goto-pos (p)
   (goto-char (point-min))
   (forward-line (1- (assoc-default 'line p)))
