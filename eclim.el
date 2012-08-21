@@ -224,7 +224,9 @@ lists are then appended together."
   (mapcar (lambda (a) (if (numberp a) (number-to-string a) a))
           (loop for a in args
                 append (if (listp a)
-                           (list (car a) (eval (cadr a)))
+                           (if (stringp (car a))
+                               (list (car a) (eval (cadr a)))
+                             (or (eval a) (list nil nil)))
                          (list a (eval (cdr (or (assoc a eclim--default-args)
                                                 (error "sorry, no default value for: %s" a)))))))))
 
