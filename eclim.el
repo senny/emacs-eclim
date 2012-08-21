@@ -148,7 +148,6 @@ eclimd."
                           for arg = (first a)
                           for val = (second a)
                           while arg when val collect (concat arg " " (shell-quote-argument (if (numberp val) (number-to-string val) val)) " ")))))
-    (if eclim-print-debug-messages (message "Executing: %s" cmd))
     cmd))
 
 (defun eclim--parse-result (result)
@@ -170,28 +169,37 @@ where <encoding> is the corresponding java name for this encoding." e e)))
   "Calls eclim with the supplied arguments. Consider using
 `eclim/execute-command' instead, as it has argument expansion,
 error checking, and some other niceties.."
-  (eclim--parse-result
-   (shell-command-to-string (eclim--make-command args))))
+  (let ((cmd (eclim--make-command args)))
+    (when eclim-print-debug-messages (message "Executing: %s" cmd))
+    (eclim--parse-result (shell-command-to-string cmd))))
 
 (defun eclim--get-async-buffer ()
   "Get an buffer from ECLIM--ASYNC-BUFFERS, or create a new one
 if there are no unused ones."
   (get-buffer-create (generate-new-buffer-name "*eclim-async*")))
 
+(defvar eclim--currently-running-async-calls nil)
+
 (defun eclim--call-process-async (callback &rest args)
   "Like `eclim--call-process', but the call is executed
 asynchronously. CALLBACK is a function that accepts a list of
 strings and will be called on completion."
-    (lexical-let ((handler callback)
-                  (buf (eclim--get-async-buffer)))
-      (when eclim-print-debug-messages (message "Using async buffer %s" buf))
+  (lexical-let ((handler callback)
+                (buf (eclim--get-async-buffer))
+                (cmd (eclim--make-command args)))
+    (when (not (find cmd eclim--currently-running-async-calls :test #'string=))
+      (when eclim-print-debug-messages
+        (message "Executing: %s" cmd)
+        (message "Using async buffer %s" buf))
+      (push cmd eclim--currently-running-async-calls)
       (let ((proc (start-process-shell-command "eclim" buf (eclim--make-command args))))
         (let ((sentinel (lambda (process signal)
                           (save-excursion
+                            (setq eclim--currently-running-async-calls (remove-if (lambda (x) (string= cmd x)) eclim--currently-running-async-calls))
                             (set-buffer (process-buffer process))
                             (funcall handler (eclim--parse-result (buffer-substring 1 (point-max))))
                             (kill-buffer buf)))))
-          (set-process-sentinel proc sentinel)))))
+          (set-process-sentinel proc sentinel))))))
 
 (setq eclim--default-args
       '(("-n" . (eclim--project-name))
