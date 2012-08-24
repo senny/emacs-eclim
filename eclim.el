@@ -185,21 +185,21 @@ if there are no unused ones."
 asynchronously. CALLBACK is a function that accepts a list of
 strings and will be called on completion."
   (lexical-let ((handler callback)
-                (buf (eclim--get-async-buffer))
                 (cmd (eclim--make-command args)))
     (when (not (find cmd eclim--currently-running-async-calls :test #'string=))
-      (when eclim-print-debug-messages
-        (message "Executing: %s" cmd)
-        (message "Using async buffer %s" buf))
-      (push cmd eclim--currently-running-async-calls)
-      (let ((proc (start-process-shell-command "eclim" buf (eclim--make-command args))))
-        (let ((sentinel (lambda (process signal)
-                          (save-excursion
-                            (setq eclim--currently-running-async-calls (remove-if (lambda (x) (string= cmd x)) eclim--currently-running-async-calls))
-                            (set-buffer (process-buffer process))
-                            (funcall handler (eclim--parse-result (buffer-substring 1 (point-max))))
-                            (kill-buffer buf)))))
-          (set-process-sentinel proc sentinel))))))
+      (lexical-let ((buf (eclim--get-async-buffer)))
+        (when eclim-print-debug-messages
+          (message "Executing: %s" cmd)
+          (message "Using async buffer %s" buf))
+        (push cmd eclim--currently-running-async-calls)
+        (let ((proc (start-process-shell-command "eclim" buf (eclim--make-command args))))
+          (let ((sentinel (lambda (process signal)
+                            (save-excursion
+                              (setq eclim--currently-running-async-calls (remove-if (lambda (x) (string= cmd x)) eclim--currently-running-async-calls))
+                              (set-buffer (process-buffer process))
+                              (funcall handler (eclim--parse-result (buffer-substring 1 (point-max))))
+                              (kill-buffer buf)))))
+            (set-process-sentinel proc sentinel)))))))
 
 (setq eclim--default-args
       '(("-n" . (eclim--project-name))
