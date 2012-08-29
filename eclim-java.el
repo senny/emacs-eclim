@@ -75,8 +75,13 @@ the current buffer is contained within this list"
                                       "implementors"
                                       "references"))
 
+(defvar eclim--is-completing nil)
+
 (defun eclim/java-complete ()
-  (eclim/execute-command "java_complete" "-p" "-f" "-e" ("-l" "standard") "-o"))
+  (setq eclim--is-completing t)
+  (unwind-protect
+      (eclim/execute-command "java_complete" "-p" "-f" "-e" ("-l" "standard") "-o")
+    (setq eclim--is-completing nil)))
 
 (defun eclim/java-src-update (&optional save-others)
   "If `eclim-auto-save' is non-nil, save the current java

@@ -354,7 +354,8 @@ without switching to it."
 (defun eclim--problems-update-maybe ()
   "If autoupdate is enabled, this function triggers a delayed
 refresh of the problems buffer."
-  (when (and (eclim--project-dir)
+  (when (and (not eclim--is-completing)
+             (eclim--project-dir)
              eclim-autoupdate-problems)
     (setq eclim--problems-project (eclim--project-name))
     (setq eclim--problems-file buffer-file-name)
