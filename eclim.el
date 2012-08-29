@@ -173,11 +173,6 @@ error checking, and some other niceties.."
     (when eclim-print-debug-messages (message "Executing: %s" cmd))
     (eclim--parse-result (shell-command-to-string cmd))))
 
-(defun eclim--get-async-buffer ()
-  "Get an buffer from ECLIM--ASYNC-BUFFERS, or create a new one
-if there are no unused ones."
-  (get-buffer-create (generate-new-buffer-name "*eclim-async*")))
-
 (defvar eclim--currently-running-async-calls nil)
 
 (defun eclim--call-process-async (callback &rest args)
@@ -187,17 +182,18 @@ strings and will be called on completion."
   (lexical-let ((handler callback)
                 (cmd (eclim--make-command args)))
     (when (not (find cmd eclim--currently-running-async-calls :test #'string=))
-      (lexical-let ((buf (eclim--get-async-buffer)))
+      (lexical-let ((buf (get-buffer-create (generate-new-buffer-name "*eclim-async*"))))
         (when eclim-print-debug-messages
           (message "Executing: %s" cmd)
           (message "Using async buffer %s" buf))
         (push cmd eclim--currently-running-async-calls)
         (let ((proc (start-process-shell-command "eclim" buf (eclim--make-command args))))
           (let ((sentinel (lambda (process signal)
-                            (save-excursion
-                              (setq eclim--currently-running-async-calls (remove-if (lambda (x) (string= cmd x)) eclim--currently-running-async-calls))
-                              (set-buffer (process-buffer process))
-                              (funcall handler (eclim--parse-result (buffer-substring 1 (point-max))))
+                            (unwind-protect
+                                (save-excursion
+                                  (setq eclim--currently-running-async-calls (remove-if (lambda (x) (string= cmd x)) eclim--currently-running-async-calls))
+                                  (set-buffer (process-buffer process))
+                                  (funcall handler (eclim--parse-result (buffer-substring 1 (point-max)))))
                               (kill-buffer buf)))))
             (set-process-sentinel proc sentinel)))))))
 
