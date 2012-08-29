@@ -148,7 +148,6 @@ eclimd."
                           for arg = (first a)
                           for val = (second a)
                           while arg when val collect (concat arg " " (shell-quote-argument (if (numberp val) (number-to-string val) val)) " ")))))
-    (if eclim-print-debug-messages (message "Executing: %s" cmd))
     cmd))
 
 (defun eclim--parse-result (result)
@@ -170,39 +169,33 @@ where <encoding> is the corresponding java name for this encoding." e e)))
   "Calls eclim with the supplied arguments. Consider using
 `eclim/execute-command' instead, as it has argument expansion,
 error checking, and some other niceties.."
-  (eclim--parse-result
-   (shell-command-to-string (eclim--make-command args))))
+  (let ((cmd (eclim--make-command args)))
+    (when eclim-print-debug-messages (message "Executing: %s" cmd))
+    (eclim--parse-result (shell-command-to-string cmd))))
 
-(defvar eclim--async-buffers nil
-  "Holds a list of available buffers for making async calls. We
-  try to reuse them as much as possible.")
-
-(defun eclim--get-async-buffer ()
-  "Get an buffer from ECLIM--ASYNC-BUFFERS, or create a new one
-if there are no unused ones."
-  (if eclim--async-buffers (let ((buf (pop eclim--async-buffers)))
-                            (if (buffer-name buf)
-                                (save-excursion
-                                  (set-buffer buf)
-                                  (erase-buffer)
-                                  buf)
-                              (eclim--get-async-buffer)))
-    (get-buffer-create (generate-new-buffer-name "*eclim-async*"))))
+(defvar eclim--currently-running-async-calls nil)
 
 (defun eclim--call-process-async (callback &rest args)
   "Like `eclim--call-process', but the call is executed
 asynchronously. CALLBACK is a function that accepts a list of
 strings and will be called on completion."
-    (lexical-let ((handler callback)
-                  (buf (eclim--get-async-buffer)))
-      (when eclim-print-debug-messages (message "Using async buffer %s" buf))
-      (let ((proc (start-process-shell-command "eclim" buf (eclim--make-command args))))
-        (let ((sentinel (lambda (process signal)
-                          (save-excursion
-                            (set-buffer (process-buffer process))
-                            (funcall handler (eclim--parse-result (buffer-substring 1 (point-max))))
-                            (push buf eclim--async-buffers)))))
-          (set-process-sentinel proc sentinel)))))
+  (lexical-let ((handler callback)
+                (cmd (eclim--make-command args)))
+    (when (not (find cmd eclim--currently-running-async-calls :test #'string=))
+      (lexical-let ((buf (get-buffer-create (generate-new-buffer-name "*eclim-async*"))))
+        (when eclim-print-debug-messages
+          (message "Executing: %s" cmd)
+          (message "Using async buffer %s" buf))
+        (push cmd eclim--currently-running-async-calls)
+        (let ((proc (start-process-shell-command "eclim" buf (eclim--make-command args))))
+          (let ((sentinel (lambda (process signal)
+                            (unwind-protect
+                                (save-excursion
+                                  (setq eclim--currently-running-async-calls (remove-if (lambda (x) (string= cmd x)) eclim--currently-running-async-calls))
+                                  (set-buffer (process-buffer process))
+                                  (funcall handler (eclim--parse-result (buffer-substring 1 (point-max)))))
+                              (kill-buffer buf)))))
+            (set-process-sentinel proc sentinel)))))))
 
 (setq eclim--default-args
       '(("-n" . (eclim--project-name))
@@ -227,7 +220,9 @@ lists are then appended together."
   (mapcar (lambda (a) (if (numberp a) (number-to-string a) a))
           (loop for a in args
                 append (if (listp a)
-                           (list (car a) (eval (cadr a)))
+                           (if (stringp (car a))
+                               (list (car a) (eval (cadr a)))
+                             (or (eval a) (list nil nil)))
                          (list a (eval (cdr (or (assoc a eclim--default-args)
                                                 (error "sorry, no default value for: %s" a)))))))))
 
@@ -247,7 +242,7 @@ lists are then appended together."
                               attrs-before
                               (not (= (second (sixth attrs-before))
                                       (second (sixth (file-attributes (buffer-file-name)))))))
-                        (revert-buffer t t t))))))))
+                     (revert-buffer t t t))))))))
 
 (defmacro eclim/execute-command (cmd &rest args)
   "Calls `eclim--expand-args' on ARGS, then calls eclim with the
@@ -275,11 +270,11 @@ expression which is called with the results of the operation."
     (lambda (command-line on-complete-fn)
       (lexical-let ((on-complete-fn on-complete-fn))
         (apply 'eclim--call-process-async
-         (lambda (res)
-           (funcall on-complete-fn)
-           (when ,callback
-             (funcall ,callback res)))
-         command-line)))
+               (lambda (res)
+                 (funcall on-complete-fn)
+                 (when ,callback
+                   (funcall ,callback res)))
+               command-line)))
     ,cmd ',args))
 
 (defun eclim--running-p ()
@@ -309,10 +304,10 @@ RESULT is non-nil, BODY is executed."
   (declare (indent defun))
   (let ((sync (eclim--args-contains (rest params) (list "-f" "-o"))))
     `(eclim/execute-command-async
-        (lambda (,result)
-          (let ((eclim-auto-save (and eclim-auto-save (not ,sync))))
-            (when ,result ,@body)))
-          ,@params)))
+      (lambda (,result)
+        (let ((eclim-auto-save (and eclim-auto-save (not ,sync))))
+          (when ,result ,@body)))
+      ,@params)))
 
 (defun eclim--completing-read (prompt choices)
   (funcall eclim-interactive-completion-function prompt choices))
@@ -373,20 +368,20 @@ FILENAME is given, return that file's  project name instead."
         (kill-buffer old-buffer)))))
 
 (defun eclim--find-display-results (pattern results &optional open-single-file)
-    (if (and (= 1 (length results)) open-single-file) (eclim--visit-declaration (elt results 0))
-      (pop-to-buffer (get-buffer-create "*eclim: find"))
-      (let ((buffer-read-only nil))
-        (erase-buffer)
-        (insert (concat "-*- mode: eclim-find; default-directory: " default-directory " -*-"))
-        (newline 2)
-        (insert (concat "eclim java_search -p " pattern))
-        (newline)
-        (loop for result across results
-              do (progn
-                   (insert (eclim--convert-find-result-to-string result default-directory))
-                   (newline)))
-        (goto-char 0)
-        (grep-mode))))
+  (if (and (= 1 (length results)) open-single-file) (eclim--visit-declaration (elt results 0))
+    (pop-to-buffer (get-buffer-create "*eclim: find"))
+    (let ((buffer-read-only nil))
+      (erase-buffer)
+      (insert (concat "-*- mode: eclim-find; default-directory: " default-directory " -*-"))
+      (newline 2)
+      (insert (concat "eclim java_search -p " pattern))
+      (newline)
+      (loop for result across results
+            do (progn
+                 (insert (eclim--convert-find-result-to-string result default-directory))
+                 (newline)))
+      (goto-char 0)
+      (grep-mode))))
 
 (defun eclim--convert-find-result-to-string (line &optional directory)
   (let ((converted-directory (replace-regexp-in-string "\\\\" "/" (assoc-default 'filename line))))
@@ -399,9 +394,9 @@ FILENAME is given, return that file's  project name instead."
             (assoc-default 'message line))))
 
 (defun eclim--visit-declaration (line)
-    (eclim--find-file (assoc-default 'filename line))
-    (goto-line (assoc-default 'line line))
-    (move-to-column (- (assoc-default 'column line) 1)))
+  (eclim--find-file (assoc-default 'filename line))
+  (goto-line (assoc-default 'line line))
+  (move-to-column (- (assoc-default 'column line) 1)))
 
 (defun eclim--string-strip (content)
   (replace-regexp-in-string "\s*$" "" content))

@@ -113,11 +113,6 @@
                          (eclim--call-process "problems"
                                               "-p" eclim--problems-project))))
 
-;; (defun eclim--problem-file (p) (assoc-default 'filename p))
-;; (defun eclim--problem-pos (p) (second p))
-;; (defun eclim--problem-description (p) (assoc-default 'message p))
-;; (defun eclim--problem-type (p) (fourth p))
-
 (defun eclim--problem-goto-pos (p)
   (goto-char (point-min))
   (forward-line (1- (assoc-default 'line p)))
@@ -126,7 +121,7 @@
 
 (defun eclim--problems-apply-filter (f)
   (setq eclim--problems-filter f)
-  (eclim--problems-buffer-redisplay))
+  (eclim-problems-buffer-refresh))
 
 (defun eclim-problems-show-errors ()
   (interactive)
@@ -188,13 +183,15 @@
   "Refresh the problem list and draw it on screen."
   (interactive)
   (message "refreshing... %s " (current-buffer))
-  (eclim/with-results-async res ("problems" ("-p" eclim--problems-project))
+  (eclim/with-results-async res ("problems" ("-p" eclim--problems-project) (when (string= "e" eclim--problems-filter) '("-e" "true")))
     (setq eclim--problems-list res)
     (eclim--problems-buffer-redisplay)
     (if (not (minibuffer-window-active-p (minibuffer-window)))
-        (message "Eclim reports %d errors, %d warnings."
-                 (length (remove-if-not (lambda (p) (not (eq t (assoc-default 'warning p)))) eclim--problems-list))
-                 (length (remove-if-not (lambda (p) (eq t (assoc-default 'warning p))) eclim--problems-list))))))
+        (if (string= "e" eclim--problems-filter)
+            (message "Eclim reports %d errors." (length eclim--problems-list))
+          (message "Eclim reports %d errors, %d warnings."
+                   (length (remove-if-not (lambda (p) (not (eq t (assoc-default 'warning p)))) eclim--problems-list))
+                   (length (remove-if-not (lambda (p) (eq t (assoc-default 'warning p))) eclim--problems-list)))))))
 
 (defun eclim--problems-cleanup-filename (filename)
   (let ((x (file-name-nondirectory (assoc-default 'filename problem))))
