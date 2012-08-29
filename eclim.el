@@ -277,13 +277,6 @@ expression which is called with the results of the operation."
                command-line)))
     ,cmd ',args))
 
-(defun eclim--running-p ()
-  "Returns t if eclim is currently capable of receiving commands,
-nil otherwise."
-  (ignore-errors
-    (eclim/execute-command "ping")
-    t))
-
 (defmacro eclim/with-results (result params &rest body)
   "Convenience macro. PARAMS is a list where the first element is
 CMD to execute and the rest an ARGS list. Calls eclim with CMD
@@ -478,7 +471,6 @@ the use of eclim to java and ant files."
   "Return t if and only if eclim should be automatically started on filename."
   (and
    filename
-   (eclim--running-p)
    (eclim--file-managed-p filename)
    (eclim--accepted-filename-p filename)))
 
@@ -495,7 +487,6 @@ the use of eclim to java and ant files."
 (define-globalized-minor-mode global-eclim-mode eclim-mode
   (lambda ()
     (if (and buffer-file-name
-             (eclim--running-p)
              (eclim--project-dir buffer-file-name))
         (eclim-mode 1))))
 
