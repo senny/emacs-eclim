@@ -182,7 +182,8 @@
 (defun eclim-problems-buffer-refresh ()
   "Refresh the problem list and draw it on screen."
   (interactive)
-  (message "refreshing... %s " (current-buffer))
+  (when (not (minibuffer-window-active-p (minibuffer-window)))
+    (message "refreshing... %s " (current-buffer)))
   (eclim/with-results-async res ("problems" ("-p" eclim--problems-project) (when (string= "e" eclim--problems-filter) '("-e" "true")))
     (setq eclim--problems-list res)
     (eclim--problems-buffer-redisplay)
