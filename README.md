@@ -11,6 +11,8 @@ from eclipse to emacs.
 It is also possible to start and stop the eclim daemon from emacs using the
 `eclimd` package.
 
+You can ask questions or discuss new features at our [Google Group](https://groups.google.com/forum/#!forum/emacs-eclim)
+
 ## A note about Eclim versions
 
 Prior to version 1.7.3, eclim used a proprietary protocol for
