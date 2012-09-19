@@ -160,10 +160,12 @@ the result is not valid JSON."
       ('json-readtable-error
        (cond ((string-match "java.io.UnsupportedEncodingException: \\(.*\\)" result)
               (let ((e (match-string 1 result)))
-                (error "Eclim doesn't know how to handle the encoding %s. You can avoid this by evaluating
-(add-to-list 'eclim--file-coding-system-mapping '(\"%s\" . \"<encoding>\"))
+                (error "Eclim doesn't know how to handle the encoding %s. You can avoid this by
+evaluating (add-to-list 'eclim--file-coding-system-mapping '(\"%s\" . \"<encoding>\"))
 where <encoding> is the corresponding java name for this encoding." e e)))
-           (t (error result)))))))
+             ((string-match ".*Exception: \\(.*\\)" result)
+              (error (match-string 1 result)))
+             (t (error result)))))))
 
 (defun eclim--call-process (&rest args)
   "Calls eclim with the supplied arguments. Consider using
