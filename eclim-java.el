@@ -406,7 +406,6 @@ user if necessary."
   "Remove usused import from the current java source file."
   (interactive)
   (eclim/with-results unused ("java_imports_unused" "-p" "-f")
-    (print unused)
     (let ((imports-order (eclim/execute-command "java_import_order" "-p")))
       (eclim--java-organize-imports imports-order nil (append unused '())))))
 
