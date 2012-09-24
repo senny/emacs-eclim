@@ -127,6 +127,12 @@ saved."
 (defvar eclim--compressed-file-path-replacement-regexp "\\\\")
 (defvar eclim--compressed-file-path-removal-regexp "^/")
 
+(defun eclim-quit-window (&optional kill-buffer)
+  "Bury the buffer and delete its window.  With a prefix argument, kill the
+buffer instead."
+  (interactive "P")
+  (quit-window kill-buffer (selected-window)))
+
 (defun string-startswith-p (string prefix)
   (eq t (compare-strings string nil (string-width prefix) prefix nil nil)))
 

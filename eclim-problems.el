@@ -56,7 +56,7 @@
         (define-key map (kbd "a") 'eclim-problems-show-all)
         (define-key map (kbd "e") 'eclim-problems-show-errors)
         (define-key map (kbd "g") 'eclim-problems-buffer-refresh)
-        (define-key map (kbd "q") 'quit-window)
+        (define-key map (kbd "q") 'eclim-quit-window)
         (define-key map (kbd "w") 'eclim-problems-show-warnings)
         (define-key map (kbd "f") 'eclim-problems-toggle-filefilter)
         (define-key map (kbd "RET") 'eclim-problems-open-current)

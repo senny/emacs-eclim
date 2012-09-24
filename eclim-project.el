@@ -47,7 +47,7 @@
     (define-key map (kbd "p") 'eclim-project-update)
     (define-key map (kbd "g") 'eclim-project-mode-refresh)
     (define-key map (kbd "R") 'eclim-project-rename)
-    (define-key map (kbd "q") 'quit-window)
+    (define-key map (kbd "q") 'eclim-quit-window)
     map))
 
 
