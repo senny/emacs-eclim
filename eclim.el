@@ -448,7 +448,7 @@ FILENAME is given, return that file's  project name instead."
     (kill-local-variable 'eclim--project-name)))
 
 (defcustom eclim-accepted-file-regexps
-  '("")
+  '("\\.java")
   "List of regular expressions that are matched against filenames
 to decide if eclim should be automatically started on a
 particular file. By default all files part of a project managed
@@ -468,7 +468,6 @@ the use of eclim to java and ant files."
        eclim-accepted-file-regexps)
       t))
 
-
 (defun eclim--accepted-p (filename)
   "Return t if and only if eclim should be automatically started on filename."
   (and
@@ -485,10 +484,10 @@ the use of eclim to java and ant files."
 
 (add-hook 'after-save-hook 'eclim--after-save-hook)
 
-
 (define-globalized-minor-mode global-eclim-mode eclim-mode
   (lambda ()
     (if (and buffer-file-name
+			 (eclim--accepted-p buffer-file-name)
              (eclim--project-dir buffer-file-name))
         (eclim-mode 1))))
 
