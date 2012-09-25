@@ -416,7 +416,7 @@ method."
   (interactive)
   (eclim/with-results response ("java_impl" "-p" "-f" "-o")
     (let* ((methods
-            (mapcar (lambda (x) (replace-regexp-in-string " *\n *" " " x))
+            (mapcar (lambda (x) (replace-regexp-in-string "[ \n\t]+" " " x))
                     (mapcar (lambda (x) (assoc-default 'signature x))
                             (remove-if-not (lambda (x) (eq :json-false (assoc-default 'implemented x)))
                                            (apply 'append
