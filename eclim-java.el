@@ -190,19 +190,21 @@ has been found."
   "Rename the java symbol at point."
   (interactive)
   (let* ((i (eclim--java-identifier-at-point t))
-	 (n (read-string (concat "Rename " (cdr i) " to: ") (cdr i))))
+         (n (read-string (concat "Rename " (cdr i) " to: ") (cdr i))))
     (eclim/with-results res ("java_refactor_rename" "-p" "-e" "-f" ("-n" n)
-                               ("-o" (car i)) ("-l" (length (cdr i))))
-      (when (stringp res) (error res))
-			(when (not (file-exists-p (buffer-file-name)))
-			  (kill-buffer)
-			  (eclim-java-find-type n))
-			(let ((current (current-buffer)))
-			  (loop for file in (mapcar (lambda (x) (assoc-default 'file x)) res)
-				for buf = (get-file-buffer (file-name-nondirectory file))
-				when buf do (progn (switch-to-buffer buf)
-						   (revert-buffer t t t)))
-			  (switch-to-buffer current))
+														 ("-o" (car i)) ("-l" (length (cdr i))))
+      (if (stringp res) (error res))
+      (loop for (from to) in (mapcar (lambda (x) (list (assoc-default 'from x) (assoc-default 'to x))) res)
+            do (when (and from to)
+                 (kill-buffer (find-buffer-visiting from))
+                 (find-file to)))
+      (save-excursion
+        (loop for file in (mapcar (lambda (x) (assoc-default 'file x)) res)
+              do (when file
+                   (let ((buf (get-file-buffer (file-name-nondirectory file))))
+                     (when buf
+                       (switch-to-buffer buf)
+                       (revert-buffer t t t))))))
 			(message "Done"))))
 
 (defun eclim-java-hierarchy (project file offset encoding)
