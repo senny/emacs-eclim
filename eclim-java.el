@@ -478,7 +478,10 @@ method."
                    (assoc-default 'completions (eclim/java-complete))))))
 
 (defun eclim-package-and-class ()
-  (concat (eclim--java-current-package) "." (eclim--java-current-class-name)))
+  (let ((package-name (eclim--java-current-package))
+        (class-name   (eclim--java-current-class-name)))
+    (if package-name (concat package-name "." class-name)
+      class-name)))
 
 (defun eclim-run-class ()
   "Run the current class."
