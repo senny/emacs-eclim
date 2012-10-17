@@ -77,7 +77,7 @@
 (defun eclim--problems-mode ()
   (kill-all-local-variables)
   (buffer-disable-undo)
-  (setq majod-mode 'eclim-problems-mode
+  (setq major-mode 'eclim-problems-mode
         mode-name "eclim/problems"
         mode-line-process ""
         truncate-lines t

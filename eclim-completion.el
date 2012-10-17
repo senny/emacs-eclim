@@ -46,10 +46,84 @@
     (when (string-match "\\(.*\\)\s-\s\\(.*\\)" doc)
       (match-string 2 doc))))
 
+(defvar eclim--completion-candidates nil)
+
 (defun eclim--completion-candidates ()
+	(print 'candidates)
   (with-no-warnings
-    (mapcar (lambda (c) (assoc-default 'info c))
-            (assoc-default 'completions (eclim/java-complete)))))
+		(print major-mode)
+		(setq eclim--completion-candidates
+					(case major-mode
+						('java-mode (assoc-default 'completions (eclim/java-complete)))
+						('nxml-mode (eclim/xml-complete))))
+		(case major-mode
+			('java-mode (mapcar (lambda (c) (assoc-default 'info c)) eclim--completion-candidates))
+			('nxml-mode (mapcar (lambda (c) (assoc-default 'completion c)) eclim--completion-candidates)))))
+
+(defun eclim/java-complete ()
+  (setq eclim--is-completing t)
+  (unwind-protect
+      (eclim/execute-command "java_complete" "-p" "-f" "-e" ("-l" "standard") "-o")
+    (setq eclim--is-completing nil)))
+
+(defun eclim/xml-complete ()
+	(setq eclim--is-completing t)
+  (unwind-protect
+      (eclim/execute-command "xml_complete" "-p" "-f" "-e" "-o")
+    (setq eclim--is-completing nil)))
+
+(defun eclim/complete ()
+	())
+
+(defun eclim--java-complete-internal (completion-list)
+  (let* ((window (get-buffer-window "*Completions*" 0))
+	 (c (eclim--java-identifier-at-point))
+	 (beg (car c))
+	 (word (cdr c))
+	 (compl (try-completion word
+				completion-list)))
+    (if (and (eq last-command this-command)
+	     window (window-live-p window) (window-buffer window)
+	     (buffer-name (window-buffer window)))
+	;; If this command was repeated, and there's a fresh completion window
+	;; with a live buffer, and this command is repeated, scroll that
+	;; window.
+	(with-current-buffer (window-buffer window)
+	  (if (pos-visible-in-window-p (point-max) window)
+	      (set-window-start window (point-min))
+	    (save-selected-window
+	      (select-window window)
+	      (scroll-up))))
+      (cond
+       ((null compl)
+	(message "No completions."))
+       ((stringp compl)
+	(if (string= word compl)
+	    ;; Show completion buffer
+	    (let ((list (all-completions word completion-list)))
+	      (setq list (sort list 'string<))
+	      (with-output-to-temp-buffer "*Completions*"
+		(display-completion-list list word)))
+	  ;; Complete
+	  (delete-region (1+ beg) (point))
+	  (insert compl)
+	  ;; close completion buffer if there's one
+	  (let ((win (get-buffer-window "*Completions*" 0)))
+	    (if win (quit-window nil win)))))
+       (t (message "That's the only possible completion."))))))
+
+(defun eclim-java-complete ()
+  (interactive)
+  (when eclim-auto-save (save-buffer))
+  (eclim--java-complete-internal
+   (mapcar 'cdr
+           (mapcar 'second
+                   (assoc-default 'completions (eclim/java-complete))))))
+
+(defun eclim-complete ()
+  (interactive)
+  ;; TODO build context sensitive completion mechanism
+  (eclim-java-complete))
 
 (defun eclim--completion-yasnippet-convert (completion)
   "Convert a completion string to a yasnippet template"
@@ -65,7 +139,7 @@
 
 (defvar eclim--completion-start)
 
-(defun eclim--completion-action ()
+(defun eclim--completion-action-java ()
   (let* ((end (point))
          (completion (buffer-substring-no-properties eclim--completion-start end)))
     (if (string-match "\\([^-:]+\\) .*?\\(- *\\(.*\\)\\)?" completion)
@@ -82,5 +156,23 @@
              (eclim/execute-command "java_import_order" "-p")
              (list (concat package "." (substring insertion 0 (or (string-match "[<(]" insertion)
                                                                   (length insertion)))))))))))
+
+(defun eclim--completion-action-nxml ()
+	(when (= 32 (char-before eclim--completion-start))
+		;; we are completing an attribute; let's use yasnippet to get som nice completion going
+		(let* ((end (point))
+					 (c (buffer-substring-no-properties eclim--completion-start end))
+					 (completion (if (string-endswith-p c "\"") c (concat c "=\"\""))))
+			(when (string-match "\\(.*\\)=\"\\(.*\\)\"" completion)
+				(delete-region eclim--completion-start end)
+				(if (and eclim-use-yasnippet (featurep 'yasnippet))
+						(yas/expand-snippet (format "%s=\"${%s}\" ${}" (match-string 1 completion) (match-string 2 completion)))
+					(insert completion))))))
+
+(defun eclim--completion-action ()
+	(case major-mode
+		('java-mode (eclim--completion-action-java))
+		('nxml-mode (eclim--completion-action-nxml))))
+
 
 (provide 'eclim-completion)

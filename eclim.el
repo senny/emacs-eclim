@@ -428,11 +428,6 @@ FILENAME is given, return that file's  project name instead."
 (defun eclim/jobs (&optional family)
   (eclim/execute-command "jobs" ("-f" family)))
 
-(defun eclim-complete ()
-  (interactive)
-  ;; TODO build context sensitive completion mechanism
-  (eclim-java-complete))
-
 ;;** The minor mode and its keymap
 
 (defvar eclim-mode-map
@@ -488,6 +483,7 @@ the use of eclim to java and ant files."
   (when (eclim--accepted-p (buffer-file-name))
     (ignore-errors
       (apply 'eclim--call-process "java_src_update" (eclim--expand-args (list "-p" "-f")))))
+      ;; (apply 'eclim--call-process-async (lambda (r)) "java_src_update" (eclim--expand-args (list "-p" "-f" '("-v" nil) ("-b" nil))))))
   t)
 
 (defun revert-buffer-keep-history (&optional IGNORE-AUTO NOCONFIRM PRESERVE-MODES)

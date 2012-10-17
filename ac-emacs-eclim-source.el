@@ -43,16 +43,42 @@
   :group 'auto-complete)
 
 (defun ac-emacs-eclim-candidates ()
-  (with-no-warnings
-    (mapcar (lambda (c) (assoc-default 'info c))
-            (assoc-default 'completions (eclim/java-complete)))))
+	(print
+	 (eclim--completion-candidates)))
+  ;; (with-no-warnings
+  ;;   (mapcar (lambda (c) (assoc-default 'info c))
+  ;;           (assoc-default 'completions (eclim/java-complete)))))
+
+(defun ac-emacs-eclim-prefix ()
+	)
 
 (defun ac-emacs-eclim-available ()
-  (eclim--accepted-p (buffer-file-name)))
+	t)
+  ;; (eclim--accepted-p (buffer-file-name)))
 
 (defun ac-emacs-eclim-init ()
+	(print 'init)
   (setq eclim--completion-start ac-point)
   (when eclim-print-debug-messages (message "Completion started at %s, ac-point is %s" (point) ac-point)))
+
+(defun ac-emacs-eclim-prefix-nxml ()
+	;; (if (re-search-backward "\\.\\(\\(?:[a-zA-Z0-9][_a-zA-Z0-9]*\\)?\\)\\=" nil t)
+	(if (= (char-before) 32)
+			(point)
+		(if (re-search-backward "[< \"]\\(\\(?:[a-zA-Z0-9][:-_a-zA-Z0-9]*\\)?\\)\\=" nil t)
+				(match-beginning 1))))
+
+(ac-define-source emacs-eclim-nxml
+  '((candidates . ac-emacs-eclim-candidates)
+    (available . ac-emacs-eclim-available)
+    (init . ac-emacs-eclim-init)
+    (action . eclim--completion-action)
+		(prefix . ac-emacs-eclim-prefix-nxml)
+    (requires . 0)
+    (cache)
+    (selection-face . ac-emacs-eclim-selection-face)
+    (candidate-face . ac-emacs-eclim-candidate-face)
+    (symbol . "f")))
 
 (ac-define-source emacs-eclim
   '((candidates . ac-emacs-eclim-candidates)
