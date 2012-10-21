@@ -59,6 +59,7 @@
         (define-key map (kbd "q") 'eclim-quit-window)
         (define-key map (kbd "w") 'eclim-problems-show-warnings)
         (define-key map (kbd "f") 'eclim-problems-toggle-filefilter)
+        (define-key map (kbd "c") 'eclim-problems-correct)
         (define-key map (kbd "RET") 'eclim-problems-open-current)
         map))
 
@@ -166,11 +167,29 @@
     (loop for problem across (remove-if-not (lambda (p) (string= (assoc-default 'filename p) (buffer-file-name))) eclim--problems-list)
           do (eclim--problems-insert-highlight problem))))
 
+(defun eclim-problems-get-current-problem ()
+  (let ((problems (eclim--problems-filtered))
+        (index (1- (line-number-at-pos))))
+    (if (>= index (length problems))
+        (error "No problem on this line.")
+      (aref problems index))))
+
 (defun eclim-problems-open-current ()
   (interactive)
-  (let* ((p (aref (eclim--problems-filtered) (1- (line-number-at-pos)))))
+  (let* ((p (eclim-problems-get-current-problem)))
     (find-file-other-window (assoc-default 'filename p))
     (eclim--problem-goto-pos p)))
+
+(defun eclim-problems-correct ()
+  (interactive)
+  (let ((p (eclim-problems-get-current-problem)))
+    (if (not (string-match "\.java$" (cdr (assoc 'filename p))))
+        (error "Not a Java file. Corrections are currently supported only for Java.")
+
+      (eclim-problems-open-current)
+      (eclim-java-correct eclim--problems-project
+                          (cdr (assoc 'line p))
+                          (cdr (assoc 'column p))))))
 
 (defun eclim-problems-buffer-refresh ()
   "Refresh the problem list and draw it on screen."
