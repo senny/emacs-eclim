@@ -491,4 +491,77 @@ method."
     (compile (concat eclim-executable " -command java -p "  eclim--project-name
                      " -c " (eclim-package-and-class)))))
 
+(defun eclim-java-correct (project line column)
+  (interactive)
+  (message "Getting corrections...")
+
+  (eclim/with-results correction-info ("java_correct"
+                                       ("-p" project)
+                                       "-f"
+                                       ("-l" line)
+                                       ("-o" column))
+
+    (let ((window-config (current-window-configuration))
+          (corrections (cdr (assoc 'corrections correction-info))))
+
+      (pop-to-buffer "*corrections*")
+      (erase-buffer)
+
+      (insert "Problem: " (cdr (assoc 'message correction-info)) "\n\n")
+
+      (if (eq (length corrections) 0)
+          (insert "No automatic corrections found. Sorry.")
+        (insert "Choose a correction by pressing Enter on it or press q to quit"))
+      (insert "\n\n")
+
+      (dotimes (i (length corrections))
+        (let ((correction (aref corrections i)))
+          (insert "------------------------------------------------------------\n"
+                  "Correction "
+                  (int-to-string (cdr (assoc 'index correction)))
+                  ": " (cdr (assoc 'description correction)) "\n\n"
+                  "Preview:\n\n"
+                  (cdr (assoc 'preview correction))
+                  "\n\n")))
+
+      (goto-char (point-min))
+
+      (make-local-variable 'eclim-corrections-previous-window-config)
+      (setq eclim-corrections-previous-window-config window-config)
+
+      (make-local-variable 'eclim-correction-command-info)
+      (setq eclim-correction-command-info (list 'project project
+                                                      'line line
+                                                      'column column))
+      (local-set-key (kbd "<RET>") 'eclim-java-correct-choose) 
+      (local-set-key "q" 'eclim-java-correct-quit))))
+
+
+(defun eclim-java-correct-choose ()
+  (interactive)
+  (save-excursion
+    (if (not (re-search-backward "^Correction \\([0-9]+\\):" nil t))
+        (message "No correction here.")
+
+      (let ((index (string-to-int (match-string 1)))
+            (info eclim-correction-command-info))
+        
+        (set-window-configuration eclim-corrections-previous-window-config)
+
+        (message "Applying correction %s" index)
+
+        (eclim/with-results correction-info
+          ("java_correct"
+           ("-p" (plist-get info 'project))
+           "-f"
+           ("-l" (plist-get info 'line))
+           ("-o" (plist-get info 'column))
+           ("-a" index)))))))
+
+
+(defun eclim-java-correct-quit ()
+  (interactive)
+  (set-window-configuration eclim-corrections-previous-window-config))
+
+
 (provide 'eclim-java)
