@@ -75,6 +75,15 @@ the current buffer is contained within this list"
                                       "implementors"
                                       "references"))
 
+
+(defvar eclim-java-correct-map
+  (let ((map (make-keymap)))
+    (suppress-keymap map t)
+    (define-key map (kbd "q") 'eclim-java-correct-quit)
+    (define-key map (kbd "RET") 'eclim-java-correct-choose)
+    map))
+
+
 (defvar eclim--is-completing nil)
 
 (defun eclim/java-complete ()
@@ -508,12 +517,16 @@ method."
 
       (pop-to-buffer "*corrections*")
       (erase-buffer)
+      (use-local-map eclim-java-correct-map)
 
       (insert "Problem: " (cdr (assoc 'message correction-info)) "\n\n")
 
       (if (eq (length corrections) 0)
           (insert "No automatic corrections found. Sorry.")
-        (insert "Choose a correction by pressing Enter on it or press q to quit"))
+        (insert (substitute-command-keys
+                 (concat
+                  "Choose a correction by pressing \\[eclim-java-correct-choose]"
+                  " on it or press \\[eclim-java-correct-quit] to quit"))))
       (insert "\n\n")
 
       (dotimes (i (length corrections))
@@ -534,9 +547,7 @@ method."
       (make-local-variable 'eclim-correction-command-info)
       (setq eclim-correction-command-info (list 'project project
                                                       'line line
-                                                      'column column))
-      (local-set-key (kbd "<RET>") 'eclim-java-correct-choose) 
-      (local-set-key "q" 'eclim-java-correct-quit))))
+                                                      'column column)))))
 
 
 (defun eclim-java-correct-choose ()
