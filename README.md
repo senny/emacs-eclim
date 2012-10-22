@@ -27,7 +27,7 @@ number. You can see and download previous releases
 [here](https://github.com/senny/emacs-eclim/tags).
 
 ## Installation
-1. [download and install](http://eclim.org/guides/install.html) eclim.
+1. [download and install](http://eclim.org/install.html) eclim.
 1. download emacs-eclim
 1. add the following code to your emacs startup script
 
