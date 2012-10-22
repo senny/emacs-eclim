@@ -491,18 +491,20 @@ method."
     (compile (concat eclim-executable " -command java -p "  eclim--project-name
                      " -c " (eclim-package-and-class)))))
 
-(defun eclim-java-correct (project line column)
+(defun eclim-java-correct (line column)
+  "Must be called with the problematic file opened in the current buffer."
   (interactive)
   (message "Getting corrections...")
 
   (eclim/with-results correction-info ("java_correct"
-                                       ("-p" project)
+                                       ("-p" (eclim--project-name))
                                        "-f"
                                        ("-l" line)
                                        ("-o" column))
 
     (let ((window-config (current-window-configuration))
-          (corrections (cdr (assoc 'corrections correction-info))))
+          (corrections (cdr (assoc 'corrections correction-info)))
+          (project (eclim--project-name))) ;; store project name before buffer change
 
       (pop-to-buffer "*corrections*")
       (erase-buffer)

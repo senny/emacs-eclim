@@ -194,8 +194,7 @@
         (error "Not a Java file. Corrections are currently supported only for Java.")
 
       (eclim-problems-open-current)
-      (eclim-java-correct eclim--problems-project
-                          (cdr (assoc 'line p))
+      (eclim-java-correct (cdr (assoc 'line p))
                           (cdr (assoc 'column p))))))
 
 (defun eclim-problems-buffer-refresh ()
