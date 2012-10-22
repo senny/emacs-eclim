@@ -80,6 +80,16 @@ the current buffer is contained within this list"
   (let ((map (make-keymap)))
     (suppress-keymap map t)
     (define-key map (kbd "q") 'eclim-java-correct-quit)
+    (define-key map (kbd "0") 'eclim-java-correct-choose-by-digit)
+    (define-key map (kbd "1") 'eclim-java-correct-choose-by-digit)
+    (define-key map (kbd "2") 'eclim-java-correct-choose-by-digit)
+    (define-key map (kbd "3") 'eclim-java-correct-choose-by-digit)
+    (define-key map (kbd "4") 'eclim-java-correct-choose-by-digit)
+    (define-key map (kbd "5") 'eclim-java-correct-choose-by-digit)
+    (define-key map (kbd "6") 'eclim-java-correct-choose-by-digit)
+    (define-key map (kbd "7") 'eclim-java-correct-choose-by-digit)
+    (define-key map (kbd "8") 'eclim-java-correct-choose-by-digit)
+    (define-key map (kbd "9") 'eclim-java-correct-choose-by-digit)
     (define-key map (kbd "RET") 'eclim-java-correct-choose)
     map))
 
@@ -526,7 +536,7 @@ method."
         (insert (substitute-command-keys
                  (concat
                   "Choose a correction by pressing \\[eclim-java-correct-choose]"
-                  " on it or press \\[eclim-java-correct-quit] to quit"))))
+                  " on it or typing its index. Press \\[eclim-java-correct-quit] to quit"))))
       (insert "\n\n")
 
       (dotimes (i (length corrections))
@@ -550,14 +560,27 @@ method."
                                                       'column column)))))
 
 
-(defun eclim-java-correct-choose ()
+(defun eclim-java-correct-choose (&optional index)
   (interactive)
   (save-excursion
-    (if (not (re-search-backward "^Correction \\([0-9]+\\):" nil t))
-        (message "No correction here.")
+    (if index
+        (goto-char (point-max)))
 
-      (let ((index (string-to-int (match-string 1)))
-            (info eclim-correction-command-info))
+    (if (not (re-search-backward (concat "^Correction "
+                                         (if index
+                                             index
+                                           "\\([0-9]+\\)")
+                                         ":")
+                                 nil t))
+        (message (concat "No correction "
+                         (if index
+                             (format "with index %s." index)
+                           "here.")))
+
+      (unless index
+        (setq index (string-to-int (match-string 1)))) 
+
+      (let ((info eclim-correction-command-info))
         
         (set-window-configuration eclim-corrections-previous-window-config)
 
@@ -570,6 +593,11 @@ method."
            ("-l" (plist-get info 'line))
            ("-o" (plist-get info 'column))
            ("-a" index)))))))
+
+
+(defun eclim-java-correct-choose-by-digit ()
+  (interactive)
+  (eclim-java-correct-choose (this-command-keys)))
 
 
 (defun eclim-java-correct-quit ()
