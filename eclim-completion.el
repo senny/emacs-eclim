@@ -49,9 +49,7 @@
 (defvar eclim--completion-candidates nil)
 
 (defun eclim--completion-candidates ()
-	(print 'candidates)
   (with-no-warnings
-		(print major-mode)
 		(setq eclim--completion-candidates
 					(case major-mode
 						('java-mode (assoc-default 'completions (eclim/java-complete)))

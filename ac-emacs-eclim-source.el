@@ -43,8 +43,7 @@
   :group 'auto-complete)
 
 (defun ac-emacs-eclim-candidates ()
-	(print
-	 (eclim--completion-candidates)))
+	(eclim--completion-candidates))
   ;; (with-no-warnings
   ;;   (mapcar (lambda (c) (assoc-default 'info c))
   ;;           (assoc-default 'completions (eclim/java-complete)))))
@@ -57,7 +56,6 @@
   ;; (eclim--accepted-p (buffer-file-name)))
 
 (defun ac-emacs-eclim-init ()
-	(print 'init)
   (setq eclim--completion-start ac-point)
   (when eclim-print-debug-messages (message "Completion started at %s, ac-point is %s" (point) ac-point)))
 
