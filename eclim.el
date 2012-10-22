@@ -207,7 +207,7 @@ strings and will be called on completion."
 
 (setq eclim--default-args
       '(("-n" . (eclim--project-name))
-        ("-p" . (eclim--project-name))
+        ("-p" . (or (eclim--project-name) (error "Could not find eclipse project for %s" (buffer-name (current-buffer)))))
         ("-e" . (eclim--current-encoding))
         ("-f" . (eclim--project-current-file))
         ("-o" . (eclim--byte-offset))
