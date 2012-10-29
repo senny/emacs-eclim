@@ -313,10 +313,13 @@ matters for buffers containing non-ASCII characters)."
         (match-string-no-properties 1))))
 
 (defun eclim-java-import (type)
-  "Reads the token at the point and calls eclim to resolve it to
-a java type that can be imported."
+  "Adds an import statement for the given type, if one does not
+exist already."
   (interactive)
-  (eclim/execute-command "java_import" "-p" "-f" "-o" "-e" ("-t" type)))
+	(save-excursion
+		(beginning-of-buffer)
+		(if (not (re-search-forward (format "^import %s;" type) nil t))
+				(eclim/execute-command "java_import" "-p" "-f" "-o" "-e" ("-t" type)))))
 
 (defun eclim-java-import-organize (&optional types)
   "Checks the current file for missing imports, removes unused imports and
