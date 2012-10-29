@@ -305,12 +305,6 @@ matters for buffers containing non-ASCII characters)."
   "Returns the components of a Java package statement."
   (split-string package "\\."))
 
-(defun eclim--java-wildcard-includes-p (wildcard package)
-  "Returns true if PACKAGE is included in the WILDCARD import statement."
-  (if (not (string-endswith-p wildcard ".*")) nil
-    (equal (butlast (eclim--java-package-components wildcard))
-	   (butlast (eclim--java-package-components package)))))
-
 (defun eclim--java-current-package ()
   "Returns the package for the class in the current buffer."
   (save-excursion
@@ -318,11 +312,25 @@ matters for buffers containing non-ASCII characters)."
     (if (re-search-forward "package \\(.*?\\);" (point-max) t)
         (match-string-no-properties 1))))
 
-(defun eclim-java-import-organize ()
+(defun eclim-java-import (type)
+  "Reads the token at the point and calls eclim to resolve it to
+a java type that can be imported."
+  (interactive)
+  (eclim/execute-command "java_import" "-p" "-f" "-o" "-e" ("-t" type)))
+
+(defun eclim-java-import-organize (&optional types)
   "Checks the current file for missing imports, removes unused imports and
 sorts import statements. "
   (interactive)
-  (eclim/execute-command "java_import_organize" "-p" "-f" "-o" "-e"))
+  (eclim/with-results res ("java_import_organize" "-p" "-f" "-o" "-e"
+													 ("-t" (when types
+																	 (reduce (lambda (a b) (concat a "," b)) types))))
+		(eclim-problems-buffer-refresh)
+    (when (vectorp res)
+      (save-excursion
+				(eclim-java-import-organize
+				 (mapcar (lambda (imports) (eclim--completing-read "Import: " (append imports '()))) res))))))
+
 
 (defun eclim-java-implement ()
   "Lets the user select from a list of methods to
@@ -332,11 +340,9 @@ method."
   (eclim/with-results response ("java_impl" "-p" "-f" "-o")
     (let* ((methods
             (mapcar (lambda (x) (replace-regexp-in-string "[ \n\t]+" " " x))
-                    (mapcar (lambda (x) (assoc-default 'signature x))
-                            (remove-if-not (lambda (x) (eq :json-false (assoc-default 'implemented x)))
-                                           (apply 'append
-                                                  (mapcar (lambda (x) (append (assoc-default 'methods x) nil))
-                                                          (assoc-default 'superTypes response)))))))
+										(apply 'append
+													 (mapcar (lambda (x) (append (assoc-default 'methods x) nil))
+																	 (assoc-default 'superTypes response)))))
 			     (start (point)))
 			(insert
 			 "@Override\n"

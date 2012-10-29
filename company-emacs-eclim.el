@@ -177,11 +177,8 @@ available."
               (progn
                 ;; otherwise, remove the doc string and insert an import statement
                 (cee--delete-backward " - ")
-                (eclim--java-organize-imports
-                 (eclim/execute-command "java_import_order" "-p")
-                 (list
-                  (concat (eclim--completion-candidate-package candidate) "."
-                          (eclim--completion-candidate-class candidate)))))))
+                (eclim-java-import (concat (eclim--completion-candidate-package candidate) "."
+																					 (eclim--completion-candidate-class candidate))))))
         ;; Otherwise, check if this is a method call
         (if (string= "f" type)
             (let ((call-args (cee--method-call candidate)))
