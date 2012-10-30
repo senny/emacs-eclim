@@ -337,8 +337,9 @@ exist already."
   (interactive)
 	(save-excursion
 		(beginning-of-buffer)
-		(if (not (re-search-forward (format "^import %s;" type) nil t))
-				(eclim/execute-command "java_import" "-p" "-f" "-o" "-e" ("-t" type)))))
+		(when (not (re-search-forward (format "^import %s;" type) nil t))
+			(eclim/execute-command "java_import" "-p" "-f" "-o" "-e" ("-t" type))
+			(eclim--problems-update-maybe))))
 
 (defun eclim-java-import-organize (&optional types)
   "Checks the current file for missing imports, removes unused imports and
@@ -347,12 +348,11 @@ sorts import statements. "
   (eclim/with-results res ("java_import_organize" "-p" "-f" "-o" "-e"
 													 ("-t" (when types
 																	 (reduce (lambda (a b) (concat a "," b)) types))))
-		(eclim-problems-buffer-refresh)
+		(eclim--problems-update-maybe)
     (when (vectorp res)
       (save-excursion
 				(eclim-java-import-organize
 				 (mapcar (lambda (imports) (eclim--completing-read "Import: " (append imports '()))) res))))))
-
 
 (defun eclim-java-implement ()
   "Lets the user select from a list of methods to
@@ -500,10 +500,10 @@ method."
                            "here.")))
 
       (unless index
-        (setq index (string-to-int (match-string 1)))) 
+        (setq index (string-to-int (match-string 1))))
 
       (let ((info eclim-correction-command-info))
-        
+
         (set-window-configuration eclim-corrections-previous-window-config)
 
         (message "Applying correction %s" index)
