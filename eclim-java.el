@@ -436,23 +436,15 @@ method."
   "Must be called with the problematic file opened in the current buffer."
   (interactive)
   (message "Getting corrections...")
-
-  (eclim/with-results correction-info ("java_correct"
-                                       ("-p" (eclim--project-name))
-                                       "-f"
-                                       ("-l" line)
-                                       ("-o" column))
-
+  (eclim/with-results correction-info ("java_correct" "-p" "-f" ("-l" line) ("-o" column))
     (let ((window-config (current-window-configuration))
           (corrections (cdr (assoc 'corrections correction-info)))
           (project (eclim--project-name))) ;; store project name before buffer change
-
       (pop-to-buffer "*corrections*")
       (erase-buffer)
       (use-local-map eclim-java-correct-map)
 
       (insert "Problem: " (cdr (assoc 'message correction-info)) "\n\n")
-
       (if (eq (length corrections) 0)
           (insert "No automatic corrections found. Sorry.")
         (insert (substitute-command-keys
@@ -470,24 +462,19 @@ method."
                   "Preview:\n\n"
                   (cdr (assoc 'preview correction))
                   "\n\n")))
-
       (goto-char (point-min))
-
       (make-local-variable 'eclim-corrections-previous-window-config)
       (setq eclim-corrections-previous-window-config window-config)
-
       (make-local-variable 'eclim-correction-command-info)
       (setq eclim-correction-command-info (list 'project project
-                                                      'line line
-                                                      'column column)))))
-
+																								'line line
+																								'column column)))))
 
 (defun eclim-java-correct-choose (&optional index)
   (interactive)
   (save-excursion
     (if index
         (goto-char (point-max)))
-
     (if (not (re-search-backward (concat "^Correction "
                                          (if index
                                              index
@@ -498,24 +485,18 @@ method."
                          (if index
                              (format "with index %s." index)
                            "here.")))
-
       (unless index
         (setq index (string-to-int (match-string 1))))
-
       (let ((info eclim-correction-command-info))
-
         (set-window-configuration eclim-corrections-previous-window-config)
-
         (message "Applying correction %s" index)
-
-        (eclim/with-results correction-info
-          ("java_correct"
-           ("-p" (plist-get info 'project))
-           "-f"
-           ("-l" (plist-get info 'line))
-           ("-o" (plist-get info 'column))
-           ("-a" index)))))))
-
+        (eclim/with-results correction-info ("java_correct"
+																						 ("-p" (plist-get info 'project))
+																						 "-f"
+																						 ("-l" (plist-get info 'line))
+																						 ("-o" (plist-get info 'column))
+																						 ("-a" index))
+					(eclim--problems-update-maybe))))))
 
 (defun eclim-java-correct-choose-by-digit ()
   (interactive)
