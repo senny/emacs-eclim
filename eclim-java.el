@@ -331,28 +331,58 @@ matters for buffers containing non-ASCII characters)."
     (if (re-search-forward "package \\(.*?\\);" (point-max) t)
         (match-string-no-properties 1))))
 
+(defun eclim-soft-revert-imports (ignore-auto noconfirm)
+	"Can be used as a REVERT-BUFFER-FUNCTION to only replace the
+imports section of a java source file. This will preserve the
+undo history."
+	(interactive)
+	(flet ((cut-imports ()
+											(beginning-of-buffer)
+											(when (re-search-forward "^import" nil t)
+												(beginning-of-line)
+												(let ((beg (point)))
+													(end-of-buffer)
+													(re-search-backward "^import")
+													(end-of-line)
+													(let ((imports (buffer-substring-no-properties beg (point))))
+														(delete-region beg (point))
+														imports)))))
+		(save-excursion
+			(clear-visited-file-modtime)
+			(cut-imports)
+			(widen)
+			(insert
+			 (let ((fname (buffer-file-name)))
+				 (with-temp-buffer
+					 (insert-file-contents fname)
+					 (cut-imports))))
+			(not-modified)
+			(set-visited-file-modtime))))
+
 (defun eclim-java-import (type)
   "Adds an import statement for the given type, if one does not
 exist already."
   (interactive)
 	(save-excursion
 		(beginning-of-buffer)
-		(when (not (re-search-forward (format "^import %s;" type) nil t))
-			(eclim/execute-command "java_import" "-p" "-f" "-o" "-e" ("-t" type))
-			(eclim--problems-update-maybe))))
+		(let ((revert-buffer-function 'eclim-soft-revert-imports))
+			(when (not (re-search-forward (format "^import %s;" type) nil t))
+				(eclim/execute-command "java_import" "-p" "-f" "-o" "-e" ("-t" type))
+				(eclim--problems-update-maybe)))))
 
 (defun eclim-java-import-organize (&optional types)
   "Checks the current file for missing imports, removes unused imports and
 sorts import statements. "
   (interactive)
+				(let ((revert-buffer-function 'eclim-soft-revert-imports))
   (eclim/with-results res ("java_import_organize" "-p" "-f" "-o" "-e"
 													 ("-t" (when types
 																	 (reduce (lambda (a b) (concat a "," b)) types))))
 		(eclim--problems-update-maybe)
     (when (vectorp res)
       (save-excursion
-				(eclim-java-import-organize
-				 (mapcar (lambda (imports) (eclim--completing-read "Import: " (append imports '()))) res))))))
+					(eclim-java-import-organize
+					 (mapcar (lambda (imports) (eclim--completing-read "Import: " (append imports '()))) res)))))))
 
 (defun eclim-java-implement ()
   "Lets the user select from a list of methods to
