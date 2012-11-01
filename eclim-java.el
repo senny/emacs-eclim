@@ -35,8 +35,7 @@
 (define-key eclim-mode-map (kbd "C-c C-e f t") 'eclim-java-find-type)
 (define-key eclim-mode-map (kbd "C-c C-e f f") 'eclim-java-find-generic)
 (define-key eclim-mode-map (kbd "C-c C-e r") 'eclim-java-refactor-rename-symbol-at-point)
-(define-key eclim-mode-map (kbd "C-c C-e i") 'eclim-java-import-missing)
-(define-key eclim-mode-map (kbd "C-c C-e u") 'eclim-java-remove-unused-imports)
+(define-key eclim-mode-map (kbd "C-c C-e i") 'eclim-java-import-organize)
 (define-key eclim-mode-map (kbd "C-c C-e h") 'eclim-java-hierarchy)
 (define-key eclim-mode-map (kbd "C-c C-e z") 'eclim-java-implement)
 (define-key eclim-mode-map (kbd "C-c C-e d") 'eclim-java-doc-comment)
@@ -74,6 +73,25 @@ the current buffer is contained within this list"
                                       "declarations"
                                       "implementors"
                                       "references"))
+
+
+(defvar eclim-java-correct-map
+  (let ((map (make-keymap)))
+    (suppress-keymap map t)
+    (define-key map (kbd "q") 'eclim-java-correct-quit)
+    (define-key map (kbd "0") 'eclim-java-correct-choose-by-digit)
+    (define-key map (kbd "1") 'eclim-java-correct-choose-by-digit)
+    (define-key map (kbd "2") 'eclim-java-correct-choose-by-digit)
+    (define-key map (kbd "3") 'eclim-java-correct-choose-by-digit)
+    (define-key map (kbd "4") 'eclim-java-correct-choose-by-digit)
+    (define-key map (kbd "5") 'eclim-java-correct-choose-by-digit)
+    (define-key map (kbd "6") 'eclim-java-correct-choose-by-digit)
+    (define-key map (kbd "7") 'eclim-java-correct-choose-by-digit)
+    (define-key map (kbd "8") 'eclim-java-correct-choose-by-digit)
+    (define-key map (kbd "9") 'eclim-java-correct-choose-by-digit)
+    (define-key map (kbd "RET") 'eclim-java-correct-choose)
+    map))
+
 
 (defvar eclim--is-completing nil)
 
@@ -306,12 +324,6 @@ matters for buffers containing non-ASCII characters)."
   "Returns the components of a Java package statement."
   (split-string package "\\."))
 
-(defun eclim--java-wildcard-includes-p (wildcard package)
-  "Returns true if PACKAGE is included in the WILDCARD import statement."
-  (if (not (string-endswith-p wildcard ".*")) nil
-    (equal (butlast (eclim--java-package-components wildcard))
-	   (butlast (eclim--java-package-components package)))))
-
 (defun eclim--java-current-package ()
   "Returns the package for the class in the current buffer."
   (save-excursion
@@ -319,97 +331,58 @@ matters for buffers containing non-ASCII characters)."
     (if (re-search-forward "package \\(.*?\\);" (point-max) t)
         (match-string-no-properties 1))))
 
-(defun eclim--java-ignore-import-p (import)
-  "Return true if this IMPORT should be ignored by the import
-  functions."
-  (or (string-match "^java\.lang\.[A-Z][^\.]*$" import)
-      (string-match (concat "^" (eclim--java-current-package) "\.[A-Z][^\.]*$") import)))
+(defun eclim-soft-revert-imports (ignore-auto noconfirm)
+	"Can be used as a REVERT-BUFFER-FUNCTION to only replace the
+imports section of a java source file. This will preserve the
+undo history."
+	(interactive)
+	(flet ((cut-imports ()
+											(beginning-of-buffer)
+											(when (re-search-forward "^import" nil t)
+												(beginning-of-line)
+												(let ((beg (point)))
+													(end-of-buffer)
+													(re-search-backward "^import")
+													(end-of-line)
+													(let ((imports (buffer-substring-no-properties beg (point))))
+														(delete-region beg (point))
+														imports)))))
+		(save-excursion
+			(clear-visited-file-modtime)
+			(cut-imports)
+			(widen)
+			(insert
+			 (let ((fname (buffer-file-name)))
+				 (with-temp-buffer
+					 (insert-file-contents fname)
+					 (cut-imports))))
+			(not-modified)
+			(set-visited-file-modtime))))
 
-(defun eclim--java-sort-imports (imports imports-order)
-  "Sorts a list of imports according to a given sort order,
-removing duplicates."
-  (let* ((non-ordered (loop for a in imports-order
-			    for r = (cdr imports-order) then (cdr r)
-			    while (string< a (car r))
-			    finally return r))
-	 (sorted (make-hash-table)))
-    (loop for imp in (sort imports #'string<)
-	  for key = (or (find imp non-ordered :test #'string-startswith-p)
-			:default)
-	  do (puthash key (cons imp (gethash key sorted)) sorted))
-    (remove-duplicates (loop for key in (cons :default non-ordered)
-			     append (reverse (gethash key sorted)))
-		       :test #'string=)))
-
-(defun eclim--java-extract-imports ()
-  "Extracts (by removing) import statements of a java
-file. Returns a list of the extracted imports. Tries to leave the
-cursor at a suitable point for re-inserting new import statements."
-  (goto-char 0)
-  (let ((imports '()))
-    (while (search-forward-regexp "^\s*import \\(.*\\);" nil t)
-      (unless (save-match-data
-		(string-match "^\s*import\s*static" (match-string 0)))
-	(push (match-string-no-properties 1) imports)
-	(delete-region (line-beginning-position) (line-end-position))
-	(delete-blank-lines)))
-    (if (null imports)
-	  (forward-line))
-    imports))
-
-(defun eclim--java-organize-imports (imports-order &optional additional-imports unused-imports)
-  "Organize the import statements in the current file according
-to IMPORTS-ORDER. If the optional parameter ADDITIONAL-IMPORTS
-is supplied, these import statements will be added to the
-rest. Imports listed in the optional parameter UNUSED-IMPORTS
-will be removed."
-  (save-excursion
-    (flet ((write-imports (imports)
-			  (loop for imp in imports
-				for last-import-first-part = nil then first-part
-				for first-part = (first (eclim--java-package-components imp))
-				do (progn
-				     (unless (equal last-import-first-part first-part)
-				       (newline))
-				     (insert (format "import %s;\n" imp))))))
-      (let ((imports
-	     (remove-if #'eclim--java-ignore-import-p
-			(remove-if (lambda (x) (member x unused-imports))
-				   (append (eclim--java-extract-imports) additional-imports)))))
-	(write-imports (eclim--java-sort-imports imports imports-order))))))
-
-(defun eclim-java-import ()
-  "Reads the token at the point and calls eclim to resolve it to
-a java type that can be imported."
+(defun eclim-java-import (type)
+  "Adds an import statement for the given type, if one does not
+exist already."
   (interactive)
-  (eclim/with-results imports ("java_import" "-n" ("-p" (cdr (eclim--java-identifier-at-point))))
-		      (eclim--java-organize-imports (eclim/execute-command "java_import_order" "-p")
-						    (list (eclim--completing-read "Import: " imports)))))
+	(save-excursion
+		(beginning-of-buffer)
+		(let ((revert-buffer-function 'eclim-soft-revert-imports))
+			(when (not (re-search-forward (format "^import %s;" type) nil t))
+				(eclim/execute-command "java_import" "-p" "-f" "-o" "-e" ("-t" type))
+				(eclim--problems-update-maybe)))))
 
-(defun eclim-java-import-missing ()
-  "Checks the current file for missing imports and prompts the
-user if necessary."
+(defun eclim-java-import-organize (&optional types)
+  "Checks the current file for missing imports, removes unused imports and
+sorts import statements. "
   (interactive)
-  (eclim/with-results imports-order ("java_import_order" "-p")
-    (loop for unused across (eclim/execute-command "java_import_missing" "-p" "-f")
-			    do (let* ((candidates (append (cdr (assoc 'imports unused)) nil))
-                    (type (cdr (assoc 'type unused)))
-                    (import (if (= 1 (length candidates))
-                                (car candidates)
-                              (eclim--completing-read (concat "Missing type '" type "'")
-                                                      candidates))))
-               (when import
-                 (eclim--java-organize-imports imports-order
-                                               (list (if (string-endswith-p import type)
-                                                         import
-                                                       (concat import "." type)))))))))
-
-(defun eclim-java-remove-unused-imports ()
-  "Remove usused import from the current java source file."
-  (interactive)
-  (eclim/with-results unused ("java_imports_unused" "-p" "-f")
-    (let ((imports-order (eclim/execute-command "java_import_order" "-p")))
-      (eclim--java-organize-imports imports-order nil (append unused '())))))
+				(let ((revert-buffer-function 'eclim-soft-revert-imports))
+  (eclim/with-results res ("java_import_organize" "-p" "-f" "-o" "-e"
+													 ("-t" (when types
+																	 (reduce (lambda (a b) (concat a "," b)) types))))
+		(eclim--problems-update-maybe)
+    (when (vectorp res)
+      (save-excursion
+					(eclim-java-import-organize
+					 (mapcar (lambda (imports) (eclim--completing-read "Import: " (append imports '()))) res)))))))
 
 (defun eclim-java-implement ()
   "Lets the user select from a list of methods to
@@ -419,11 +392,9 @@ method."
   (eclim/with-results response ("java_impl" "-p" "-f" "-o")
     (let* ((methods
             (mapcar (lambda (x) (replace-regexp-in-string "[ \n\t]+" " " x))
-                    (mapcar (lambda (x) (assoc-default 'signature x))
-                            (remove-if-not (lambda (x) (eq :json-false (assoc-default 'implemented x)))
-                                           (apply 'append
-                                                  (mapcar (lambda (x) (append (assoc-default 'methods x) nil))
-                                                          (assoc-default 'superTypes response)))))))
+										(apply 'append
+													 (mapcar (lambda (x) (append (assoc-default 'methods x) nil))
+																	 (assoc-default 'superTypes response)))))
 			     (start (point)))
 			(insert
 			 "@Override\n"
@@ -490,5 +461,81 @@ method."
       (message "Sorry cannot run current buffer.")
     (compile (concat eclim-executable " -command java -p "  eclim--project-name
                      " -c " (eclim-package-and-class)))))
+
+(defun eclim-java-correct (line column)
+  "Must be called with the problematic file opened in the current buffer."
+  (interactive)
+  (message "Getting corrections...")
+  (eclim/with-results correction-info ("java_correct" "-p" "-f" ("-l" line) ("-o" column))
+    (let ((window-config (current-window-configuration))
+          (corrections (cdr (assoc 'corrections correction-info)))
+          (project (eclim--project-name))) ;; store project name before buffer change
+      (pop-to-buffer "*corrections*")
+      (erase-buffer)
+      (use-local-map eclim-java-correct-map)
+
+      (insert "Problem: " (cdr (assoc 'message correction-info)) "\n\n")
+      (if (eq (length corrections) 0)
+          (insert "No automatic corrections found. Sorry.")
+        (insert (substitute-command-keys
+                 (concat
+                  "Choose a correction by pressing \\[eclim-java-correct-choose]"
+                  " on it or typing its index. Press \\[eclim-java-correct-quit] to quit"))))
+      (insert "\n\n")
+
+      (dotimes (i (length corrections))
+        (let ((correction (aref corrections i)))
+          (insert "------------------------------------------------------------\n"
+                  "Correction "
+                  (int-to-string (cdr (assoc 'index correction)))
+                  ": " (cdr (assoc 'description correction)) "\n\n"
+                  "Preview:\n\n"
+                  (cdr (assoc 'preview correction))
+                  "\n\n")))
+      (goto-char (point-min))
+      (make-local-variable 'eclim-corrections-previous-window-config)
+      (setq eclim-corrections-previous-window-config window-config)
+      (make-local-variable 'eclim-correction-command-info)
+      (setq eclim-correction-command-info (list 'project project
+																								'line line
+																								'column column)))))
+
+(defun eclim-java-correct-choose (&optional index)
+  (interactive)
+  (save-excursion
+    (if index
+        (goto-char (point-max)))
+    (if (not (re-search-backward (concat "^Correction "
+                                         (if index
+                                             index
+                                           "\\([0-9]+\\)")
+                                         ":")
+                                 nil t))
+        (message (concat "No correction "
+                         (if index
+                             (format "with index %s." index)
+                           "here.")))
+      (unless index
+        (setq index (string-to-int (match-string 1))))
+      (let ((info eclim-correction-command-info))
+        (set-window-configuration eclim-corrections-previous-window-config)
+        (message "Applying correction %s" index)
+        (eclim/with-results correction-info ("java_correct"
+																						 ("-p" (plist-get info 'project))
+																						 "-f"
+																						 ("-l" (plist-get info 'line))
+																						 ("-o" (plist-get info 'column))
+																						 ("-a" index))
+					(eclim--problems-update-maybe))))))
+
+(defun eclim-java-correct-choose-by-digit ()
+  (interactive)
+  (eclim-java-correct-choose (this-command-keys)))
+
+
+(defun eclim-java-correct-quit ()
+  (interactive)
+  (set-window-configuration eclim-corrections-previous-window-config))
+
 
 (provide 'eclim-java)
