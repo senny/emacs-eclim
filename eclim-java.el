@@ -46,7 +46,7 @@
     (suppress-keymap map)
     (define-key map (kbd "<tab>") 'forward-button)
     (define-key map (kbd "S-<tab>") 'backward-button)
-    (define-key map (kbd "q") 'eclim-java-show-documentation-quit)
+    (define-key map (kbd "q") 'eclim-quit-window)
     map))
 
 
@@ -581,14 +581,11 @@ method."
 
             (eclim-java-show-documentation-and-format doc)
 
-            (make-local-variable 'eclim-doc-previous-window-config)
-            (setq eclim-doc-previous-window-config window-config)
-
             (message (substitute-command-keys
                       (concat
                        "\\[forward-button] - move to next link, "
                        "\\[backward-button] - move to previous link, "
-                       "\\[eclim-java-show-documentation-quit] - quit")))))
+                       "\\[eclim-quit-window] - quit")))))
 
       (message "No element found at point."))))
 
@@ -666,11 +663,6 @@ method."
   (erase-buffer)
   (insert (pop eclim-java-show-documentation-history))
   (goto-char (point-min)))
-
-
-(defun eclim-java-show-documentation-quit ()
-  (interactive)
-  (set-window-configuration eclim-doc-previous-window-config))
 
 
 (provide 'eclim-java)
