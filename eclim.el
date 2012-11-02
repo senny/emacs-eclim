@@ -98,7 +98,7 @@ saved."
 
 (defcustom eclim-limit-search-results t
   "Determines if code search results should be limited to files
-  in the current workspace."
+in the current workspace."
   :group 'eclim
   :type '(choice (const :tag "Off" nil)
                  (const :tag "On" t)))
@@ -246,13 +246,13 @@ lists are then appended together."
       (funcall executor (cons cmd expargs)
                (lambda ()
                  (when sync
-									 (let ((attrs-curr (file-attributes (buffer-file-name))))
-										 (when (and (file-exists-p (buffer-file-name))
-																attrs-before
-																(or
-																 (not (= (second (sixth attrs-before)) (second (sixth attrs-curr)))) ;; mod time
-																 (not (= (eighth attrs-before) (eighth attrs-curr))))) ;; size time
-											 (revert-buffer t t t)))))))))
+                   (let ((attrs-curr (file-attributes (buffer-file-name))))
+                     (when (and (file-exists-p (buffer-file-name))
+                                attrs-before
+                                (or
+                                 (not (= (second (sixth attrs-before)) (second (sixth attrs-curr)))) ;; mod time
+                                 (not (= (eighth attrs-before) (eighth attrs-curr))))) ;; size time
+                       (revert-buffer t t t)))))))))
 
 (defmacro eclim/execute-command (cmd &rest args)
   "Calls `eclim--expand-args' on ARGS, then calls eclim with the
@@ -492,16 +492,16 @@ the use of eclim to java and ant files."
 
 (defun revert-buffer-keep-history (&optional IGNORE-AUTO NOCONFIRM PRESERVE-MODES)
   (interactive)
-	(save-excursion
-		;; tell Emacs the modtime is fine, so we can edit the buffer
-		(clear-visited-file-modtime)
-		;; insert the current contents of the file on disk
-		(widen)
-		(delete-region (point-min) (point-max))
-		(insert-file-contents (buffer-file-name))
-		;; mark the buffer as not modified
-		(not-modified)
-		(set-visited-file-modtime)))
+  (save-excursion
+    ;; tell Emacs the modtime is fine, so we can edit the buffer
+    (clear-visited-file-modtime)
+    ;; insert the current contents of the file on disk
+    (widen)
+    (delete-region (point-min) (point-max))
+    (insert-file-contents (buffer-file-name))
+    ;; mark the buffer as not modified
+    (not-modified)
+    (set-visited-file-modtime)))
 
 ;; (setq revert-buffer-function 'revert-buffer-keep-history)
 
@@ -512,7 +512,7 @@ the use of eclim to java and ant files."
 (define-globalized-minor-mode global-eclim-mode eclim-mode
   (lambda ()
     (if (and buffer-file-name
-			 (eclim--accepted-p buffer-file-name)
+             (eclim--accepted-p buffer-file-name)
              (eclim--project-dir buffer-file-name))
         (eclim-mode 1))))
 

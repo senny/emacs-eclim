@@ -74,7 +74,6 @@ the current buffer is contained within this list"
                                       "implementors"
                                       "references"))
 
-
 (defvar eclim-java-correct-map
   (let ((map (make-keymap)))
     (suppress-keymap map t)
@@ -91,7 +90,6 @@ the current buffer is contained within this list"
     (define-key map (kbd "9") 'eclim-java-correct-choose-by-digit)
     (define-key map (kbd "RET") 'eclim-java-correct-choose)
     map))
-
 
 (defvar eclim--is-completing nil)
 
@@ -114,8 +112,8 @@ sources."
   "Advice the `delete-file' function to trigger a source update
 in eclim when appropriate."
   (let ((buf (current-buffer))
-	(pr nil)
-	(fn nil))
+        (pr nil)
+        (fn nil))
     (switch-to-buffer (find-buffer-visiting filename))
     (ignore-errors
       (setq pr (eclim--project-name))
@@ -131,8 +129,8 @@ declaration has been found. TYPE may be either 'class',
 'interface', 'enum' or nil, meaning 'match all of the above'."
   (save-excursion
     (if (re-search-backward
-	 (concat (or type "\\(class\\|interface\\|enum\\)") "\\s-+\\([^<{\s-]+\\)") nil t)
-	(match-string 2)
+         (concat (or type "\\(class\\|interface\\|enum\\)") "\\s-+\\([^<{\s-]+\\)") nil t)
+        (match-string 2)
       "")))
 
 (defun eclim--java-current-class-name ()
@@ -165,7 +163,7 @@ has been found."
 (defun eclim/java-classpath-variables ()
   ;; TODO: fix trailing whitespaces
   (mapcar (lambda (line)
-	    (split-string line "-")) (eclim--call-process "java_classpath_variables")))
+            (split-string line "-")) (eclim--call-process "java_classpath_variables")))
 
 (defun eclim/java-classpath-variable-create (name path)
   (eclim--call-process "java_classpath_variable_create" "-n" name "-p" path))
@@ -199,10 +197,10 @@ has been found."
 
 (defun eclim/java-hierarchy (project file offset encoding)
   (eclim--call-process "java_hierarchy"
-		       "-p" project
-		       "-f" file
-		       "-o" (number-to-string offset)
-		       "-e" encoding))
+                       "-p" project
+                       "-f" file
+                       "-o" (number-to-string offset)
+                       "-e" encoding))
 
 (defun eclim-java-refactor-rename-symbol-at-point ()
   "Rename the java symbol at point."
@@ -210,7 +208,7 @@ has been found."
   (let* ((i (eclim--java-identifier-at-point t))
          (n (read-string (concat "Rename " (cdr i) " to: ") (cdr i))))
     (eclim/with-results res ("java_refactor_rename" "-p" "-e" "-f" ("-n" n)
-														 ("-o" (car i)) ("-l" (length (cdr i))))
+                             ("-o" (car i)) ("-l" (length (cdr i))))
       (if (stringp res) (error res))
       (loop for (from to) in (mapcar (lambda (x) (list (assoc-default 'from x) (assoc-default 'to x))) res)
             do (when (and from to)
@@ -223,82 +221,82 @@ has been found."
                      (when buf
                        (switch-to-buffer buf)
                        (revert-buffer t t t))))))
-			(message "Done"))))
+      (message "Done"))))
 
 (defun eclim-java-hierarchy (project file offset encoding)
   (interactive (list (eclim--project-name)
-		     (eclim--project-current-file)
-		     (eclim--byte-offset)
-		     (eclim--current-encoding)))
+                     (eclim--project-current-file)
+                     (eclim--byte-offset)
+                     (eclim--current-encoding)))
   (let ((top-node (eclim--java-insert-file-path-for-hierarchy-nodes
                    (eclim/java-hierarchy project file offset encoding))))
-  (pop-to-buffer "*eclim: hierarchy*" t)
-  (special-mode)
-  (let ((buffer-read-only nil))
-    (erase-buffer)
-    (eclim--java-insert-hierarchy-node
-     project
-     top-node
-     0))))
+    (pop-to-buffer "*eclim: hierarchy*" t)
+    (special-mode)
+    (let ((buffer-read-only nil))
+      (erase-buffer)
+      (eclim--java-insert-hierarchy-node
+       project
+       top-node
+       0))))
 
 (defun eclim--java-insert-file-path-for-hierarchy-nodes (node)
-  ;Can't use *-find-type here because it will pop a buffer
-  ;that isn't part of the project which then breaks future
-  ;*-find-type calls and isn't what we want here anyway.
+                                        ;Can't use *-find-type here because it will pop a buffer
+                                        ;that isn't part of the project which then breaks future
+                                        ;*-find-type calls and isn't what we want here anyway.
   (eclim/with-results hits ("java_search" ("-p" (cdr (assoc 'qualified node))) ("-t" "type") ("-x" "declarations") ("-s" "workspace"))
     (add-to-list 'node `(file-path . ,(assoc-default 'message (elt hits 0))))
     (let ((children (cdr (assoc 'children node))))
       (loop for child across children do
-	    (eclim--java-insert-file-path-for-hierarchy-nodes child)))
+            (eclim--java-insert-file-path-for-hierarchy-nodes child)))
     node))
 
 (defun eclim--java-insert-hierarchy-node (project node level)
   (let ((declaration (cdr (assoc 'name node)))
-	(qualified-name (cdr (assoc 'qualified node))))
+        (qualified-name (cdr (assoc 'qualified node))))
     (insert (format (concat "%-"(number-to-string (* level 2)) "s=> ") ""))
     (lexical-let ((file-path (cdr (assoc 'file-path node))))
       (if file-path
-	  (insert-text-button declaration
-			  'follow-link t
-			  'help-echo qualified-name
-			  'action (lambda (&rest ignore)
-				    (eclim--find-file file-path)))
-	(insert declaration))))
+          (insert-text-button declaration
+                              'follow-link t
+                              'help-echo qualified-name
+                              'action (lambda (&rest ignore)
+                                        (eclim--find-file file-path)))
+        (insert declaration))))
   (newline)
   (let ((children (cdr (assoc 'children node))))
     (loop for child across children do
-	  (eclim--java-insert-hierarchy-node project child (+ level 1)))))
+          (eclim--java-insert-hierarchy-node project child (+ level 1)))))
 
 (defun eclim-java-find-declaration ()
   "Find and display the declaration of the java identifier at point."
   (interactive)
   (let ((i (eclim--java-identifier-at-point t)))
     (eclim/with-results hits ("java_search" "-n" "-f" ("-o" (car i)) ("-l" (length (cdr i))) ("-x" "declaration"))
-			(eclim--find-display-results (cdr i) hits t))))
+      (eclim--find-display-results (cdr i) hits t))))
 
 (defun eclim-java-find-references ()
   "Find and display references for the java identifier at point."
   (interactive)
   (let ((i (eclim--java-identifier-at-point t)))
     (eclim/with-results hits ("java_search" "-n" "-f" ("-o" (car i)) ("-l" (length (cdr i))) ("-x" "references"))
-			(eclim--find-display-results (cdr i) hits))))
+      (eclim--find-display-results (cdr i) hits))))
 
 (defun eclim-java-find-type (type-name)
   "Searches the project for a given class. The TYPE-NAME is the pattern, which will be used for the search."
   (interactive (list (read-string "Name: " (let ((case-fold-search nil)
-						 (current-symbol (symbol-name (symbol-at-point))))
-					     (if (string-match-p "^[A-Z]" current-symbol)
-						 current-symbol
-					       (eclim--java-current-type-name))))))
+                                                 (current-symbol (symbol-name (symbol-at-point))))
+                                             (if (string-match-p "^[A-Z]" current-symbol)
+                                                 current-symbol
+                                               (eclim--java-current-type-name))))))
   (eclim-java-find-generic "workspace" "declarations" "type" type-name t))
 
 (defun eclim-java-find-generic (scope context type pattern &optional open-single-file)
   (interactive (list (eclim--completing-read "Scope: " eclim--java-search-scopes)
-		     (eclim--completing-read "Context: " eclim--java-search-contexts)
-		     (eclim--completing-read "Type: " eclim--java-search-types)
-		     (read-string "Pattern: ")))
+                     (eclim--completing-read "Context: " eclim--java-search-contexts)
+                     (eclim--completing-read "Type: " eclim--java-search-types)
+                     (read-string "Pattern: ")))
   (eclim/with-results hits ("java_search" ("-p" pattern) ("-t" type) ("-x" context) ("-s" scope))
-		      (eclim--find-display-results pattern hits open-single-file)))
+    (eclim--find-display-results pattern hits open-single-file)))
 
 (defun eclim--java-identifier-at-point (&optional full position)
   "Returns a cons cell (BEG . IDENTIFIER) where BEG is the start
@@ -312,13 +310,13 @@ matters for buffers containing non-ASCII characters)."
     ;; TODO: make this work for dos buffers
     (save-excursion
       (if (and full (re-search-forward boundary nil t))
-	  (backward-char))
+          (backward-char))
       (let ((end (point))
-	    (start (progn
-		     (if (re-search-backward boundary nil t) (forward-char))
-		     (point))))
-	(cons (if position (point) (eclim--byte-offset))
-	      (buffer-substring-no-properties start end))))))
+            (start (progn
+                     (if (re-search-backward boundary nil t) (forward-char))
+                     (point))))
+        (cons (if position (point) (eclim--byte-offset))
+              (buffer-substring-no-properties start end))))))
 
 (defun eclim--java-package-components (package)
   "Returns the components of a Java package statement."
@@ -332,57 +330,57 @@ matters for buffers containing non-ASCII characters)."
         (match-string-no-properties 1))))
 
 (defun eclim-soft-revert-imports (ignore-auto noconfirm)
-	"Can be used as a REVERT-BUFFER-FUNCTION to only replace the
+  "Can be used as a REVERT-BUFFER-FUNCTION to only replace the
 imports section of a java source file. This will preserve the
 undo history."
-	(interactive)
-	(flet ((cut-imports ()
-											(beginning-of-buffer)
-											(when (re-search-forward "^import" nil t)
-												(beginning-of-line)
-												(let ((beg (point)))
-													(end-of-buffer)
-													(re-search-backward "^import")
-													(end-of-line)
-													(let ((imports (buffer-substring-no-properties beg (point))))
-														(delete-region beg (point))
-														imports)))))
-		(save-excursion
-			(clear-visited-file-modtime)
-			(cut-imports)
-			(widen)
-			(insert
-			 (let ((fname (buffer-file-name)))
-				 (with-temp-buffer
-					 (insert-file-contents fname)
-					 (cut-imports))))
-			(not-modified)
-			(set-visited-file-modtime))))
+  (interactive)
+  (flet ((cut-imports ()
+                      (beginning-of-buffer)
+                      (when (re-search-forward "^import" nil t)
+                        (beginning-of-line)
+                        (let ((beg (point)))
+                          (end-of-buffer)
+                          (re-search-backward "^import")
+                          (end-of-line)
+                          (let ((imports (buffer-substring-no-properties beg (point))))
+                            (delete-region beg (point))
+                            imports)))))
+    (save-excursion
+      (clear-visited-file-modtime)
+      (cut-imports)
+      (widen)
+      (insert
+       (let ((fname (buffer-file-name)))
+         (with-temp-buffer
+           (insert-file-contents fname)
+           (cut-imports))))
+      (not-modified)
+      (set-visited-file-modtime))))
 
 (defun eclim-java-import (type)
   "Adds an import statement for the given type, if one does not
 exist already."
   (interactive)
-	(save-excursion
-		(beginning-of-buffer)
-		(let ((revert-buffer-function 'eclim-soft-revert-imports))
-			(when (not (re-search-forward (format "^import %s;" type) nil t))
-				(eclim/execute-command "java_import" "-p" "-f" "-o" "-e" ("-t" type))
-				(eclim--problems-update-maybe)))))
+  (save-excursion
+    (beginning-of-buffer)
+    (let ((revert-buffer-function 'eclim-soft-revert-imports))
+      (when (not (re-search-forward (format "^import %s;" type) nil t))
+        (eclim/execute-command "java_import" "-p" "-f" "-o" "-e" ("-t" type))
+        (eclim--problems-update-maybe)))))
 
 (defun eclim-java-import-organize (&optional types)
   "Checks the current file for missing imports, removes unused imports and
 sorts import statements. "
   (interactive)
-				(let ((revert-buffer-function 'eclim-soft-revert-imports))
-  (eclim/with-results res ("java_import_organize" "-p" "-f" "-o" "-e"
-													 ("-t" (when types
-																	 (reduce (lambda (a b) (concat a "," b)) types))))
-		(eclim--problems-update-maybe)
-    (when (vectorp res)
-      (save-excursion
-					(eclim-java-import-organize
-					 (mapcar (lambda (imports) (eclim--completing-read "Import: " (append imports '()))) res)))))))
+  (let ((revert-buffer-function 'eclim-soft-revert-imports))
+    (eclim/with-results res ("java_import_organize" "-p" "-f" "-o" "-e"
+                             ("-t" (when types
+                                     (reduce (lambda (a b) (concat a "," b)) types))))
+      (eclim--problems-update-maybe)
+      (when (vectorp res)
+        (save-excursion
+          (eclim-java-import-organize
+           (mapcar (lambda (imports) (eclim--completing-read "Import: " (append imports '()))) res)))))))
 
 (defun eclim-java-implement ()
   "Lets the user select from a list of methods to
@@ -392,52 +390,52 @@ method."
   (eclim/with-results response ("java_impl" "-p" "-f" "-o")
     (let* ((methods
             (mapcar (lambda (x) (replace-regexp-in-string "[ \n\t]+" " " x))
-										(apply 'append
-													 (mapcar (lambda (x) (append (assoc-default 'methods x) nil))
-																	 (assoc-default 'superTypes response)))))
-			     (start (point)))
-			(insert
-			 "@Override\n"
-			 (replace-regexp-in-string " abstract " " "
-						   (eclim--completing-read "Signature: " methods)) " {}")
-			(backward-char)
-			(indent-region start (point)))))
+                    (apply 'append
+                           (mapcar (lambda (x) (append (assoc-default 'methods x) nil))
+                                   (assoc-default 'superTypes response)))))
+           (start (point)))
+      (insert
+       "@Override\n"
+       (replace-regexp-in-string " abstract " " "
+                                 (eclim--completing-read "Signature: " methods)) " {}")
+      (backward-char)
+      (indent-region start (point)))))
 
 (defun eclim--java-complete-internal (completion-list)
   (let* ((window (get-buffer-window "*Completions*" 0))
-	 (c (eclim--java-identifier-at-point))
-	 (beg (car c))
-	 (word (cdr c))
-	 (compl (try-completion word
-				completion-list)))
+         (c (eclim--java-identifier-at-point))
+         (beg (car c))
+         (word (cdr c))
+         (compl (try-completion word
+                                completion-list)))
     (if (and (eq last-command this-command)
-	     window (window-live-p window) (window-buffer window)
-	     (buffer-name (window-buffer window)))
-	;; If this command was repeated, and there's a fresh completion window
-	;; with a live buffer, and this command is repeated, scroll that
-	;; window.
-	(with-current-buffer (window-buffer window)
-	  (if (pos-visible-in-window-p (point-max) window)
-	      (set-window-start window (point-min))
-	    (save-selected-window
-	      (select-window window)
-	      (scroll-up))))
+             window (window-live-p window) (window-buffer window)
+             (buffer-name (window-buffer window)))
+        ;; If this command was repeated, and there's a fresh completion window
+        ;; with a live buffer, and this command is repeated, scroll that
+        ;; window.
+        (with-current-buffer (window-buffer window)
+          (if (pos-visible-in-window-p (point-max) window)
+              (set-window-start window (point-min))
+            (save-selected-window
+              (select-window window)
+              (scroll-up))))
       (cond
        ((null compl)
-	(message "No completions."))
+        (message "No completions."))
        ((stringp compl)
-	(if (string= word compl)
-	    ;; Show completion buffer
-	    (let ((list (all-completions word completion-list)))
-	      (setq list (sort list 'string<))
-	      (with-output-to-temp-buffer "*Completions*"
-		(display-completion-list list word)))
-	  ;; Complete
-	  (delete-region (1+ beg) (point))
-	  (insert compl)
-	  ;; close completion buffer if there's one
-	  (let ((win (get-buffer-window "*Completions*" 0)))
-	    (if win (quit-window nil win)))))
+        (if (string= word compl)
+            ;; Show completion buffer
+            (let ((list (all-completions word completion-list)))
+              (setq list (sort list 'string<))
+              (with-output-to-temp-buffer "*Completions*"
+                (display-completion-list list word)))
+          ;; Complete
+          (delete-region (1+ beg) (point))
+          (insert compl)
+          ;; close completion buffer if there's one
+          (let ((win (get-buffer-window "*Completions*" 0)))
+            (if win (quit-window nil win)))))
        (t (message "That's the only possible completion."))))))
 
 (defun eclim-java-complete ()
@@ -497,8 +495,8 @@ method."
       (setq eclim-corrections-previous-window-config window-config)
       (make-local-variable 'eclim-correction-command-info)
       (setq eclim-correction-command-info (list 'project project
-																								'line line
-																								'column column)))))
+                                                'line line
+                                                'column column)))))
 
 (defun eclim-java-correct-choose (&optional index)
   (interactive)
@@ -521,12 +519,12 @@ method."
         (set-window-configuration eclim-corrections-previous-window-config)
         (message "Applying correction %s" index)
         (eclim/with-results correction-info ("java_correct"
-																						 ("-p" (plist-get info 'project))
-																						 "-f"
-																						 ("-l" (plist-get info 'line))
-																						 ("-o" (plist-get info 'column))
-																						 ("-a" index))
-					(eclim--problems-update-maybe))))))
+                                             ("-p" (plist-get info 'project))
+                                             "-f"
+                                             ("-l" (plist-get info 'line))
+                                             ("-o" (plist-get info 'column))
+                                             ("-a" index))
+          (eclim--problems-update-maybe))))))
 
 (defun eclim-java-correct-choose-by-digit ()
   (interactive)
@@ -536,6 +534,5 @@ method."
 (defun eclim-java-correct-quit ()
   (interactive)
   (set-window-configuration eclim-corrections-previous-window-config))
-
 
 (provide 'eclim-java)
