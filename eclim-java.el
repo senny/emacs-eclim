@@ -579,7 +579,7 @@ method."
             (pop-to-buffer "*java doc*")
             (use-local-map eclim-java-show-documentation-map)
 
-            (eclim-java-show-documentation-and-format doc)
+            (eclim--java-show-documentation-and-format doc)
 
             (message (substitute-command-keys
                       (concat
@@ -590,7 +590,7 @@ method."
       (message "No element found at point."))))
 
 
-(defun eclim-java-show-documentation-and-format (doc &optional add-to-history)
+(defun eclim--java-show-documentation-and-format (doc &optional add-to-history)
   (make-local-variable 'eclim-java-show-documentation-history)
   (setq eclim-java-show-documentation-history
         (if add-to-history
@@ -618,7 +618,7 @@ method."
   (when add-to-history
     (goto-char (point-max))
     (insert "\n\n")
-    (insert-text-button "back" 'action 'eclim-java-show-documentation-go-back))
+    (insert-text-button "back" 'action 'eclim--java-show-documentation-go-back))
 
   (goto-char (point-min)))
 
@@ -629,7 +629,7 @@ method."
     (if (string-match "^eclipse-javadoc" url)
         (eclim/with-results doc ("java_element_doc"
                                  ("-u" url))
-          (eclim-java-show-documentation-and-format doc t))
+          (eclim--java-show-documentation-and-format doc t))
 
       (if (string-match "^\.\." url)
           (let* ((doc-root-vars '(eclim-java-documentation-root
@@ -659,7 +659,7 @@ method."
                  url)))))
 
 
-(defun eclim-java-show-documentation-go-back (link)
+(defun eclim--java-show-documentation-go-back (link)
   (erase-buffer)
   (insert (pop eclim-java-show-documentation-history))
   (goto-char (point-min)))
