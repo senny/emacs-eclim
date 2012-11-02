@@ -41,6 +41,15 @@
 (define-key eclim-mode-map (kbd "C-c C-e d") 'eclim-java-doc-comment)
 (define-key eclim-mode-map (kbd "C-c C-e f s") 'eclim-java-format)
 
+(defvar eclim-java-show-documentation-map
+  (let ((map (make-keymap)))
+    (suppress-keymap map)
+    (define-key map (kbd "<tab>") 'forward-button)
+    (define-key map (kbd "S-<tab>") 'backward-button)
+    (define-key map (kbd "q") 'eclim-java-show-documentation-quit)
+    map))
+
+
 (defgroup eclim-java nil
   "Java: editing, browsing, refactoring"
   :group 'eclim)
@@ -51,6 +60,23 @@ files. There are certain operations, that eclim will only perform when
 the current buffer is contained within this list"
   :group 'eclim-java
   :type 'list)
+
+;; Could this value be taken from Eclipse somehow?"
+(defcustom eclim-java-documentation-root nil
+  "Root directory of Java HTML documentation.
+
+If Android is used then Eclipse may refer standard Java elements from the copy of
+Java documentation under Android docs, so don't forget to set
+`eclim-java-android-documentation-root' too in that case."
+  :group 'eclim-java
+  :type 'directory)
+
+;; Could this value be taken from Eclipse somehow?"
+(defcustom eclim-java-android-documentation-root nil
+  "Root directory of Android HTML documentation."
+  :group 'eclim-java
+  :type 'directory)
+
 
 (defvar eclim--java-search-types '("all"
                                    "annotation"
@@ -534,5 +560,117 @@ method."
 (defun eclim-java-correct-quit ()
   (interactive)
   (set-window-configuration eclim-corrections-previous-window-config))
+
+
+(defun eclim-java-show-documentation-for-current-element ()
+  (interactive)
+  (let ((symbol (symbol-at-point)))
+    (if symbol
+        (let ((bounds (bounds-of-thing-at-point 'symbol))
+              (window-config (current-window-configuration)))
+          (eclim/with-results doc ("java_element_doc"
+                                   ("-p" (eclim--project-name))
+                                   "-f"
+                                   ("-l" (- (cdr bounds) (car bounds)))
+                                   ("-o" (save-excursion
+                                           (goto-char (car bounds))
+                                           (eclim--byte-offset))))
+
+            (pop-to-buffer "*java doc*")
+            (use-local-map eclim-java-show-documentation-map)
+
+            (eclim-java-show-documentation-and-format doc)
+
+            (make-local-variable 'eclim-doc-previous-window-config)
+            (setq eclim-doc-previous-window-config window-config)
+
+            (message (substitute-command-keys
+                      (concat
+                       "\\[forward-button] - move to next link, "
+                       "\\[backward-button] - move to previous link, "
+                       "\\[eclim-java-show-documentation-quit] - quit")))))
+
+      (message "No element found at point."))))
+
+
+(defun eclim-java-show-documentation-and-format (doc &optional add-to-history)
+  (make-local-variable 'eclim-java-show-documentation-history)
+  (setq eclim-java-show-documentation-history
+        (if add-to-history
+            (push (buffer-substring (point-min) (point-max))
+                  eclim-java-show-documentation-history)))
+
+  (erase-buffer)
+  (insert (cdr (assoc 'text doc)))
+
+  (let ((links (cdr (assoc 'links doc)))
+        link placeholder text href)
+    (dotimes (i (length links))
+      (setq link (aref links i))
+      (setq text (cdr (assoc 'text link)))
+      (setq href (cdr (assoc 'href link)))
+      (setq placeholder (format "|%s[%s]|" text i))
+      (goto-char (point-min))
+      (while (search-forward placeholder nil t)
+        (replace-match text)
+        (make-text-button (match-beginning 0)
+                          (+ (match-beginning 0) (length text))
+                          'action 'eclim-java-show-documentation-follow-link
+                          'url href))))
+
+  (when add-to-history
+    (goto-char (point-max))
+    (insert "\n\n")
+    (insert-text-button "back" 'action 'eclim-java-show-documentation-go-back))
+
+  (goto-char (point-min)))
+
+
+(defun eclim-java-show-documentation-follow-link (link)
+  (interactive)
+  (let ((url (button-get link 'url)))
+    (if (string-match "^eclipse-javadoc" url)
+        (eclim/with-results doc ("java_element_doc"
+                                 ("-u" url))
+          (eclim-java-show-documentation-and-format doc t))
+
+      (if (string-match "^\.\." url)
+          (let* ((doc-root-vars '(eclim-java-documentation-root
+                                  eclim-java-android-documentation-root))
+                 (path (replace-regexp-in-string "^[./]+" "" url))
+                 (fullpath (some (lambda (var)
+                                   (let ((fullpath (concat (symbol-value var)
+                                                           "/"
+                                                           path)))
+                                     (if (file-exists-p (replace-regexp-in-string
+                                                         "#.+"
+                                                         ""
+                                                         fullpath))
+                                         fullpath)))
+                                 doc-root-vars)))
+            (if fullpath
+                (browse-url (concat "file://" fullpath))
+
+              (message (concat "Can't find the root directory for this file: %s. "
+                               "Are the applicable variables set properly? (%s)")
+                       path
+                       (mapconcat (lambda (var)
+                                    (symbol-name var))
+                                  doc-root-vars ", "))))
+
+        (message "There is no handler for this kind of url yet. Implement it! : %s"
+                 url)))))
+
+
+(defun eclim-java-show-documentation-go-back (link)
+  (erase-buffer)
+  (insert (pop eclim-java-show-documentation-history))
+  (goto-char (point-min)))
+
+
+(defun eclim-java-show-documentation-quit ()
+  (interactive)
+  (set-window-configuration eclim-doc-previous-window-config))
+
 
 (provide 'eclim-java)
