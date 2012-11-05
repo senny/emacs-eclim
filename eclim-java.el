@@ -394,18 +394,23 @@ implemnt/override, then inserts a skeleton for the chosen
 method."
   (interactive)
   (eclim/with-results response ("java_impl" "-p" "-f" "-o")
-    (let* ((methods
-            (mapcar (lambda (x) (replace-regexp-in-string "[ \n\t]+" " " x))
-                    (apply 'append
-                           (mapcar (lambda (x) (append (assoc-default 'methods x) nil))
-                                   (assoc-default 'superTypes response)))))
-           (start (point)))
-      (insert
-       "@Override\n"
-       (replace-regexp-in-string " abstract " " "
-                                 (eclim--completing-read "Signature: " methods)) " {}")
-      (backward-char)
-      (indent-region start (point)))))
+    (let* ((methods (mapcar (lambda (x) (replace-regexp-in-string "[ \n\t]+" " " x))
+                           (apply 'append
+                                  (mapcar (lambda (x) (append (assoc-default 'methods x) nil))
+                                          (assoc-default 'superTypes response)))))
+          (method (eclim--completing-read "Signature: " methods))
+          (start (point)))
+      (when (string-match "\\(.*\\)(\\(.*?\\))" method)
+        (let* ((types nil)
+               (sign (replace-regexp-in-string "\\b\\w+\\(\\.\\w+\\)*\\(\\.\\(\\w+\\)\\)+\\b"
+                                               (lambda (s) (progn (push s types) "\\3"))
+                                               (format "%s(%s)"
+                                                       (replace-regexp-in-string "abstract " "" (match-string 1 method))
+                                                       (match-string 2 method)))))
+          (insert (format "@Override\n%s {}" sign))
+          (backward-char)
+          (indent-region start (point))
+          (loop for type in types do (eclim-java-import type)))))))
 
 (defun eclim--java-complete-internal (completion-list)
   (let* ((window (get-buffer-window "*Completions*" 0))
