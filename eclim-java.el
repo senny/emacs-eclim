@@ -497,11 +497,11 @@ method."
     (compile (concat eclim-executable " -command java -p "  eclim--project-name
                      " -c " (eclim-package-and-class)))))
 
-(defun eclim-java-correct (line column)
+(defun eclim-java-correct (line offset)
   "Must be called with the problematic file opened in the current buffer."
   (interactive)
   (message "Getting corrections...")
-  (eclim/with-results correction-info ("java_correct" "-p" "-f" ("-l" line) ("-o" column))
+  (eclim/with-results correction-info ("java_correct" "-p" "-f" ("-l" line) ("-o" offset))
     (let ((window-config (current-window-configuration))
           (corrections (cdr (assoc 'corrections correction-info)))
           (project (eclim--project-name))) ;; store project name before buffer change
@@ -533,7 +533,7 @@ method."
       (make-local-variable 'eclim-correction-command-info)
       (setq eclim-correction-command-info (list 'project project
                                                 'line line
-                                                'column column)))))
+                                                'offset offset)))))
 
 (defun eclim-java-correct-choose (&optional index)
   (interactive)
@@ -559,7 +559,7 @@ method."
                                              ("-p" (plist-get info 'project))
                                              "-f"
                                              ("-l" (plist-get info 'line))
-                                             ("-o" (plist-get info 'column))
+                                             ("-o" (plist-get info 'offset))
                                              ("-a" index))
           (eclim--problems-update-maybe))))))
 
