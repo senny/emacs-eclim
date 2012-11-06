@@ -169,6 +169,11 @@ the result is not valid JSON."
                 (error "Eclim doesn't know how to handle the encoding %s. You can avoid this by
 evaluating (add-to-list 'eclim--file-coding-system-mapping '(\"%s\" . \"<encoding>\"))
 where <encoding> is the corresponding java name for this encoding." e e)))
+             ((string-match "No command '\\(.*\\)' found" result)
+              (let ((c (assoc-default (match-string 1 result)
+                                      '(("xml_complete" "XML" "Eclipse Web Developer Tools")))))
+                (if c (error "Eclim was not installed with %s support. Please make sure that %s are installed, then reinstall eclim." (first c) (second c))
+                  (error result))))
              ((string-match ".*Exception: \\(.*\\)" result)
               (error (match-string 1 result)))
              (t (error result)))))))
@@ -483,7 +488,7 @@ the use of eclim to java and ant files."
   (when (eclim--accepted-p (buffer-file-name))
     (ignore-errors
       (apply 'eclim--call-process "java_src_update" (eclim--expand-args (list "-p" "-f")))))
-      ;; (apply 'eclim--call-process-async (lambda (r)) "java_src_update" (eclim--expand-args (list "-p" "-f" '("-v" nil) ("-b" nil))))))
+  ;; (apply 'eclim--call-process-async (lambda (r)) "java_src_update" (eclim--expand-args (list "-p" "-f" '("-v" nil) ("-b" nil))))))
   t)
 
 (defun revert-buffer-keep-history (&optional IGNORE-AUTO NOCONFIRM PRESERVE-MODES)
