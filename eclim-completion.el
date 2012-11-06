@@ -150,10 +150,9 @@
               (yas/expand-snippet template)
             (insert insertion))
           (when package
-            (eclim--java-organize-imports
-             (eclim/execute-command "java_import_order" "-p")
-             (list (concat package "." (substring insertion 0 (or (string-match "[<(]" insertion)
-                                                                  (length insertion)))))))))))
+            (eclim-java-import
+             (concat package "." (substring insertion 0 (or (string-match "[<(]" insertion)
+                                                            (length insertion))))))))))
 
 (defun eclim--completion-action-nxml ()
 	(when (= 32 (char-before eclim--completion-start))
