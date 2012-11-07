@@ -187,8 +187,7 @@
         (error "Not a Java file. Corrections are currently supported only for Java.")
 
       (eclim-problems-open-current)
-      (eclim-java-correct (cdr (assoc 'line p))
-                          (cdr (assoc 'column p))))))
+      (eclim-java-correct (cdr (assoc 'line p)) (eclim--byte-offset)))))
 
 (defun eclim-problems-buffer-refresh ()
   "Refresh the problem list and draw it on screen."
