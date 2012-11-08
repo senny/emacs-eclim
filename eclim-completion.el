@@ -165,7 +165,7 @@ buffer."
 					(insert completion))))))
 
 (defun eclim--completion-action-default ()
-  (when (= 40 (char-before))
+  (when (and (= 40 (char-before)) (not (looking-at ")")))
     ;; we've inserted an open paren, so let's close it
     (insert ")")
     (backward-char)))
