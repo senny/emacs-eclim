@@ -45,8 +45,7 @@
 (defun ac-emacs-eclim-candidates ()
 	(eclim--completion-candidates))
 
-(defun ac-emacs-eclim-available ()
-	t)
+(defun ac-emacs-eclim-available ()	t)
 
 (defun ac-emacs-eclim-init ()
   (setq eclim--completion-start ac-point)
@@ -56,7 +55,7 @@
   "Work out the point where completion starts."
   (save-excursion
     (case major-mode
-      ((java-mode javascript-mode js-mode ruby-mode)
+      ((java-mode javascript-mode js-mode ruby-mode php-mode)
        (progn
          (backward-char)
          (if (looking-at "\\.") (point)

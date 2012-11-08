@@ -59,6 +59,8 @@
                (eclim/execute-command "xml_complete" "-p" "-f" "-e" "-o"))
               (ruby-mode
                (eclim/execute-command "ruby_complete" "-p" "-f" "-e" "-o"))
+              (php-mode
+               (eclim/execute-command "php_complete" "-p" "-f" "-e" "-o"))
               ((javascript-mode js-mode)
                (eclim/execute-command "javascript_complete" "-p" "-f" "-e" "-o"))))
     (setq eclim--is-completing nil)))
@@ -161,10 +163,16 @@ buffer."
 						(yas/expand-snippet (format "%s=\"${%s}\" ${}" (match-string 1 completion) (match-string 2 completion)))
 					(insert completion))))))
 
+(defun eclim--completion-action-default ()
+  (when (= 40 (char-before))
+    ;; we've inserted an open paren, so let's close it
+    (insert ")")
+    (backward-char)))
+
 (defun eclim--completion-action ()
 	(case major-mode
 		('java-mode (eclim--completion-action-java))
-		('nxml-mode (eclim--completion-action-xml))))
-
+		('nxml-mode (eclim--completion-action-xml))
+    (t (eclim--completion-action-default))))
 
 (provide 'eclim-completion)
