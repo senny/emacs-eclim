@@ -54,7 +54,8 @@
       (setq eclim--completion-candidates
             (case major-mode
               (java-mode
-               (eclim/execute-command "java_complete" "-p" "-f" "-e" ("-l" "standard") "-o"))
+               (assoc-default 'completions
+                              (eclim/execute-command "java_complete" "-p" "-f" "-e" ("-l" "standard") "-o")))
               ((xml-mode nxml-mode)
                (eclim/execute-command "xml_complete" "-p" "-f" "-e" "-o"))
               (ruby-mode
