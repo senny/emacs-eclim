@@ -263,7 +263,7 @@ lists are then appended together."
 (defmacro eclim/execute-command (cmd &rest args)
   "Calls `eclim--expand-args' on ARGS, then calls eclim with the
 results. Automatically saves the current buffer (and optionally
-other java buffers as well), performs an eclim java_src_update
+other java buffers as well), performs an eclim source update
 operation, and refreshes the current buffer if necessary. Raises
 an error if the connection is refused. Automatically calls
 `eclim--check-project' if neccessary."
@@ -277,7 +277,7 @@ an error if the connection is refused. Automatically calls
 (defmacro eclim/execute-command-async (callback cmd &rest args)
   "Calls `eclim--expand-args' on ARGS, then calls eclim with the
 results. Automatically saves the current buffer (and optionally
-other java buffers as well), performs an eclim java_src_update
+other java buffers as well), performs an eclim source update
 operation, and refreshes the current buffer if necessary. Raises
 an error if the connection is refused. Automatically calls
 `eclim--check-project' if neccessary. CALLBACK is a lambda
@@ -457,7 +457,7 @@ FILENAME is given, return that file's  project name instead."
     (kill-local-variable 'eclim--project-name)))
 
 (defcustom eclim-accepted-file-regexps
-  '("\\.java")
+  '("\\.java" "\\.js" "\\.xml" "\\.rb")
   "List of regular expressions that are matched against filenames
 to decide if eclim should be automatically started on a
 particular file. By default all files part of a project managed
@@ -488,7 +488,12 @@ the use of eclim to java and ant files."
 (defun eclim--after-save-hook ()
   (when (eclim--accepted-p (buffer-file-name))
     (ignore-errors
-      (apply 'eclim--call-process "java_src_update" (eclim--expand-args (list "-p" "-f")))))
+      (apply 'eclim--call-process
+             (case major-mode
+               (java-mode "java_src_update")
+               (ruby-mode "ruby_src_update")
+               ((javascript-mode js-mode "javascript_src_update")))
+             (eclim--expand-args (list "-p" "-f")))))
   ;; (apply 'eclim--call-process-async (lambda (r)) "java_src_update" (eclim--expand-args (list "-p" "-f" '("-v" nil) ("-b" nil))))))
   t)
 
