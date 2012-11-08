@@ -71,7 +71,6 @@
     (mapcar (lambda (c) (assoc-default (case major-mode
                                          (java-mode 'info)
                                          (t 'completion)) c))
-                                         ;; ((xml-mode nxml-mode) 'completion)) c))
             (eclim--complete))))
 
 (defun eclim--basic-complete-internal (completion-list)
@@ -167,8 +166,11 @@ buffer."
 (defun eclim--completion-action-default ()
   (when (and (= 40 (char-before)) (not (looking-at ")")))
     ;; we've inserted an open paren, so let's close it
-    (insert ")")
-    (backward-char)))
+    (if (and eclim-use-yasnippet (featurep 'yasnippet))
+        (yas/expand-snippet "$1)$0")
+      (progn
+        (insert ")")
+        (backward-char)))))
 
 (defun eclim--completion-action ()
 	(case major-mode
