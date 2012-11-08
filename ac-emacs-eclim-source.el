@@ -56,7 +56,7 @@
   "Work out the point where completion starts."
   (save-excursion
     (case major-mode
-      (java-mode
+      ((java-mode javascript-mode js-mode ruby-mode)
        (progn
          (backward-char)
          (if (looking-at "\\.") (point)
