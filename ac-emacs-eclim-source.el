@@ -57,10 +57,8 @@
     (case major-mode
       ((java-mode javascript-mode js-mode ruby-mode php-mode)
        (progn
-         (backward-char)
-         (if (looking-at "\\.") (point)
-           (or (re-search-backward "\\b" nil t)
-               (point)))))
+         (ignore-errors (beginning-of-thing 'symbol))
+         (point)))
       ((xml-mode nxml-mode)
        (if (= (char-before) 32)
            (point)
