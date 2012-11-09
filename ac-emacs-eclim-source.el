@@ -65,12 +65,16 @@
          (if (re-search-backward "[< \"]\\(\\(?:[a-zA-Z0-9][:-_a-zA-Z0-9]*\\)?\\)\\=" nil t)
              (match-beginning 1)))))))
 
+(defun ac-emacs-eclim-document (symbol)
+  (assoc-default 'info (find symbol eclim--completion-candidates :test #'string= :key (lambda (c) (assoc-default 'completion c)))))
+
 (ac-define-source emacs-eclim
   '((candidates . ac-emacs-eclim-candidates)
     (available . ac-emacs-eclim-available)
     (init . ac-emacs-eclim-init)
     (action . eclim--completion-action)
     (prefix . ac-emacs-eclim-prefix)
+    (document . ac-emacs-eclim-document)
     (requires . 0)
     (cache)
     (selection-face . ac-emacs-eclim-selection-face)
