@@ -76,7 +76,7 @@
     (prefix . ac-emacs-eclim-prefix)
     (document . ac-emacs-eclim-document)
     (requires . 0)
-    (cache)
+    ;; (cache)
     (selection-face . ac-emacs-eclim-selection-face)
     (candidate-face . ac-emacs-eclim-candidate-face)
     (symbol . "f")))
