@@ -127,6 +127,12 @@ in the current workspace."
 (defvar eclim--compressed-file-path-replacement-regexp "\\\\")
 (defvar eclim--compressed-file-path-removal-regexp "^/")
 
+(defun eclim-toggle-print-debug-messages ()
+  (interactive)
+  (message "Debug messages %s."
+           (if (setq eclim-print-debug-messages (not eclim-print-debug-messages))
+               "on" "off")))
+
 (defun eclim-quit-window (&optional kill-buffer)
   "Bury the buffer and delete its window.  With a prefix argument, kill the
 buffer instead."
