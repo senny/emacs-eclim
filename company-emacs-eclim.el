@@ -26,8 +26,8 @@
 ;;
 ;; company-emacs-eclim.el -- a company-mode backend that replaces company-eclim
 ;;
-;; To activate this backend, replace company-eclim with
-;; company-emacs-eclim in the eclim-backends list, or call the
+;; To activate this backend, replace company-eclim and/or company-nxml
+;; with company-emacs-eclim in the eclim-backends list, or call the
 ;; convenience function company-emacs-eclim-setup.
 
 ;;* Eclim Company
@@ -40,17 +40,10 @@
 (defun company-emacs-eclim-setup ()
   "Convenience function that adds company-emacs-eclim to the list
   of available company backends."
-  (flet ((replace-recur (elt rpl lst)
-												(cond ((null lst) nil)
-															((listp (first lst)) (cons (replace-recur elt rpl (first lst))
-																												 (replace-recur elt rpl (rest lst))))
-															(t (cons (if (equal (first lst) elt) rpl (first lst))
-																			 (replace-recur elt rpl (rest lst)))))))
-    (let ((replaced (replace-recur 'company-eclim 'company-emacs-eclim company-backends)))
-      (setq company-backends
-						(if (eq replaced company-backends)
-								(cons 'company-emacs-eclim company-backends)
-							replaced)))))
+  (setq company-backends
+        (cons 'company-emacs-eclim
+              (remove-if (lambda (b) (find b '(company-nxml company-eclim)))
+                         company-backends))))
  
 (defun company-emacs-eclim (command &optional arg &rest ignored)
   "A `company-mode' back-end for eclim completion"
