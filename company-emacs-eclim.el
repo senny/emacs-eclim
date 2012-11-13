@@ -37,9 +37,6 @@
 (require 'eclim-java)
 (require 'company)
 
-(defvar cee--candidates nil)
-(make-variable-buffer-local 'cee--candidates)
-
 (defun company-emacs-eclim-setup ()
   "Convenience function that adds company-emacs-eclim to the list
   of available company backends."
@@ -54,36 +51,17 @@
 						(if (eq replaced company-backends)
 								(cons 'company-emacs-eclim company-backends)
 							replaced)))))
-
-(defun cee--candidates (prefix)
-	(setq eclim--completion-start (- (point) (length prefix)))
-	(setq cee--candidates (eclim--completion-candidates)))
-
-(defun cee--lookup-candidate (lookup)
-  "Looks up the candidate record that matches the string inserted
-by company-mode in the list of eclim-matches."
-  (find lookup cee--candidates
-				:key #'eclim--completion-candidate-doc
-				:test #'string=))
-
+ 
 (defun company-emacs-eclim (command &optional arg &rest ignored)
   "A `company-mode' back-end for eclim completion"
   (interactive)
   (case command
-    ('prefix (and (derived-mode-p 'java-mode 'jde-mode)
-                  buffer-file-name
-                  eclim-executable
-                  (eclim--project-name)
-                  (not (company-in-string-or-comment))
-                  (or (company-grab-symbol) 'stop)))
-    ('candidates (cee--candidates arg))
-    ('meta (eclim--completion-candidate-doc (cee--lookup-candidate arg)))
+    ('prefix (buffer-substring-no-properties (eclim-completion-start) (point)))
+    ('candidates (eclim--completion-candidates))
+    ('meta (eclim--completion-documentation arg))
     ('no-cache (equal arg ""))))
 
-(defun cee--completion-finished (arg)
-	(eclim--completion-action))
-
 (add-hook 'company-completion-finished-hook
-					'cee--completion-finished)
+          (lambda (arg) (eclim--completion-action)))
 
 (provide 'company-emacs-eclim)

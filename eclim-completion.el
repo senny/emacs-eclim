@@ -134,6 +134,21 @@ buffer."
 
 (defvar eclim--completion-start)
 
+(defun eclim-completion-start ()
+  "Work out the point where completion starts."
+  (setq eclim--completion-start
+        (save-excursion
+          (case major-mode
+            ((java-mode javascript-mode js-mode ruby-mode php-mode)
+             (progn
+               (ignore-errors (beginning-of-thing 'symbol))
+               (point)))
+            ((xml-mode nxml-mode)
+             (if (= (char-before) 32)
+                 (point)
+               (if (re-search-backward "[< \"]\\(\\(?:[a-zA-Z0-9][:-_a-zA-Z0-9]*\\)?\\)\\=" nil t)
+                   (match-beginning 1))))))))
+
 (defun eclim--completion-action-java ()
   (let* ((end (point))
          (completion (buffer-substring-no-properties eclim--completion-start end)))
@@ -177,5 +192,11 @@ buffer."
 		('java-mode (eclim--completion-action-java))
 		('nxml-mode (eclim--completion-action-xml))
     (t (eclim--completion-action-default))))
+
+(defun eclim--completion-documentation (symbol)
+  "Looks up the documentation string for the given SYMBOL in the
+completion candidates list."
+  (assoc-default 'info (find symbol eclim--completion-candidates :test #'string= :key (lambda (c) (assoc-default 'completion c)))))
+
 
 (provide 'eclim-completion)

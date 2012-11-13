@@ -42,41 +42,13 @@
   "Face for the emacs-eclim selected candidate."
   :group 'auto-complete)
 
-(defun ac-emacs-eclim-candidates ()
-	(eclim--completion-candidates))
-
-(defun ac-emacs-eclim-available ()	t)
-
-(defun ac-emacs-eclim-init ()
-  (setq eclim--completion-start ac-point)
-  (when eclim-print-debug-messages (message "Completion started at %s, ac-point is %s" (point) ac-point)))
-
-(defun ac-emacs-eclim-prefix ()
-  "Work out the point where completion starts."
-  (save-excursion
-    (case major-mode
-      ((java-mode javascript-mode js-mode ruby-mode php-mode)
-       (progn
-         (ignore-errors (beginning-of-thing 'symbol))
-         (point)))
-      ((xml-mode nxml-mode)
-       (if (= (char-before) 32)
-           (point)
-         (if (re-search-backward "[< \"]\\(\\(?:[a-zA-Z0-9][:-_a-zA-Z0-9]*\\)?\\)\\=" nil t)
-             (match-beginning 1)))))))
-
-(defun ac-emacs-eclim-document (symbol)
-  (assoc-default 'info (find symbol eclim--completion-candidates :test #'string= :key (lambda (c) (assoc-default 'completion c)))))
-
 (ac-define-source emacs-eclim
-  '((candidates . ac-emacs-eclim-candidates)
-    (available . ac-emacs-eclim-available)
-    (init . ac-emacs-eclim-init)
-    (action . eclim--completion-action)
-    (prefix . ac-emacs-eclim-prefix)
-    (document . ac-emacs-eclim-document)
+  '((candidates . eclim--completion-candidates)
+    (action . eclim--completion-action) 
+    (prefix . eclim-completion-start)
+    (document . eclim--completion-documentation)
     (requires . 0)
-    ;; (cache)
+    (cache)
     (selection-face . ac-emacs-eclim-selection-face)
     (candidate-face . ac-emacs-eclim-candidate-face)
     (symbol . "f")))
