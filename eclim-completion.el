@@ -66,12 +66,19 @@
                (eclim/execute-command "javascript_complete" "-p" "-f" "-e" "-o"))))
     (setq eclim--is-completing nil)))
 
+(defun eclim--completion-candidates-filter (c)
+  (case major-mode
+    ((xml-mode nxml-mode) (or (search "XML Schema" c)
+                              (search "Namespace" c)))
+    (t nil)))
+
 (defun eclim--completion-candidates ()
   (with-no-warnings
-    (mapcar (lambda (c) (assoc-default (case major-mode
-                                         (java-mode 'info)
-                                         (t 'completion)) c))
-            (eclim--complete))))
+    (remove-if #'eclim--completion-candidates-filter
+               (mapcar (lambda (c) (assoc-default (case major-mode
+                                                    (java-mode 'info)
+                                                    (t 'completion)) c))
+                       (eclim--complete)))))
 
 (defun eclim--basic-complete-internal (completion-list)
   "Displays a buffer of basic completions."
