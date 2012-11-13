@@ -193,10 +193,23 @@ buffer."
 		('nxml-mode (eclim--completion-action-xml))
     (t (eclim--completion-action-default))))
 
+(defun eclim--render-doc (str)
+  "Performs rudimentary rendering of HTML elements in
+documentation strings."
+  (apply #'concat
+         (loop for p = 0 then (match-end 0)
+               while (string-match "[[:blank:]]*\\(.*?\\)\\(</?.*?>\\)" str p) collect (match-string 1 str) into ret
+               for tag = (downcase (match-string 2 str))
+               when (or (string= tag "</p>") (string= tag "<p>")) collect "\n" into ret
+               when (string= tag "<br/>") collect " " into ret
+               when (string= tag "<li>") collect " * " into ret
+               finally return (append ret (list (substring str p))))))
+
 (defun eclim--completion-documentation (symbol)
   "Looks up the documentation string for the given SYMBOL in the
 completion candidates list."
-  (assoc-default 'info (find symbol eclim--completion-candidates :test #'string= :key (lambda (c) (assoc-default 'completion c)))))
-
+  (let ((doc (assoc-default 'info (find symbol eclim--completion-candidates :test #'string= :key (lambda (c) (assoc-default 'completion c))))))
+    (when doc
+      (eclim--render-doc doc))))
 
 (provide 'eclim-completion)
