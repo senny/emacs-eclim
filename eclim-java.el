@@ -119,12 +119,6 @@ Java documentation under Android docs, so don't forget to set
 
 (defvar eclim--is-completing nil)
 
-(defun eclim/java-complete ()
-  (setq eclim--is-completing t)
-  (unwind-protect
-      (eclim/execute-command "java_complete" "-p" "-f" "-e" ("-l" "standard") "-o")
-    (setq eclim--is-completing nil)))
-
 (defun eclim/java-src-update (&optional save-others)
   "If `eclim-auto-save' is non-nil, save the current java
 buffer. In addition, if `save-others' is non-nil, also save any
@@ -163,24 +157,6 @@ declaration has been found. TYPE may be either 'class',
   "Searches backward in the current buffer until a class declaration
 has been found."
   (eclim--java-current-type-name "\\(class\\)"))
-
-(defun eclim--completion-candidate-type (candidate)
-  "Returns the type of a candidate."
-  (assoc-default 'type candidate))
-
-(defun eclim--completion-candidate-class (candidate)
-  "Returns the class name of a candidate."
-  (assoc-default 'info candidate))
-
-(defun eclim--completion-candidate-doc (candidate)
-  "Returns the documentation for a candidate."
-  (assoc-default 'menu candidate))
-
-(defun eclim--completion-candidate-package (candidate)
-  "Returns the package name of a candidate."
-  (let ((doc (eclim--completion-candidate-doc candidate)))
-    (when (string-match "\\(.*\\)\s-\s\\(.*\\)" doc)
-      (match-string 2 doc))))
 
 (defun eclim/java-classpath (project)
   (eclim--check-project project)
@@ -438,50 +414,6 @@ method."
           (indent-region start (point))
           (loop for type in types do (eclim-java-import type)))))))
 
-(defun eclim--java-complete-internal (completion-list)
-  (let* ((window (get-buffer-window "*Completions*" 0))
-         (c (eclim--java-identifier-at-point))
-         (beg (car c))
-         (word (cdr c))
-         (compl (try-completion word
-                                completion-list)))
-    (if (and (eq last-command this-command)
-             window (window-live-p window) (window-buffer window)
-             (buffer-name (window-buffer window)))
-        ;; If this command was repeated, and there's a fresh completion window
-        ;; with a live buffer, and this command is repeated, scroll that
-        ;; window.
-        (with-current-buffer (window-buffer window)
-          (if (pos-visible-in-window-p (point-max) window)
-              (set-window-start window (point-min))
-            (save-selected-window
-              (select-window window)
-              (scroll-up))))
-      (cond
-       ((null compl)
-        (message "No completions."))
-       ((stringp compl)
-        (if (string= word compl)
-            ;; Show completion buffer
-            (let ((list (all-completions word completion-list)))
-              (setq list (sort list 'string<))
-              (with-output-to-temp-buffer "*Completions*"
-                (display-completion-list list word)))
-          ;; Complete
-          (delete-region (1+ beg) (point))
-          (insert compl)
-          ;; close completion buffer if there's one
-          (let ((win (get-buffer-window "*Completions*" 0)))
-            (if win (quit-window nil win)))))
-       (t (message "That's the only possible completion."))))))
-
-(defun eclim-java-complete ()
-  (interactive)
-  (when eclim-auto-save (save-buffer))
-  (eclim--java-complete-internal
-   (mapcar 'cdr
-           (mapcar 'second
-                   (assoc-default 'completions (eclim/java-complete))))))
 
 (defun eclim-package-and-class ()
   (let ((package-name (eclim--java-current-package))

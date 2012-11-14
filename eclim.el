@@ -127,6 +127,12 @@ in the current workspace."
 (defvar eclim--compressed-file-path-replacement-regexp "\\\\")
 (defvar eclim--compressed-file-path-removal-regexp "^/")
 
+(defun eclim-toggle-print-debug-messages ()
+  (interactive)
+  (message "Debug messages %s."
+           (if (setq eclim-print-debug-messages (not eclim-print-debug-messages))
+               "on" "off")))
+
 (defun eclim-quit-window (&optional kill-buffer)
   "Bury the buffer and delete its window.  With a prefix argument, kill the
 buffer instead."
@@ -169,6 +175,13 @@ the result is not valid JSON."
                 (error "Eclim doesn't know how to handle the encoding %s. You can avoid this by
 evaluating (add-to-list 'eclim--file-coding-system-mapping '(\"%s\" . \"<encoding>\"))
 where <encoding> is the corresponding java name for this encoding." e e)))
+             ((string-match "No command '\\(.*\\)' found" result)
+              (let ((c (assoc-default (match-string 1 result)
+                                      '(("xml_complete" "XML" "Eclipse Web Developer Tools")
+                                        ("ruby_complete" "Ruby" "Eclipse Ruby Development Tools")
+                                        ("php_complete" "PHP" "Eclipse PHP Development Tools")))))
+                (if c (error "Eclim was not installed with %s support. Please make sure that %s are installed, then reinstall eclim." (first c) (second c))
+                  (error result))))
              ((string-match ".*Exception: \\(.*\\)" result)
               (error (match-string 1 result)))
              (t (error result)))))))
@@ -257,7 +270,7 @@ lists are then appended together."
 (defmacro eclim/execute-command (cmd &rest args)
   "Calls `eclim--expand-args' on ARGS, then calls eclim with the
 results. Automatically saves the current buffer (and optionally
-other java buffers as well), performs an eclim java_src_update
+other java buffers as well), performs an eclim source update
 operation, and refreshes the current buffer if necessary. Raises
 an error if the connection is refused. Automatically calls
 `eclim--check-project' if neccessary."
@@ -271,7 +284,7 @@ an error if the connection is refused. Automatically calls
 (defmacro eclim/execute-command-async (callback cmd &rest args)
   "Calls `eclim--expand-args' on ARGS, then calls eclim with the
 results. Automatically saves the current buffer (and optionally
-other java buffers as well), performs an eclim java_src_update
+other java buffers as well), performs an eclim source update
 operation, and refreshes the current buffer if necessary. Raises
 an error if the connection is refused. Automatically calls
 `eclim--check-project' if neccessary. CALLBACK is a lambda
@@ -428,11 +441,6 @@ FILENAME is given, return that file's  project name instead."
 (defun eclim/jobs (&optional family)
   (eclim/execute-command "jobs" ("-f" family)))
 
-(defun eclim-complete ()
-  (interactive)
-  ;; TODO build context sensitive completion mechanism
-  (eclim-java-complete))
-
 ;;** The minor mode and its keymap
 
 (defvar eclim-mode-map
@@ -456,7 +464,7 @@ FILENAME is given, return that file's  project name instead."
     (kill-local-variable 'eclim--project-name)))
 
 (defcustom eclim-accepted-file-regexps
-  '("\\.java")
+  '("\\.java" "\\.js" "\\.xml" "\\.rb" "\\.php")
   "List of regular expressions that are matched against filenames
 to decide if eclim should be automatically started on a
 particular file. By default all files part of a project managed
@@ -487,7 +495,13 @@ the use of eclim to java and ant files."
 (defun eclim--after-save-hook ()
   (when (eclim--accepted-p (buffer-file-name))
     (ignore-errors
-      (apply 'eclim--call-process "java_src_update" (eclim--expand-args (list "-p" "-f")))))
+      (apply 'eclim--call-process
+             (case major-mode
+               (java-mode "java_src_update")
+               (ruby-mode "ruby_src_update")
+               (php-mode "php_src_update")
+               ((javascript-mode js-mode "javascript_src_update")))
+             (eclim--expand-args (list "-p" "-f")))))
   t)
 
 (defun revert-buffer-keep-history (&optional IGNORE-AUTO NOCONFIRM PRESERVE-MODES)
