@@ -151,10 +151,9 @@ buffer."
                (ignore-errors (beginning-of-thing 'symbol))
                (point)))
             ((xml-mode nxml-mode)
-             (if (= (char-before) 32)
-                 (point)
-               (if (re-search-backward "[< \"]\\(\\(?:[a-zA-Z0-9][:-_a-zA-Z0-9]*\\)?\\)\\=" nil t)
-                   (match-beginning 1))))))))
+             (while (not (string-match "[<\n[:blank:]]" (char-to-string (char-before))))
+               (backward-char))
+             (point))))))
 
 (defun eclim--completion-action-java ()
   (let* ((end (point))
@@ -174,7 +173,7 @@ buffer."
                                                             (length insertion))))))))))
 
 (defun eclim--completion-action-xml ()
-	(when (= 32 (char-before eclim--completion-start))
+	(when (string-match "[\n[:blank:]]" (char-to-string (char-before eclim--completion-start)))
 		;; we are completing an attribute; let's use yasnippet to get som nice completion going
 		(let* ((end (point))
 					 (c (buffer-substring-no-properties eclim--completion-start end))
