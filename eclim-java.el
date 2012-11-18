@@ -137,14 +137,11 @@ sources."
 (defadvice delete-file (around eclim--delete-file activate)
   "Advice the `delete-file' function to trigger a source update
 in eclim when appropriate."
-  (let ((buf (current-buffer))
-        (pr nil)
+  (let ((pr nil)
         (fn nil))
-    (switch-to-buffer (find-buffer-visiting filename))
     (ignore-errors
-      (setq pr (eclim--project-name))
-      (setq fn (eclim--project-current-file)))
-    (switch-to-buffer buf)
+      (and (setq pr (eclim--project-name filename))
+           (setq fn (file-relative-name filename (eclim--project-dir filename)))))
     ad-do-it
     (when (and pr fn)
       (ignore-errors (apply 'eclim--call-process (list "java_src_update" "-p" pr "-f" fn))))))
