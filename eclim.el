@@ -350,19 +350,22 @@ argument FILENAME is given, return that file's project root directory."
 (defun eclim--project-name (&optional filename)
   "Returns this file's project name. If the optional argument
 FILENAME is given, return that file's  project name instead."
-  (or eclim--project-name
-      (setq eclim--project-name
-            (let ((project-list (eclim/project-list))
-                  (project-dir (eclim--project-dir (or filename buffer-file-name))))
-              (when (and project-list project-dir)
-                (assoc-default 'name
-                               (or
-                                (find project-dir project-list ;; case sensitive
-                                      :key (lambda (e) (assoc-default 'path e))
-                                      :test (lambda (s1 s2) (string= (file-truename s1) (file-truename s2))))
-                                (find project-dir project-list ;; case insensitive
-                                      :key (lambda (e) (assoc-default 'path e))
-                                      :test (lambda (s1 s2) (string= (downcase (file-truename s1)) (downcase (file-truename s2))))))))))))
+  (labels ((get-project-name (file)
+             (let ((project-list (eclim/project-list))
+                   (project-dir (eclim--project-dir file)))
+               (when (and project-list project-dir)
+                 (assoc-default 'name
+                                (or
+                                 (find project-dir project-list ;; case sensitive
+                                       :key (lambda (e) (assoc-default 'path e))
+                                       :test (lambda (s1 s2) (string= (file-truename s1) (file-truename s2))))
+                                 (find project-dir project-list ;; case insensitive
+                                       :key (lambda (e) (assoc-default 'path e))
+                                       :test (lambda (s1 s2) (string= (downcase (file-truename s1)) (downcase (file-truename s2)))))))))))
+    (if filename
+        (get-project-name filename)
+        (or eclim--project-name
+            (setq eclim--project-name (get-project-name buffer-file-name))))))
 
 (defun eclim--find-file (path-to-file)
   (if (not (string-match-p "!" path-to-file))
