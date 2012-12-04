@@ -49,7 +49,9 @@
   "A `company-mode' back-end for eclim completion"
   (interactive)
   (case command
-    ('prefix (buffer-substring-no-properties (eclim-completion-start) (point)))
+    ('prefix
+     (let ((start (eclim-completion-start)))
+       (when start (buffer-substring-no-properties start (point)))))
     ('candidates (eclim--completion-candidates))
     ('meta (eclim--completion-documentation arg))
     ('no-cache (equal arg ""))))
