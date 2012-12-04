@@ -53,4 +53,23 @@
     (candidate-face . ac-emacs-eclim-candidate-face)
     (symbol . "f")))
 
+(defun ac-emacs-eclim-java-setup ()
+  (push 'ac-source-emacs-eclim ac-sources))
+
+(defun ac-emacs-eclim-xml-setup ()
+  (push 'ac-source-emacs-eclim ac-sources))
+
+(defun ac-emacs-eclim-php-setup ()
+  (push 'ac-source-emacs-eclim ac-sources))
+
+(defun ac-emacs-eclim-ruby-setup ()
+  (push 'ac-source-emacs-eclim ac-sources))
+
+(defun ac-emacs-eclim-setup ()
+  (add-hook 'java-mode-hook 'ac-emacs-eclim-java-setup)
+  (add-hook 'xml-mode-hook 'ac-emacs-eclim-xml-setup)
+  (add-hook 'nxml-mode-hook 'ac-emacs-eclim-xml-setup)
+  (add-hook 'php-mode-hook 'ac-emacs-eclim-php-setup)
+  (add-hook 'ruby-mode-hook 'ac-emacs-eclim-ruby-setup))
+
 (provide 'ac-emacs-eclim-source)
