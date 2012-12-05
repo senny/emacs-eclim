@@ -65,7 +65,7 @@
 (defun ac-emacs-eclim-ruby-setup ()
   (push 'ac-source-emacs-eclim ac-sources))
 
-(defun ac-emacs-eclim-setup ()
+(defun ac-emacs-eclim-config ()
   (add-hook 'java-mode-hook 'ac-emacs-eclim-java-setup)
   (add-hook 'xml-mode-hook 'ac-emacs-eclim-xml-setup)
   (add-hook 'nxml-mode-hook 'ac-emacs-eclim-xml-setup)
