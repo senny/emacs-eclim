@@ -140,6 +140,29 @@ in eclim when appropriate."
     (when (and pr fn)
       (ignore-errors (apply 'eclim--call-process (list "java_src_update" "-p" pr "-f" fn))))))
 
+(defun eclim--java-parser-read (str)
+  (first 
+   (read-from-string
+    (format "(%s)"
+            (replace-regexp-in-string
+             "[<>(),]"
+             (lambda (m) (assoc-default m '(("<" . "((") (">" . "))")
+                                            ("(" . "((") (")" ."))")
+                                            ("," . ")("))))
+             str)))))
+
+(defun eclim--java-parse-method-signature (signature)
+  (flet ((parser3/parse-arg (arg)
+                            (let ((arg-rev (reverse arg)))
+                              (cond ((null arg) nil)
+                                    ((= (length arg) 1) (list (list :type (first arg))))
+                                    ((listp (first arg-rev)) (list (cons :type arg)))
+                                    (t (list (cons :name (first arg-rev)) (cons :type (reverse (rest arg-rev)))))))))
+    (let ((ast (reverse (eclim--java-parser-read signature))))
+      (list (cons :arglist (mapcar #'parser3/parse-arg (first ast)))
+            (cons :name (second ast))
+            (cons :return (reverse (rest (rest ast))))))))
+
 (defun eclim--java-current-type-name (&optional type)
   "Searches backward in the current buffer until a type
 declaration has been found. TYPE may be either 'class',
@@ -393,24 +416,24 @@ implemnt/override, then inserts a skeleton for the chosen
 method."
   (interactive)
   (eclim/with-results response ("java_impl" "-p" "-f" "-o")
-    (let* ((methods (mapcar (lambda (x) (replace-regexp-in-string "[ \n\t]+" " " x))
-                           (apply 'append
-                                  (mapcar (lambda (x) (append (assoc-default 'methods x) nil))
-                                          (assoc-default 'superTypes response)))))
-          (method (eclim--completing-read "Signature: " methods))
-          (start (point)))
-      (when (string-match "\\(.*\\)(\\(.*?\\))" method)
-        (let* ((types nil)
-               (sign (replace-regexp-in-string "\\b\\w+\\(\\.\\w+\\)*\\(\\.\\(\\w+\\)\\)+\\b"
-                                               (lambda (s) (progn (push s types) "\\3"))
-                                               (format "%s(%s)"
-                                                       (replace-regexp-in-string "abstract " "" (match-string 1 method))
-                                                       (match-string 2 method)))))
-          (insert (format "@Override\n%s {}" sign))
-          (backward-char)
-          (indent-region start (point))
-          (loop for type in types do (eclim-java-import type)))))))
-
+    (flet ((join (glue items)
+                 (cond ((null items) "")
+                       ((= 1 (length items)) (princ (first items)))
+                       (t (reduce (lambda (a b) (format "%s%s%s" a glue b)) items)))))
+      (let* ((methods (mapcar (lambda (x) (replace-regexp-in-string "[ \n\t]+" " " x))
+                              (apply 'append
+                                     (mapcar (lambda (x) (append (assoc-default 'methods x) nil))
+                                             (assoc-default 'superTypes response)))))
+             (method (eclim--completing-read "Signature: " methods))
+             (start (point))
+             (sig (eclim--java-parse-method-signature method)))
+        (yas/expand-snippet (format "@Override\n%s %s(%s) {$0}"
+                                    (join " " (remove 'abstract (assoc-default :return sig)))
+                                    (assoc-default :name sig)
+                                    (join ", " (loop for arg in (remove-if #'null (assoc-default :arglist sig))
+                                                     for i from 0
+                                                     collect (join " " (append (assoc-default :type arg)
+                                                                               (list (format "${arg%s}" i))))))))))))
 
 (defun eclim-package-and-class ()
   (let ((package-name (eclim--java-current-package))
