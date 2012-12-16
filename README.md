@@ -79,9 +79,7 @@ following to your .emacs:
 
 	;; add the emacs-eclim source
 	(require 'ac-emacs-eclim-source)
-	(add-hook 'eclim-mode-hook (lambda ()
-                                 (add-to-list 'ac-sources 'ac-source-emacs-eclim)
-                                 (add-to-list 'ac-sources 'ac-source-emacs-eclim-c-dot)))
+    (ac-emacs-eclim-config)
 
 ### Configuring company-mode
 
