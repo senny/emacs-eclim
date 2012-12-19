@@ -211,7 +211,7 @@ has been found."
 (defun eclim-java-format ()
   "Format the source code of the current java source file."
   (interactive)
-  (eclim/execute-command "java_format" "-p" "-f" ("-b" 0) ("-e" (1- (point-max)))))
+  (eclim/execute-command "java_format" "-p" "-f" ("-h" 0) ("-t" (1- (point-max))) "-e"))
 
 (defun eclim-java-constructor ()
   (interactive)
