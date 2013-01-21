@@ -335,7 +335,6 @@ value is computed for that file's instead."
   (ignore-errors
     (let ((file (or filename buffer-file-name)))
       (and file
-           (file-exists-p file)
            (eclim--project-name file)))))
 
 (defun eclim--project-dir (&optional filename)
