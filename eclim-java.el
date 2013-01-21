@@ -450,9 +450,11 @@ method."
                                                             (assoc-default 'superTypes response))))))
              (method (if (= 1 (length methods)) (first methods)
                        (eclim--completing-read "Signature: " methods)))
-             (sig (eclim--java-parse-method-signature method)))
+             (sig (eclim--java-parse-method-signature method))
+             (ret (assoc-default :return sig)))
         (yas/expand-snippet (format "@Override\n%s %s(%s) {$0}"
-                                    (join " " (remove 'abstract (assoc-default :return sig)))
+                                    (join " " (append (remove 'abstract (subseq ret 0 (1- (length ret))))
+                                                             (format-type (last ret))))
                                     (assoc-default :name sig)
                                     (join ", " (loop for arg in (remove-if #'null (assoc-default :arglist sig))
                                                      for i from 0
