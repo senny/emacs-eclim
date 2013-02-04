@@ -31,16 +31,21 @@ number. You can see and download previous releases
 1. download emacs-eclim
 1. add the following code to your emacs startup script
 
-        (add-to-list 'load-path (expand-file-name "/path/to/emacs-eclim/"))
-        ;; only add the vendor path when you want to use the libraries provided with emacs-eclim
-        (add-to-list 'load-path (expand-file-name "~/coding/git/emacs-eclim/vendor"))
-        (require 'eclim)
+```lisp
+(add-to-list 'load-path (expand-file-name "/path/to/emacs-eclim/"))
+;; only add the vendor path when you want to use the libraries provided with emacs-eclim
+(add-to-list 'load-path (expand-file-name "~/coding/git/emacs-eclim/vendor"))
+(require 'eclim)
 
-        (setq eclim-auto-save t)
-        (global-eclim-mode)
-1. If you want to control eclimd from emacs, also add
+(setq eclim-auto-save t)
+(global-eclim-mode)
+```
 
-        (require 'eclimd)
+If you want to control eclimd from emacs, also add:
+
+```lisp
+(require 'eclimd)
+```
 
 ## Configuration
 
@@ -53,8 +58,10 @@ you have Eclipse installed in a non-standard location
 * Either customize the `eclim-executable` variable to make it point to the `eclim` executable within the Eclipe directory if necessary
 * Or, you can override the lookup by adding the following to your startup script.
 
-        (custom-set-variables
-         '(eclim-eclipse-dirs '("~/opt/eclipse")))
+```lisp
+(custom-set-variables
+ '(eclim-eclipse-dirs '("~/opt/eclipse")))
+```
 
 ### Displaying compilation error messages in the echo area
 
@@ -64,22 +71,26 @@ corresponding error message in the echo area. You can either invoke
 `(display-local-help)` manually or activate automatic display of local
 help by adding the following to .emacs:
 
-	(setq help-at-pt-display-when-idle t)
-	(setq help-at-pt-timer-delay 0.1)
-	(help-at-pt-set-timer)
+```lisp
+(setq help-at-pt-display-when-idle t)
+(setq help-at-pt-timer-delay 0.1)
+(help-at-pt-set-timer)
+```
 
 ### Configuring auto-complete-mode
 
 If you wish to use [auto-complete-mode] with emacs-eclim, add the
 following to your .emacs:
 
-	;; regular auto-complete initialization
-	(require 'auto-complete-config)
-	(ac-config-default)
+```lisp
+;; regular auto-complete initialization
+(require 'auto-complete-config)
+(ac-config-default)
 
-	;; add the emacs-eclim source
-	(require 'ac-emacs-eclim-source)
-    (ac-emacs-eclim-config)
+;; add the emacs-eclim source
+(require 'ac-emacs-eclim-source)
+(ac-emacs-eclim-config)
+```
 
 ### Configuring company-mode
 
@@ -87,10 +98,12 @@ Emacs-eclim can integrate with [company-mode] to provide pop-up
 dialogs for auto-completion. To activate this, you need to add the
 following to your .emacs:
 
-	(require 'company)
-	(require 'company-emacs-eclim)
-	(company-emacs-eclim-setup)
-	(global-company-mode t)
+```lisp
+(require 'company)
+(require 'company-emacs-eclim)
+(company-emacs-eclim-setup)
+(global-company-mode t)
+```
 
 ### Configuring eclimd module
 
@@ -155,17 +168,8 @@ program.
 
 ## Contributing
 
-The project is under active development and we are always looking for
-assistance. See the
-[Roadmap](http://wiki.github.com/senny/emacs-eclim/roadmap) wiki page
-for more information.
-
-1. Fork emacs-eclim
-2. Create a topic branch - `git checkout -b my_branch`
-3. Make your changes and update the History.txt file
-4. Push to your branch - `git push origin my_branch`
-5. Send me a pull-request for your topic branch
-6. That's it!
+Have a quick look at our [Contribution Guidelines](CONTRIBUTING.md)
+and hack away.
 
 [yasnippet]:http://code.google.com/p/yasnippet/
 [company-mode]:http://nschum.de/src/emacs/company-mode/
