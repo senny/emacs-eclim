@@ -31,6 +31,7 @@
 ;;* Eclim
 
 (eval-when-compile (require 'cl))
+(require 'etags)
 
 ;;** Basics
 
@@ -412,6 +413,7 @@ FILENAME is given, return that file's  project name instead."
             (assoc-default 'message line))))
 
 (defun eclim--visit-declaration (line)
+  (ring-insert find-tag-marker-ring (point-marker))
   (eclim--find-file (assoc-default 'filename line))
   (goto-line (assoc-default 'line line))
   (move-to-column (- (assoc-default 'column line) 1)))
