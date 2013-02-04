@@ -1,4 +1,3 @@
-
 (defgroup eclim-problems nil
   "Problems: settings for displaying the problems buffer and highlighting errors in code."
   :group 'eclim)
@@ -270,20 +269,28 @@ COMPILATION-SKIP-THRESHOLD, implement this feature."
 
 (defun eclim--insert-problem (problem filecol-size)
   (let* ((filecol-format-string (concat "%-" (number-to-string filecol-size) "s"))
-         (filename (truncate-string-to-width (eclim--problems-cleanup-filename (assoc-default 'filename problem))
-                                             40 0 nil t))
+         (problem-new-line-pos (cl-position ?\n (assoc-default 'message problem)))
+         (problem-message
+          (if problem-new-line-pos
+              (concat (substring (assoc-default 'message problem)
+                                 0 problem-new-line-pos)
+                      "...")
+              (assoc-default 'message problem)))
+         (filename (truncate-string-to-width
+                    (eclim--problems-cleanup-filename (assoc-default 'filename problem))
+                    40 0 nil t))
          (text (if eclim-problems-show-pos
                    (format (concat filecol-format-string
                                    " | line %-12s"
                                    " | %s")
                            filename
                            (assoc-default 'line problem)
-                           (assoc-default 'message problem))
-                 ;; else
-                 (format (concat filecol-format-string
-                                 " | %s")
-                         filename
-                         (assoc-default 'message problem)))))
+                           problem-message)
+                   ;; else
+                   (format (concat filecol-format-string
+                                   " | %s")
+                           filename
+                           problem-message))))
     (when (and eclim-problems-hl-errors (eq :json-false (assoc-default 'warning problem)))
       (put-text-property 0 (length text) 'face 'bold text))
     (insert text)
