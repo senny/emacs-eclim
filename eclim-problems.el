@@ -1,4 +1,3 @@
-
 (defgroup eclim-problems nil
   "Problems: settings for displaying the problems buffer and highlighting errors in code."
   :group 'eclim)
@@ -189,21 +188,28 @@
       (eclim-problems-open-current)
       (eclim-java-correct (cdr (assoc 'line p)) (eclim--byte-offset)))))
 
+(defun eclim--update-problems-list ()
+  "Refresh the problem list"
+  (when eclim--problems-project
+    (when (not (minibuffer-window-active-p (minibuffer-window)))
+      (message "refreshing... %s " (current-buffer)))
+    (eclim/with-results-async res ("problems" ("-p" eclim--problems-project) (when (string= "e" eclim--problems-filter) '("-e" "true")))
+      (setq eclim--problems-list res))))
+
 (defun eclim-problems-buffer-refresh ()
   "Refresh the problem list and draw it on screen."
   (interactive)
-	(when eclim--problems-project
-		(when (not (minibuffer-window-active-p (minibuffer-window)))
-			(message "refreshing... %s " (current-buffer)))
-		(eclim/with-results-async res ("problems" ("-p" eclim--problems-project) (when (string= "e" eclim--problems-filter) '("-e" "true")))
-			(setq eclim--problems-list res)
-			(eclim--problems-buffer-redisplay)
-			(if (not (minibuffer-window-active-p (minibuffer-window)))
-					(if (string= "e" eclim--problems-filter)
-							(message "Eclim reports %d errors." (length eclim--problems-list))
-						(message "Eclim reports %d errors, %d warnings."
-										 (length (remove-if-not (lambda (p) (not (eq t (assoc-default 'warning p)))) eclim--problems-list))
-										 (length (remove-if-not (lambda (p) (eq t (assoc-default 'warning p))) eclim--problems-list))))))))
+        (when eclim--problems-project
+                (when (not (minibuffer-window-active-p (minibuffer-window)))
+                        (message "refreshing... %s " (current-buffer)))
+                (if (eclim--update-problems-list)
+                    (eclim--problems-buffer-redisplay)
+                  (if (not (minibuffer-window-active-p (minibuffer-window)))
+                      (if (string= "e" eclim--problems-filter)
+                          (message "Eclim reports %d errors." (length eclim--problems-list))
+                        (message "Eclim reports %d errors, %d warnings."
+                                 (length (remove-if-not (lambda (p) (not (eq t (assoc-default 'warning p)))) eclim--problems-list))
+                                 (length (remove-if-not (lambda (p) (eq t (assoc-default 'warning p))) eclim--problems-list))))))))
 
 (defun eclim--problems-cleanup-filename (filename)
   (let ((x (file-name-nondirectory (assoc-default 'filename problem))))
@@ -378,7 +384,7 @@ refresh of the problems buffer."
 is convenient as it lets the user navigate between errors using
 `next-error' (\\[next-error])."
   (interactive)
-  (let ((problems (eclim--problems))
+  (let ((problems (eclim--update-problems-list))
         (filecol-size (eclim--problems-filecol-size))
         (project-directory (concat (eclim--project-dir buffer-file-name) "/"))
         (compil-buffer (get-buffer-create eclim--problems-compilation-buffer-name)))
@@ -388,14 +394,14 @@ is convenient as it lets the user navigate between errors using
       (erase-buffer)
       (insert (concat "-*- mode: compilation; default-directory: "
                       project-directory
-                      " -*-\n"))
+                      " -*-\n\n"))
       (let ((errors 0) (warnings 0))
-        (dolist (problem (eclim--problems-filtered t))
-          (eclim--insert-problem-compilation problem filecol-size project-directory)
-          (cond ((string-equal (eclim--problem-type problem) "e")
-                 (setq errors (1+ errors)))
-                ((string-equal (eclim--problem-type problem) "w")
-                 (setq warnings (1+ warnings)))))
+        (loop for problem across (eclim--problems-filtered)
+              do (eclim--insert-problem-compilation problem filecol-size project-directory)
+          (cond ((assoc-default 'warning problem)
+                 (setq warnings (1+ warnings)))
+                (t
+                 (setq errors (1+ errors)))))
         (insert (format "\nCompilation results: %d errors and %d warnings."
                         errors warnings)))
       (compilation-mode))
@@ -403,11 +409,10 @@ is convenient as it lets the user navigate between errors using
 
 (defun eclim--insert-problem-compilation (problem filecol-size project-directory)
   (let ((filename (first (split-string (assoc-default 'filename problem) project-directory t)))
-        (position (split-string (eclim--problem-pos problem) " col " t))
         (description (assoc-default 'message problem))
-        (type (eclim--problem-type problem)))
-    (let ((line (first position))
-          (col (second position)))
+        (type (if (eq t (assoc-default 'warning problem)) "W" "E")))
+    (let ((line (assoc-default 'line problem))
+          (col (assoc-default 'column problem)))
       (insert (format "%s:%s:%s: %s: %s\n" filename line col (upcase type) description)))))
 
 (add-hook 'after-save-hook #'eclim--problems-update-maybe)
