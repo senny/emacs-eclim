@@ -27,17 +27,19 @@ number. You can see and download previous releases
 [here](https://github.com/senny/emacs-eclim/tags).
 
 ## Installation
-1. [download and install](http://eclim.org/install.html) eclim.
-1. download emacs-eclim
-1. add the following code to your emacs startup script
+
+1. [Download and install](http://eclim.org/install.html) eclim.
+1. Install emacs-eclim. You have two options:
+   * Installation from the [MELPA][melpa] package archive. Just add
+   the archive to `package-archives` if you haven't already, and then
+   install emacs-eclim with the `package-install` command.
+   * Manual installation from GitHub. 
+       1. (`git clone git://github.com/senny/emacs-eclim.git`)
+       1. Add `(add-to-list 'load-path "/path/to/emacs-eclim/")` to your startup script.
+1. Add the following code to your emacs startup script
 
 ```lisp
-(add-to-list 'load-path (expand-file-name "/path/to/emacs-eclim/"))
-;; only add the vendor path when you want to use the libraries provided with emacs-eclim
-(add-to-list 'load-path (expand-file-name "~/coding/git/emacs-eclim/vendor"))
 (require 'eclim)
-
-(setq eclim-auto-save t)
 (global-eclim-mode)
 ```
 
@@ -47,13 +49,14 @@ If you want to control eclimd from emacs, also add:
 (require 'eclimd)
 ```
 
+
 ## Configuration
 
 ### Eclipse installation
 
 Emacs-eclim tries its best to locate your Eclipse installation.  If
 you have Eclipse installed in a non-standard location
-(i.e. ~/opt/eclipse) you have to options:
+(i.e. ~/opt/eclipse) you have two options:
 
 * Either customize the `eclim-executable` variable to make it point to the `eclim` executable within the Eclipe directory if necessary
 * Or, you can override the lookup by adding the following to your startup script.
@@ -134,6 +137,7 @@ variables you can tweak:
 * A recent version (tested with 0.5) of [company-mode]
 * A recent version (tested with 1.4) version of [auto-complete-mode]
 * ido-mode (part of emacs as of version 22)
+* json.el (part of emacs as of version 23)
 
 ## Usage
 To get started just launch the eclim executable that the placed in
@@ -174,3 +178,5 @@ and hack away.
 [yasnippet]:http://code.google.com/p/yasnippet/
 [company-mode]:http://nschum.de/src/emacs/company-mode/
 [auto-complete-mode]:http://cx4a.org/software/auto-complete/
+[melpa]:http://melpa.milkbox.net/
+[repo]:https://github.com/senny/emacs-eclim
