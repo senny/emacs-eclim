@@ -276,7 +276,7 @@ COMPILATION-SKIP-THRESHOLD, implement this feature."
 
 (defun eclim--insert-problem (problem filecol-size)
   (let* ((filecol-format-string (concat "%-" (number-to-string filecol-size) "s"))
-         (problem-new-line-pos (cl-position ?\n (assoc-default 'message problem)))
+         (problem-new-line-pos (position ?\n (assoc-default 'message problem)))
          (problem-message
           (if problem-new-line-pos
               (concat (substring (assoc-default 'message problem)
