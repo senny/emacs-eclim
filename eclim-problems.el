@@ -107,10 +107,12 @@
   (run-mode-hooks 'eclim-problems-mode-hook))
 
 (defun eclim--problem-goto-pos (p)
-  (goto-char (point-min))
-  (forward-line (1- (assoc-default 'line p)))
-  (dotimes (i (1- (assoc-default 'column p)))
-    (forward-char)))
+  (save-restriction
+    (widen)
+    (goto-char (point-min))
+    (forward-line (1- (assoc-default 'line p)))
+    (dotimes (i (1- (assoc-default 'column p)))
+      (forward-char))))
 
 (defun eclim--problems-apply-filter (f)
   (setq eclim--problems-filter f)
@@ -161,18 +163,32 @@
 
 (defun eclim-problems-highlight ()
   (interactive)
-  (when (eclim--file-managed-p)
-    (eclim--problems-clear-highlights)
-    (loop for problem across (remove-if-not (lambda (p) (string= (assoc-default 'filename p) (buffer-file-name))) eclim--problems-list)
-          do (eclim--problems-insert-highlight problem))))
+  (save-restriction
+    (widen)
+    (when (eclim--file-managed-p)
+      (eclim--problems-clear-highlights)
+      (loop for problem across (remove-if-not (lambda (p) (string= (assoc-default 'filename p) (buffer-file-name))) eclim--problems-list)
+            do (eclim--problems-insert-highlight problem)))))
 
 (defun eclim-problems-get-current-problem ()
-  (let ((problems (eclim--problems-filtered))
-        (index (1- (line-number-at-pos))))
-    (if (>= index (length problems))
-        (error "No problem on this line.")
-      (aref problems index))))
-
+  (let ((buf (get-buffer "*eclim: problems*")))
+    (if (eq buf (current-buffer))
+        ;; we are in the problems buffer
+        (let ((problems (eclim--problems-filtered))
+              (index (1- (line-number-at-pos))))
+          (if (>= index (length problems))
+              (error "No problem on this line.")
+            (aref problems index)))
+      ;; we need to figure out which problem corresponds to this pos
+      (save-restriction
+        (widen)
+        (let ((line (line-number-at-pos))
+              (col (current-column)))
+          (or (find-if (lambda (p) (and (string= (assoc-default 'filename p) (buffer-file-name))
+                                        (= (assoc-default 'line p) line)))
+                       eclim--problems-list)
+              (error "No problem on this line")))))))
+      
 (defun eclim-problems-open-current ()
   (interactive)
   (let* ((p (eclim-problems-get-current-problem)))
