@@ -170,7 +170,7 @@
       (loop for problem across (remove-if-not (lambda (p) (string= (assoc-default 'filename p) (buffer-file-name))) eclim--problems-list)
             do (eclim--problems-insert-highlight problem)))))
 
-(defun eclim-problems-get-current-problem ()
+(defun eclim--problems-get-current-problem ()
   (let ((buf (get-buffer "*eclim: problems*")))
     (if (eq buf (current-buffer))
         ;; we are in the problems buffer
@@ -191,13 +191,13 @@
       
 (defun eclim-problems-open-current ()
   (interactive)
-  (let* ((p (eclim-problems-get-current-problem)))
+  (let* ((p (eclim--problems-get-current-problem)))
     (find-file-other-window (assoc-default 'filename p))
     (eclim--problem-goto-pos p)))
 
 (defun eclim-problems-correct ()
   (interactive)
-  (let ((p (eclim-problems-get-current-problem)))
+  (let ((p (eclim--problems-get-current-problem)))
     (if (not (string-match "\.java$" (cdr (assoc 'filename p))))
         (error "Not a Java file. Corrections are currently supported only for Java.")
       (eclim-problems-open-current)
