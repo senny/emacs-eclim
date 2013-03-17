@@ -174,11 +174,11 @@ program.
 
 Read more about emacs-eclim:
 
+* [Enterprise Java Development in Emacs](http://www.skybert.net/emacs/java/), \[Torstein Krause Johansen\]
 * [The Ballad of Emacs-Eclim](http://mulli.nu/2012/02/02/the-ballad-of-emacs-eclim.html), \[Fredrik Appelberg\]
 * [Emacs and Java](http://blog.senny.ch/blog/2012/10/13/emacs-and-java-journey-of-a-hard-friendship/), \[Yves Senn\]
 * [Java Autocompletion for Emacs](http://root42.blogspot.ch/2012/08/java-autocompletion-for-emacs.html), \[root42\]
 * [Eclim: Eclipse Meets Vim And Emacs](http://faruk.akgul.org/blog/eclim-eclipse-meets-vim-emacs/), \[Faruk Akgul\]
-* [Enterprise Java Development in Emacs](http://www.skybert.net/emacs/java/), \[Torstein Krause Johansen\]
 
 ## Contributing
 
