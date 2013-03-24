@@ -28,6 +28,8 @@
 ;;    and auto-complete-mode backends.
 ;;
 
+(require 'thingatpt)
+
 (defun eclim--completion-candidate-type (candidate)
   "Returns the type of a candidate."
   (assoc-default 'type candidate))
