@@ -192,7 +192,7 @@ buffer."
       (when (string-match "\\(.*\\)=\"\\(.*\\)\"" completion)
         (delete-region eclim--completion-start end)
         (if (and eclim-use-yasnippet (featurep 'yasnippet))
-            (yas/expand-snippet (format "%s=\"${%s}\" ${}" (match-string 1 completion) (match-string 2 completion)))
+            (yas/expand-snippet (format "%s=\"${1:%s}\" $0" (match-string 1 completion) (match-string 2 completion)))
           (insert completion))))))
 
 (defun eclim--completion-action-default ()
