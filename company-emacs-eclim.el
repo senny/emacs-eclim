@@ -1,6 +1,7 @@
 ;; company-emacs-eclim.el --- an interface to the Eclipse IDE.
 ;;
 ;; Copyright (C) 2009-2012   Fredrik Appelberg
+;; Copyright (C) 2013   Dmitry Gutov
 ;;
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -15,13 +16,6 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;
-;;; Contributors
-;;
-;;; Conventions
-;;
-;; Conventions used in this file: Name internal variables and functions
-;; "eclim--<descriptive-name>", and name eclim command invocations
-;; "eclim/command-name", like eclim/project-list.
 ;;; Description
 ;;
 ;; company-emacs-eclim.el -- a company-mode backend that replaces company-eclim
@@ -44,19 +38,20 @@
         (cons 'company-emacs-eclim
               (remove-if (lambda (b) (find b '(company-nxml company-eclim)))
                          company-backends))))
- 
+
 (defun company-emacs-eclim (command &optional arg &rest ignored)
   "A `company-mode' back-end for eclim completion"
-  (interactive)
+  (interactive (list 'interactive))
   (case command
-    ('prefix
+    (interactive (company-begin-backend 'company-emacs-eclim))
+    (prefix
      (let ((start (eclim-completion-start)))
        (when start (buffer-substring-no-properties start (point)))))
-    ('candidates (eclim--completion-candidates))
-    ('meta (eclim--completion-documentation arg))
-    ('no-cache (equal arg ""))))
-
-(add-hook 'company-completion-finished-hook
-          (lambda (arg) (eclim--completion-action)))
+    (candidates (eclim--completion-candidates))
+    (meta (eclim--completion-documentation arg))
+    (no-cache (equal arg ""))
+    (crop (when (string-match "(" arg)
+            (substring arg 0 (match-beginning 0))))
+    (post-completion (eclim--completion-action))))
 
 (provide 'company-emacs-eclim)
