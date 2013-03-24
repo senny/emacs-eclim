@@ -145,10 +145,11 @@ in eclim when appropriate."
    (read-from-string
     (format "(%s)"
             (replace-regexp-in-string
-             "[<>(),]"
+             "[<>(),?]"
              (lambda (m) (assoc-default m '(("<" . "((") (">" . "))")
                                             ("(" . "((") (")" ."))")
-                                            ("," . ")("))))
+                                            ("," . ")(")
+                                            ("?" . "\\\\?"))))
              str)))))
 
 (defun eclim--java-parse-method-signature (signature)
@@ -428,7 +429,7 @@ method."
   (eclim/with-results response ("java_impl" "-p" "-f" "-o")
     (flet ((join (glue items)
                  (cond ((null items) "")
-                       ((= 1 (length items)) (princ (first items)))
+                       ((= 1 (length items)) (format "%s" (first items)))
                        (t (reduce (lambda (a b) (format "%s%s%s" a glue b)) items))))
            (format-type (type)
                         (cond ((null type) nil)
@@ -453,8 +454,10 @@ method."
              (sig (eclim--java-parse-method-signature method))
              (ret (assoc-default :return sig)))
         (yas/expand-snippet (format "@Override\n%s %s(%s) {$0}"
-                                    (join " " (append (remove 'abstract (subseq ret 0 (1- (length ret))))
-                                                             (format-type (last ret))))
+                                    (apply #'concat 
+                                           (join " " (remove-if-not (lambda (m) (find m '(public protected private void))) (subseq ret 0 (1- (length ret)))))
+                                           " "
+                                           (format-type (remove-if (lambda (m) (find m '(abstract public protected private ))) ret)))
                                     (assoc-default :name sig)
                                     (join ", " (loop for arg in (remove-if #'null (assoc-default :arglist sig))
                                                      for i from 0
