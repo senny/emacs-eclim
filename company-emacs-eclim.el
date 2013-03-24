@@ -43,6 +43,7 @@
   "A `company-mode' back-end for eclim completion"
   (interactive (list 'interactive))
   (case command
+    (interactive (company-begin-backend 'company-emacs-eclim))
     (prefix
      (let ((start (eclim-completion-start)))
        (when start (buffer-substring-no-properties start (point)))))
