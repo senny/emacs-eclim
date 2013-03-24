@@ -51,7 +51,7 @@
 (defvar eclim--completion-candidates nil)
 
 (defun eclim--complete ()
-	(setq eclim--is-completing t)
+  (setq eclim--is-completing t)
   (unwind-protect
       (setq eclim--completion-candidates
             (case major-mode
@@ -74,13 +74,18 @@
                               (search "Namespace" c)))
     (t nil)))
 
+(defun eclim--completion-candidate-menu-item (candidate)
+  "Returns the part of the completion candidate to be displayed
+in a completion menu."
+  (assoc-default (case major-mode
+                   (java-mode 'info)
+                   (t 'completion)) candidate))
+
 (defun eclim--completion-candidates ()
   (with-no-warnings
     (remove-if #'eclim--completion-candidates-filter
-               (mapcar (lambda (c) (assoc-default (case major-mode
-                                                    (java-mode 'info)
-                                                    (t 'completion)) c))
-                       (eclim--complete)))))
+               (mapcar #'eclim--completion-candidate-menu-item
+               (eclim--complete)))))
 
 (defun eclim--basic-complete-internal (completion-list)
   "Displays a buffer of basic completions."
@@ -179,16 +184,16 @@ buffer."
                                                                (length insertion)))))))))))
 
 (defun eclim--completion-action-xml ()
-	(when (string-match "[\n[:blank:]]" (char-to-string (char-before eclim--completion-start)))
-		;; we are completing an attribute; let's use yasnippet to get som nice completion going
-		(let* ((end (point))
-					 (c (buffer-substring-no-properties eclim--completion-start end))
-					 (completion (if (string-endswith-p c "\"") c (concat c "=\"\""))))
-			(when (string-match "\\(.*\\)=\"\\(.*\\)\"" completion)
-				(delete-region eclim--completion-start end)
-				(if (and eclim-use-yasnippet (featurep 'yasnippet))
-						(yas/expand-snippet (format "%s=\"${%s}\" ${}" (match-string 1 completion) (match-string 2 completion)))
-					(insert completion))))))
+  (when (string-match "[\n[:blank:]]" (char-to-string (char-before eclim--completion-start)))
+    ;; we are completing an attribute; let's use yasnippet to get som nice completion going
+    (let* ((end (point))
+           (c (buffer-substring-no-properties eclim--completion-start end))
+           (completion (if (string-endswith-p c "\"") c (concat c "=\"\""))))
+      (when (string-match "\\(.*\\)=\"\\(.*\\)\"" completion)
+        (delete-region eclim--completion-start end)
+        (if (and eclim-use-yasnippet (featurep 'yasnippet))
+            (yas/expand-snippet (format "%s=\"${%s}\" ${}" (match-string 1 completion) (match-string 2 completion)))
+          (insert completion))))))
 
 (defun eclim--completion-action-default ()
   (when (and (= 40 (char-before)) (not (looking-at ")")))
@@ -200,9 +205,9 @@ buffer."
         (backward-char)))))
 
 (defun eclim--completion-action ()
-	(case major-mode
-		('java-mode (eclim--completion-action-java))
-		('nxml-mode (eclim--completion-action-xml))
+  (case major-mode
+    ('java-mode (eclim--completion-action-java))
+    ('nxml-mode (eclim--completion-action-xml))
     (t (eclim--completion-action-default))))
 
 (defun eclim--render-doc (str)
@@ -218,9 +223,10 @@ documentation strings."
                finally return (append ret (list (substring str p))))))
 
 (defun eclim--completion-documentation (symbol)
+  (message "DOC %s" symbol)
   "Looks up the documentation string for the given SYMBOL in the
 completion candidates list."
-  (let ((doc (assoc-default 'info (find symbol eclim--completion-candidates :test #'string= :key (lambda (c) (assoc-default 'completion c))))))
+  (let ((doc (assoc-default 'info (find symbol eclim--completion-candidates :test #'string= :key #'eclim--completion-candidate-menu-item))))
     (when doc
       (eclim--render-doc doc))))
 
