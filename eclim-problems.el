@@ -188,7 +188,7 @@
                                         (= (assoc-default 'line p) line)))
                        eclim--problems-list)
               (error "No problem on this line")))))))
-      
+
 (defun eclim-problems-open-current ()
   (interactive)
   (let* ((p (eclim--problems-get-current-problem)))
@@ -439,7 +439,5 @@ is convenient as it lets the user navigate between errors using
     (let ((line (assoc-default 'line problem))
           (col (assoc-default 'column problem)))
       (insert (format "%s:%s:%s: %s: %s\n" filename line col (upcase type) description)))))
-
-(add-hook 'after-save-hook #'eclim--problems-update-maybe)
 
 (provide 'eclim-problems)
