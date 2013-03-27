@@ -456,7 +456,7 @@ FILENAME is given, return that file's  project name instead."
 (defvar eclim-mode-hook nil)
 
 (define-minor-mode eclim-mode
-    "An interface to the Eclipse IDE."
+  "An interface to the Eclipse IDE."
   nil
   " Eclim"
   eclim-mode-map
@@ -468,9 +468,8 @@ FILENAME is given, return that file's  project name instead."
         (kill-local-variable 'eclim--project-name)
         (add-hook 'after-save-hook 'eclim--problems-update-maybe nil 't)
         (add-hook 'after-save-hook 'eclim--after-save-hook nil 't))
-      (progn
-        (remove-hook 'after-save-hook 'eclim--problems-update-maybe 't)
-        (remove-hook 'after-save-hook 'eclim--after-save-hook 't))))
+    (remove-hook 'after-save-hook 'eclim--problems-update-maybe 't)
+    (remove-hook 'after-save-hook 'eclim--after-save-hook 't)))
 
 (defcustom eclim-accepted-file-regexps
   '("\\.java" "\\.js" "\\.xml" "\\.rb" "\\.php")
