@@ -304,6 +304,17 @@ has been found."
     (eclim/with-results hits ("java_search" "-n" "-f" ("-o" (car i)) ("-l" (length (cdr i))) ("-x" "references"))
       (eclim--find-display-results (cdr i) hits))))
 
+(defun eclim-java-find-simple (identifier)
+  "Searches the project for a given identifier. The IDENTIFIER is the pattern, which will be used for the search."
+  (interactive (list (read-string "Pattern: " (let ((case-fold-search nil)
+                                                 (current-symbol (symbol-name (symbol-at-point))))
+                                             (if (string-match-p "^[a-zA-Z_]" current-symbol)
+                                                 current-symbol
+                                               (eclim--java-current-type-name))))))
+  (if (string= type-name (downcase type-name))
+      (eclim-java-find-generic-i "workspace" "" "" identifier t)
+    (eclim-java-find-generic "workspace" "" "" identifier t)))
+
 (defun eclim-java-find-type (type-name)
   "Searches the project for a given class. The TYPE-NAME is the pattern, which will be used for the search."
   (interactive (list (read-string "Name: " (let ((case-fold-search nil)
