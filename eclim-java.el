@@ -311,7 +311,7 @@ has been found."
                                              (if (string-match-p "^[a-zA-Z_]" current-symbol)
                                                  current-symbol
                                                (eclim--java-current-type-name))))))
-  (if (string= type-name (downcase type-name))
+  (if (string= identifier (downcase identifier))
       (eclim-java-find-generic-i "workspace" "" "" identifier t)
     (eclim-java-find-generic "workspace" "" "" identifier t)))
 
