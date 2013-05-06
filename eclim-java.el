@@ -228,7 +228,8 @@ has been found."
                        "-o" (number-to-string offset)
                        "-e" encoding
                        "-r" (cdr (eclim--java-identifier-at-point t))
-                       "-t" "gettersetter"))
+                       "-t" "gettersetter")
+  (revert-buffer t t t))
 
 (defun eclim-java-constructor ()
   (interactive)
