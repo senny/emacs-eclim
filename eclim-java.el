@@ -40,6 +40,7 @@
 (define-key eclim-mode-map (kbd "C-c C-e z") 'eclim-java-implement)
 (define-key eclim-mode-map (kbd "C-c C-e d") 'eclim-java-doc-comment)
 (define-key eclim-mode-map (kbd "C-c C-e f s") 'eclim-java-format)
+(define-key eclim-mode-map (kbd "C-c C-e g") 'eclim-java-generate-getter-and-setter)
 
 (defvar eclim-java-show-documentation-map
   (let ((map (make-keymap)))
@@ -213,6 +214,21 @@ has been found."
   "Format the source code of the current java source file."
   (interactive)
   (eclim/execute-command "java_format" "-p" "-f" ("-h" 0) ("-t" (1- (point-max))) "-e"))
+
+(defun eclim-java-generate-getter-and-setter (project file offset encoding)
+  "Generates getter and setter methods for the symbol at point."
+  (interactive (list (eclim--project-name)
+                     (eclim--project-current-file)
+                     (eclim--byte-offset)
+                     (eclim--current-encoding)))
+
+  (eclim--call-process "java_bean_properties"
+                       "-p" project
+                       "-f" file
+                       "-o" (number-to-string offset)
+                       "-e" encoding
+                       "-r" (cdr (eclim--java-identifier-at-point t))
+                       "-t" "gettersetter"))
 
 (defun eclim-java-constructor ()
   (interactive)
