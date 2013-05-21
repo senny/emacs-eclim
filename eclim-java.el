@@ -496,7 +496,7 @@ method."
 
 (defun eclim-java-correct (line offset)
   "Must be called with the problematic file opened in the current buffer."
-  (interactive)
+  (interactive (list (line-number-at-pos) (current-column)))
   (message "Getting corrections...")
   (eclim/with-results correction-info ("java_correct" "-p" "-f" ("-l" line) ("-o" offset))
     (let ((window-config (current-window-configuration))
