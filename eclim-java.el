@@ -496,7 +496,6 @@ method."
 
 (defun eclim-java-correct (line offset)
   "Must be called with the problematic file opened in the current buffer."
-  (interactive)
   (message "Getting corrections...")
   (eclim/with-results correction-info ("java_correct" "-p" "-f" ("-l" line) ("-o" offset))
     (let ((window-config (current-window-configuration))
@@ -533,7 +532,6 @@ method."
                                                 'offset offset)))))
 
 (defun eclim-java-correct-choose (&optional index)
-  (interactive)
   (save-excursion
     (if index
         (goto-char (point-max)))
