@@ -158,13 +158,12 @@ operation, and the rest are flags/values to be passed on to
 eclimd."
   (when (not eclim-executable)
     (error "Eclim installation not found. Please set eclim-executable."))
-  (let ((cmd (apply 'concat eclim-executable " -command "
-                    (first args) " "
-                    (loop for a = (rest args) then (rest (rest a))
-                          for arg = (first a)
-                          for val = (second a)
-                          while arg when val collect (concat arg " " (shell-quote-argument (if (numberp val) (number-to-string val) val)) " ")))))
-    cmd))
+  (reduce (lambda (a b) (format "%s %s" a b))
+         (append (list eclim-executable "-command" (first args))
+                 (loop for a = (rest args) then (rest (rest a))
+                       for arg = (first a)
+                       for val = (second a)
+                       while arg append (if val (list arg (shell-quote-argument val)) (list arg))))))
 
 (defun eclim--parse-result (result)
   "Parses the result of an eclim operation, raising an error if

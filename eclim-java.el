@@ -423,8 +423,7 @@ sorts import statements. "
   (interactive)
   (let ((revert-buffer-function 'eclim-soft-revert-imports))
     (eclim/with-results res ("java_import_organize" "-p" "-f" "-o" "-e"
-                             ("-t" (when types
-                                     (reduce (lambda (a b) (concat a "," b)) types))))
+                             (when types (list "-t" (reduce (lambda (a b) (concat a "," b)) types))))
       (eclim--problems-update-maybe)
       (when (vectorp res)
         (save-excursion
