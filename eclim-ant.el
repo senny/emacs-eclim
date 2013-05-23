@@ -61,7 +61,7 @@ stored. It is used globally for all eclim projects."
       (puthash buildfile (eclim/ant-target-list project buildfile) eclim--ant-target-cache)))
 
 (defun eclim--ant-read-target (project buildfile)
-  (eclim--completing-read "Target: " (eclim--ant-targets project buildfile)))
+  (eclim--completing-read "Target: " (append (eclim--ant-targets project buildfile) nil)))
 
 (defun eclim/ant-validate (project buildfile)
   (eclim--check-project project)
