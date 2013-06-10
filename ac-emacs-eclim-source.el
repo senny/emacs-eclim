@@ -47,7 +47,6 @@
     (action . eclim--completion-action) 
     (prefix . eclim-completion-start)
     (document . eclim--completion-documentation)
-    (requires . 0)
     (cache)
     (selection-face . ac-emacs-eclim-selection-face)
     (candidate-face . ac-emacs-eclim-candidate-face)
