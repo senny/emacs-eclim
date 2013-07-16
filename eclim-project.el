@@ -91,7 +91,7 @@
   (switch-to-buffer (get-buffer-create "*eclim: projects*"))
   (eclim--project-mode)
   (eclim--project-buffer-refresh)
-  (add-hook 'post-command-hook 'eclim--project-set-current)
+  (add-hook 'post-command-hook 'eclim--project-set-current nil t)
   (beginning-of-buffer))
 
 (defun eclim--project-mode ()
