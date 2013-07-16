@@ -351,7 +351,9 @@ without switching to it."
 (defun eclim-problems ()
   "Show current compilation problems in a separate window."
   (interactive)
-  (eclim--problems-mode-init))
+  (if (eclim--project-name)
+      (eclim--problems-mode-init)
+    (error "Could not figure out the current project. Is this an eclim managed buffer?")))
 
 (defun eclim-problems-open ()
   "Opens a new (emacs) window inside the current frame showing the current project compilation problems"
