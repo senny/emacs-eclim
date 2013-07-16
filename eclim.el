@@ -251,9 +251,14 @@ lists are then appended together."
                          (list a (eval (cdr (or (assoc a eclim--default-args)
                                                 (error "sorry, no default value for: %s" a)))))))))
 
+(defun eclim--command-should-sync-p (cmd args)
+  (and (eclim--args-contains args '("-f" "-o"))
+                            (not (or (string= cmd "project_by_resource")
+                                     (string= cmd "project_link_resource")))))
+
 (defun eclim--execute-command-internal (executor cmd args)
   (lexical-let* ((expargs (eclim--expand-args args))
-                 (sync (eclim--args-contains args '("-f" "-o")))
+                 (sync (eclim--command-should-sync-p cmd args))
                  (check (eclim--args-contains args '("-p"))))
     (when sync (eclim/java-src-update))
     (when check
