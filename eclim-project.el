@@ -83,10 +83,15 @@
     (eclim--completing-read "Project: "
                             (mapcar (lambda (p) (assoc-default 'name p)) (eclim/project-list)))))
 
+(defun eclim--project-set-current ()
+  (ignore-errors
+    (setq eclim--project-name (eclim--project-current-line))))
+
 (defun eclim--project-mode-init ()
   (switch-to-buffer (get-buffer-create "*eclim: projects*"))
   (eclim--project-mode)
   (eclim--project-buffer-refresh)
+  (add-hook 'post-command-hook 'eclim--project-set-current)
   (beginning-of-buffer))
 
 (defun eclim--project-mode ()
@@ -382,6 +387,5 @@
   (interactive)
   (eclim--project-clear-cache)
   (eclim--project-mode-init))
-
 
 (provide 'eclim-project)
