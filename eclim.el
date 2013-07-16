@@ -363,7 +363,7 @@ FILENAME is given, return that file's  project name instead."
     (if filename
         (get-project-name filename)
         (or eclim--project-name
-            (setq eclim--project-name (get-project-name buffer-file-name))))))
+            (and buffer-file-name (setq eclim--project-name (get-project-name buffer-file-name)))))))
 
 (defun eclim--find-file (path-to-file)
   (if (not (string-match-p "!" path-to-file))
