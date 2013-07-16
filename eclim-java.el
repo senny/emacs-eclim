@@ -337,7 +337,6 @@ has been found."
                      (eclim--completing-read "Type: " eclim--java-search-types)
                      (read-string "Pattern: ")
                      current-prefix-arg))
-  (message "case-insensitive: %s" case-insensitive)
   (eclim/with-results hits ("java_search" ("-p" pattern) ("-t" type) ("-x" context) ("-s" scope) (if case-insensitive '("-i" "")))
     (eclim--find-display-results pattern hits open-single-file)))
 
