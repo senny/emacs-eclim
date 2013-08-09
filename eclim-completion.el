@@ -156,6 +156,9 @@ buffer."
             ((java-mode javascript-mode js-mode ruby-mode php-mode)
              (progn
                (ignore-errors (beginning-of-thing 'symbol))
+               ;; Completion candidates for annotations don't include '@'.
+               (when (eq ?@ (char-after))
+                 (forward-char 1))
                (point)))
             ((xml-mode nxml-mode)
              (while (not (string-match "[<\n[:blank:]]" (char-to-string (char-before))))
