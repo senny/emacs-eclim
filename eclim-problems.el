@@ -167,7 +167,7 @@
     (widen)
     (when (eclim--file-managed-p)
       (eclim--problems-clear-highlights)
-      (loop for problem across (remove-if-not (lambda (p) (string= (assoc-default 'filename p) (buffer-file-name))) eclim--problems-list)
+      (loop for problem across (remove-if-not (lambda (p) (string= (assoc-default 'filename p) (file-truename (buffer-file-name)))) eclim--problems-list)
             do (eclim--problems-insert-highlight problem)))))
 
 (defun eclim--problems-get-current-problem ()
@@ -184,7 +184,7 @@
         (widen)
         (let ((line (line-number-at-pos))
               (col (current-column)))
-          (or (find-if (lambda (p) (and (string= (assoc-default 'filename p) (buffer-file-name))
+          (or (find-if (lambda (p) (and (string= (assoc-default 'filename p) ((file-truename buffer-file-name)))
                                         (= (assoc-default 'line p) line)))
                        eclim--problems-list)
               (error "No problem on this line")))))))

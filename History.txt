@@ -30,3 +30,4 @@
    project_by_resource command, and eclim--project-current-file to use
    project_link_resource command, so that external source files not in the
    eclipse working directory are correctly handled.
+ * fixed a problem with highlighting when files are in directories that are symbolic links
