@@ -44,7 +44,7 @@
 
 (ac-define-source emacs-eclim
   '((candidates . eclim--completion-candidates)
-    (action . eclim--completion-action) 
+    (action . eclim--completion-action)
     (prefix . eclim-completion-start)
     (document . eclim--completion-documentation)
     (cache)
@@ -53,16 +53,16 @@
     (symbol . "f")))
 
 (defun ac-emacs-eclim-java-setup ()
-  (push 'ac-source-emacs-eclim ac-sources))
+  (add-to-list 'ac-sources 'ac-source-emacs-eclim))
 
 (defun ac-emacs-eclim-xml-setup ()
-  (push 'ac-source-emacs-eclim ac-sources))
+  (add-to-list 'ac-sources 'ac-source-emacs-eclim))
 
 (defun ac-emacs-eclim-php-setup ()
-  (push 'ac-source-emacs-eclim ac-sources))
+  (add-to-list 'ac-sources 'ac-source-emacs-eclim))
 
 (defun ac-emacs-eclim-ruby-setup ()
-  (push 'ac-source-emacs-eclim ac-sources))
+  (add-to-list 'ac-sources 'ac-source-emacs-eclim))
 
 (defun ac-emacs-eclim-config ()
   (add-hook 'java-mode-hook 'ac-emacs-eclim-java-setup)
