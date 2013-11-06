@@ -381,7 +381,7 @@ without switching to it."
   (let ((prob-buf (get-buffer eclim--problems-buffer-name)))
     (when prob-buf
       (set-buffer prob-buf)
-      (if eclim--problems-list-at-first
+      (if (boundp 'eclim--problems-list-at-first)
           (setq eclim--problems-list-at-first nil)
         (next-line))
       (hl-line-move hl-line-overlay)
