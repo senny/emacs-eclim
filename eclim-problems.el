@@ -383,7 +383,7 @@ without switching to it."
       (set-buffer prob-buf)
       (if (boundp 'eclim--problems-list-at-first)
           (setq eclim--problems-list-at-first nil)
-        (next-line))
+        (forward-line 1))
       (hl-line-move hl-line-overlay)
       (eclim-problems-open-current))))
 
@@ -392,7 +392,7 @@ without switching to it."
   (let ((prob-buf (get-buffer eclim--problems-buffer-name)))
     (when prob-buf
       (set-buffer prob-buf)
-      (previous-line)
+      (forward-line -1)
       (hl-line-move hl-line-overlay)
       (eclim-problems-open-current))))
 
