@@ -19,6 +19,7 @@
  * Generation of getter and setter methods.
  
 === Bugfixes
+ * removed extra parentheses around function
  * fixed a problem on startup when the eclimd server was not started
  * bugfix in call to eclim-call-process
  * Added a new directory for eclipse (may only be Arch linux specific)
