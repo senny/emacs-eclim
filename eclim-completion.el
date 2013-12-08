@@ -90,7 +90,7 @@ in a completion menu."
 (defun eclim--basic-complete-internal (completion-list)
   "Displays a buffer of basic completions."
   (let* ((window (get-buffer-window "*Completions*" 0))
-         (c (eclim--java-identifier-at-point))
+         (c (eclim--java-identifier-at-point nil t))
          (beg (car c))
          (word (cdr c))
          (compl (try-completion word
@@ -118,7 +118,7 @@ in a completion menu."
               (with-output-to-temp-buffer "*Completions*"
                 (display-completion-list list word)))
           ;; Complete
-          (delete-region (1+ beg) (point))
+          (delete-region beg (point))
           (insert compl)
           ;; close completion buffer if there's one
           (let ((win (get-buffer-window "*Completions*" 0)))
