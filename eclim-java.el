@@ -321,21 +321,31 @@ has been found."
     (eclim/with-results hits ("java_search" "-n" "-f" ("-o" (car i)) ("-l" (length (cdr i))) ("-x" "references"))
       (eclim--find-display-results (cdr i) hits))))
 
-(defun eclim-java-find-type (type-name)
-  "Searches the project for a given class. The TYPE-NAME is the pattern, which will be used for the search."
+(defun eclim-java-find-type (type-name &optional case-insensitive)
+  "Searches the project for a given class. The TYPE-NAME is the
+pattern, which will be used for the search. If invoked with the
+universal argument the search will be made CASE-INSENSITIVE."
   (interactive (list (read-string "Name: " (let ((case-fold-search nil)
                                                  (current-symbol (symbol-name (symbol-at-point))))
                                              (if (string-match-p "^[A-Z]" current-symbol)
                                                  current-symbol
-                                               (eclim--java-current-type-name))))))
-  (eclim-java-find-generic "workspace" "declarations" "type" type-name t))
+                                               (eclim--java-current-type-name))))
+                     current-prefix-arg))
+  (eclim-java-find-generic "workspace" "declarations" "type" type-name case-insensitive t))
 
-(defun eclim-java-find-generic (scope context type pattern &optional open-single-file)
+(defun eclim-java-find-generic (scope context type pattern &optional case-insensitive open-single-file)
+  "Searches within SCOPE (all/project/type) for a
+TYPE (all/annotation/class/classOrEnum/classOrInterface/constructor/enum/field/interface/method/package/type)
+matching the given
+CONTEXT (all/declarations/implementors/references) and
+PATTERN. If invoked with the universal argument the search will
+be made CASE-INSENSITIVE."
   (interactive (list (eclim--completing-read "Scope: " eclim--java-search-scopes)
                      (eclim--completing-read "Context: " eclim--java-search-contexts)
                      (eclim--completing-read "Type: " eclim--java-search-types)
-                     (read-string "Pattern: ")))
-  (eclim/with-results hits ("java_search" ("-p" pattern) ("-t" type) ("-x" context) ("-s" scope))
+                     (read-string "Pattern: ")
+                     current-prefix-arg))
+  (eclim/with-results hits ("java_search" ("-p" pattern) ("-t" type) ("-x" context) ("-s" scope) (if case-insensitive '("-i" "")))
     (eclim--find-display-results pattern hits open-single-file)))
 
 (defun eclim--java-identifier-at-point (&optional full position)
@@ -420,8 +430,7 @@ sorts import statements. "
   (interactive)
   (let ((revert-buffer-function 'eclim-soft-revert-imports))
     (eclim/with-results res ("java_import_organize" "-p" "-f" "-o" "-e"
-                             ("-t" (when types
-                                     (reduce (lambda (a b) (concat a "," b)) types))))
+                             (when types (list "-t" (reduce (lambda (a b) (concat a "," b)) types))))
       (eclim--problems-update-maybe)
       (when (vectorp res)
         (save-excursion
