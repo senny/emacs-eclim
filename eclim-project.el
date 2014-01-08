@@ -383,6 +383,7 @@
    (lambda (res) (message res))
    "project_build" "-p"))
 
+;;;###autoload
 (defun eclim-manage-projects ()
   (interactive)
   (eclim--project-clear-cache)

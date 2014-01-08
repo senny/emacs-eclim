@@ -438,6 +438,7 @@ FILENAME is given, return that file's  project name instead."
                                      eclim--file-coding-system-mapping))))
     (if mapped-coding-system mapped-coding-system coding-system)))
 
+;;;###autoload
 (defun eclim/workspace-dir ()
   (eclim--call-process "workspace_dir"))
 
@@ -446,6 +447,7 @@ FILENAME is given, return that file's  project name instead."
 
 ;;** The minor mode and its keymap
 
+;;;###autoload
 (defvar eclim-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "M-TAB") 'eclim-complete)
@@ -454,6 +456,7 @@ FILENAME is given, return that file's  project name instead."
 
 (defvar eclim-mode-hook nil)
 
+;;;###autoload
 (define-minor-mode eclim-mode
   "An interface to the Eclipse IDE."
   nil
