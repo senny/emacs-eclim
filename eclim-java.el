@@ -322,7 +322,9 @@ has been found."
       (eclim--find-display-results (cdr i) hits))))
 
 (defun eclim-java-find-type (type-name &optional case-insensitive)
-  "Searches the project for a given class. The TYPE-NAME is the pattern, which will be used for the search."
+  "Searches the project for a given class. The TYPE-NAME is the
+pattern, which will be used for the search. If invoked with the
+universal argument the search will be made CASE-INSENSITIVE."
   (interactive (list (read-string "Name: " (let ((case-fold-search nil)
                                                  (current-symbol (symbol-name (symbol-at-point))))
                                              (if (string-match-p "^[A-Z]" current-symbol)
@@ -332,6 +334,12 @@ has been found."
   (eclim-java-find-generic "workspace" "declarations" "type" type-name case-insensitive t))
 
 (defun eclim-java-find-generic (scope context type pattern &optional case-insensitive open-single-file)
+  "Searches within SCOPE (all/project/type) for a
+TYPE (all/annotation/class/classOrEnum/classOrInterface/constructor/enum/field/interface/method/package/type)
+matching the given
+CONTEXT (all/declarations/implementors/references) and
+PATTERN. If invoked with the universal argument the search will
+be made CASE-INSENSITIVE."
   (interactive (list (eclim--completing-read "Scope: " eclim--java-search-scopes)
                      (eclim--completing-read "Context: " eclim--java-search-contexts)
                      (eclim--completing-read "Type: " eclim--java-search-types)
