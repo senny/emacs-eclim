@@ -77,9 +77,9 @@
 (defun eclim--completion-candidate-menu-item (candidate)
   "Returns the part of the completion candidate to be displayed
 in a completion menu."
-  (assoc-default (case major-mode
-                   (java-mode 'info)
-                   (t 'completion)) candidate))
+  (car (split-string (assoc-default (case major-mode
+                                      (java-mode 'info)
+                                      (t 'completion)) candidate) "[ \f\t\n\r\v(+.-]+" t)))
 
 (defun eclim--completion-candidates ()
   (with-no-warnings

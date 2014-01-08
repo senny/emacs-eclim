@@ -321,6 +321,17 @@ has been found."
     (eclim/with-results hits ("java_search" "-n" "-f" ("-o" (car i)) ("-l" (length (cdr i))) ("-x" "references"))
       (eclim--find-display-results (cdr i) hits))))
 
+(defun eclim-java-find-simple (identifier)
+  "Searches the project for a given identifier. The IDENTIFIER is the pattern, which will be used for the search."
+  (interactive (list (read-string "Pattern: " (let ((case-fold-search nil)
+                                                 (current-symbol (symbol-name (symbol-at-point))))
+                                             (if (string-match-p "^[a-zA-Z_]" current-symbol)
+                                                 current-symbol
+                                               (eclim--java-current-type-name))))))
+  (if (string= identifier (downcase identifier))
+      (eclim-java-find-generic-i "workspace" "" "" identifier t)
+    (eclim-java-find-generic "workspace" "" "" identifier t)))
+
 (defun eclim-java-find-type (type-name)
   "Searches the project for a given class. The TYPE-NAME is the pattern, which will be used for the search."
   (interactive (list (read-string "Name: " (let ((case-fold-search nil)
@@ -328,7 +339,9 @@ has been found."
                                              (if (string-match-p "^[A-Z]" current-symbol)
                                                  current-symbol
                                                (eclim--java-current-type-name))))))
-  (eclim-java-find-generic "workspace" "declarations" "type" type-name t))
+  (if (string= type-name (downcase type-name))
+      (eclim-java-find-generic-i "workspace" "declarations" "type" type-name t)
+    (eclim-java-find-generic "workspace" "declarations" "type" type-name t)))
 
 (defun eclim-java-find-generic (scope context type pattern &optional open-single-file)
   (interactive (list (eclim--completing-read "Scope: " eclim--java-search-scopes)
@@ -336,6 +349,14 @@ has been found."
                      (eclim--completing-read "Type: " eclim--java-search-types)
                      (read-string "Pattern: ")))
   (eclim/with-results hits ("java_search" ("-p" pattern) ("-t" type) ("-x" context) ("-s" scope))
+    (eclim--find-display-results pattern hits open-single-file)))
+
+(defun eclim-java-find-generic-i (scope context type pattern &optional open-single-file)
+  (interactive (list (eclim--completing-read "Scope: " eclim--java-search-scopes)
+                     (eclim--completing-read "Context: " eclim--java-search-contexts)
+                     (eclim--completing-read "Type: " eclim--java-search-types)
+                     (read-string "Pattern: ")))
+  (eclim/with-results hits ("java_search" ("-p" pattern) ("-t" type) ("-x" context) ("-s" scope) "-i")
     (eclim--find-display-results pattern hits open-single-file)))
 
 (defun eclim--java-identifier-at-point (&optional full position)

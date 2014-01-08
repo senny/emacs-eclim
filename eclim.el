@@ -131,6 +131,8 @@ in the current workspace."
 (defvar eclim--compressed-file-path-replacement-regexp "\\\\")
 (defvar eclim--compressed-file-path-removal-regexp "^/")
 
+(setq eclim--simple-args '("-i"))
+
 (defun eclim-toggle-print-debug-messages ()
   (interactive)
   (message "Debug messages %s."
@@ -160,10 +162,12 @@ eclimd."
     (error "Eclim installation not found. Please set eclim-executable."))
   (let ((cmd (apply 'concat eclim-executable " -command "
                     (first args) " "
-                    (loop for a = (rest args) then (rest (rest a))
+                    (loop for a = (rest args) then (if (member (first a) eclim--simple-args) (rest a) (rest (rest a)))
                           for arg = (first a)
                           for val = (second a)
-                          while arg when val collect (concat arg " " (shell-quote-argument (if (numberp val) (number-to-string val) val)) " ")))))
+                          while arg when (or val (member arg eclim--simple-args))
+                          collect (if (member arg eclim--simple-args) arg
+                                    (concat arg " " (shell-quote-argument (if (numberp val) (number-to-string val) val)) " "))))))
     cmd))
 
 (defun eclim--parse-result (result)
@@ -240,7 +244,8 @@ specified FLAGS."
   "Takes a list of command-line arguments with which to call the
 eclim server. Each element should be either a string or a
 list. If it is a string, its default value is looked up in
-`eclim--default-args' and used to construct a list. The argument
+`eclim--default-args' and used to construct a list. Arguments
+listed in `eclim--simple-args' have no value. The argument
 lists are then appended together."
   (mapcar (lambda (a) (if (numberp a) (number-to-string a) a))
           (loop for a in args
@@ -248,8 +253,9 @@ lists are then appended together."
                            (if (stringp (car a))
                                (list (car a) (eval (cadr a)))
                              (or (eval a) (list nil nil)))
-                         (list a (eval (cdr (or (assoc a eclim--default-args)
-                                                (error "sorry, no default value for: %s" a)))))))))
+                         (if (member a eclim--simple-args) (list a)
+                           (list a (eval (cdr (or (assoc a eclim--default-args)
+                                                  (error "sorry, no default value for: %s" a))))))))))
 
 (defun eclim--command-should-sync-p (cmd args)
   (and (eclim--args-contains args '("-f" "-o"))
