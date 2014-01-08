@@ -142,7 +142,7 @@ in eclim when appropriate."
       (ignore-errors (apply 'eclim--call-process (list "java_src_update" "-p" pr "-f" fn))))))
 
 (defun eclim--java-parser-read (str)
-  (first 
+  (first
    (read-from-string
     (format "(%s)"
             (replace-regexp-in-string
@@ -387,10 +387,10 @@ undo history."
                                 (delete-region beg (point))
                                 imports)))
                         (progn
-                          (forward-line)
+                          (forward-line 1)
                           (delete-blank-lines)
                           (insert "\n\n\n")
-                          (previous-line 2)))))
+                          (forward-line -2)))))
     (save-excursion
       (clear-visited-file-modtime)
       (cut-imports)
@@ -471,7 +471,7 @@ method."
              (sig (eclim--java-parse-method-signature method))
              (ret (assoc-default :return sig)))
         (yas/expand-snippet (format "@Override\n%s %s(%s) {$0}"
-                                    (apply #'concat 
+                                    (apply #'concat
                                            (join " " (remove-if-not (lambda (m) (find m '(public protected private void))) (subseq ret 0 (1- (length ret)))))
                                            " "
                                            (format-type (remove-if (lambda (m) (find m '(abstract public protected private ))) ret)))
