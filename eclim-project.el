@@ -172,10 +172,11 @@
   (eclim--project-clear-cache)
   (eclim--call-process "project_import" "-f" (expand-file-name folder)))
 
-(defun eclim/project-create (folder natures name &optional depends)
+(defun eclim/project-create (folder natures name &optional target package application depends)
   ;; TODO: allow multiple natures
+  ;; add the vars target,package,application for android project
   (eclim--project-clear-cache)
-  (eclim--call-process "project_create" "-f" folder "-n" natures "-p" name))
+  (eclim--call-process "project_create" "-f" folder "-n" natures "-p" name "-a" "--target" target "--package" package "--application" application))
 
 (defun eclim/project-delete (project)
   (eclim--check-project project)
@@ -259,7 +260,13 @@
   (interactive (list (read-string "Name: ")
                      (expand-file-name (read-directory-name "Project Directory: "))
                      (eclim--project-nature-read)))
-  (message (eclim/project-create path nature name))
+  ;;android project is need the vars target,package,application
+  (if (string-equal nature "android")
+      (progn (setq target (read-string "Target: "))
+             (setq package (read-string "Package: "))
+             (setq application (read-string "Application: "))
+             (emssage (eclim/project-create path nature name target package application)))
+      (message (eclim/project-create path nature name))
   (eclim--project-buffer-refresh))
 
 (defun eclim-project-import (folder)
