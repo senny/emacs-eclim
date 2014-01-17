@@ -267,7 +267,7 @@
              (setq application (read-string "Application: "))
              (emssage (eclim/project-create path nature name target package application)))
       (message (eclim/project-create path nature name))
-  (eclim--project-buffer-refresh))
+  (eclim--project-buffer-refresh)))
 
 (defun eclim-project-import (folder)
   (interactive "DProject Directory: ")
