@@ -226,7 +226,6 @@ documentation strings."
                finally return (append ret (list (substring str p))))))
 
 (defun eclim--completion-documentation (symbol)
-  (message "DOC %s" symbol)
   "Looks up the documentation string for the given SYMBOL in the
 completion candidates list."
   (let ((doc (assoc-default 'info (find symbol eclim--completion-candidates :test #'string= :key #'eclim--completion-candidate-menu-item))))
