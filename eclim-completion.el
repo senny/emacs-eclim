@@ -178,7 +178,7 @@ buffer."
                   (package (if (and rest (string-match "\\w+\\(\\.\\w+\\)*" rest)) rest nil))
                   (template (eclim--completion-yasnippet-convert insertion)))
              (delete-region eclim--completion-start end)
-             (if (and eclim-use-yasnippet template (featurep 'yasnippet))
+             (if (and eclim-use-yasnippet template (featurep 'yasnippet) yas-minor-mode)
                  (yas/expand-snippet template)
                (insert insertion))
              (when package
@@ -194,14 +194,14 @@ buffer."
            (completion (if (string-endswith-p c "\"") c (concat c "=\"\""))))
       (when (string-match "\\(.*\\)=\"\\(.*\\)\"" completion)
         (delete-region eclim--completion-start end)
-        (if (and eclim-use-yasnippet (featurep 'yasnippet))
+        (if (and eclim-use-yasnippet (featurep 'yasnippet)  yas-minor-mode)
             (yas/expand-snippet (format "%s=\"${1:%s}\" $0" (match-string 1 completion) (match-string 2 completion)))
           (insert completion))))))
 
 (defun eclim--completion-action-default ()
   (when (and (= 40 (char-before)) (not (looking-at ")")))
     ;; we've inserted an open paren, so let's close it
-    (if (and eclim-use-yasnippet (featurep 'yasnippet))
+    (if (and eclim-use-yasnippet (featurep 'yasnippet) yas-minor-mode)
         (yas/expand-snippet "$1)$0")
       (progn
         (insert ")")
