@@ -44,12 +44,13 @@
   (interactive (list 'interactive))
   (case command
     (interactive (company-begin-backend 'company-emacs-eclim))
-    (prefix
-     (let ((start (eclim-completion-start)))
-       (when start (buffer-substring-no-properties start (point)))))
+    (prefix (let ((start (eclim-completion-start)))
+              (when start (buffer-substring-no-properties start (point)))))
     (candidates (eclim--completion-candidates))
     (meta (eclim--completion-documentation arg))
     (no-cache (equal arg ""))
+    (ignore-case t)
+    (sorted t)
     (crop (when (string-match "(" arg)
             (substring arg 0 (match-beginning 0))))
     (post-completion (eclim--completion-action))))
