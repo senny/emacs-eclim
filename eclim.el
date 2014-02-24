@@ -383,7 +383,7 @@ FILENAME is given, return that file's  project name instead."
         (beginning-of-buffer)
         (kill-buffer old-buffer)))))
 
-(defun eclim--find-display-results (pattern results &optional open-single-file)
+(defun eclim--find-display-results (pattern results &optional open-single-file format-fn)
   (if (and (= 1 (length results)) open-single-file) (eclim--visit-declaration (elt results 0))
     (pop-to-buffer (get-buffer-create "*eclim: find"))
     (let ((buffer-read-only nil))
@@ -393,21 +393,22 @@ FILENAME is given, return that file's  project name instead."
       (insert (concat "eclim java_search -p " pattern))
       (newline)
       (loop for result across results
-            do (progn
-                 (insert (eclim--convert-find-result-to-string result default-directory))
-                 (newline)))
+            do (insert (funcall (or format-fn #'eclim--format-find-result) result default-directory)))
       (goto-char 0)
       (grep-mode))))
 
-(defun eclim--convert-find-result-to-string (line &optional directory)
+(defun eclim--format-find-result (line &optional directory)
   (let ((converted-directory (replace-regexp-in-string "\\\\" "/" (assoc-default 'filename line))))
-    (format "%s:%d:%d:%s"
+    (format "%s:%d:%d:%s\n"
             (if converted-directory
                 (replace-regexp-in-string (concat (regexp-quote directory) "/?") "" converted-directory)
               converted-directory)
             (assoc-default 'line line)
             (assoc-default 'column line)
             (assoc-default 'message line))))
+
+(defun eclim--format-locate-result (line &optional directory)
+  (format "%s:1:0\n" (assoc-default 'path line)))
 
 (defun eclim--visit-declaration (line)
   (ring-insert find-tag-marker-ring (point-marker))
@@ -437,6 +438,14 @@ FILENAME is given, return that file's  project name instead."
                                      coding-system
                                      eclim--file-coding-system-mapping))))
     (if mapped-coding-system mapped-coding-system coding-system)))
+
+;; Commands
+
+(defun eclim-locate-file (pattern &optional case-insensitive)
+  (interactive (list (read-string "Pattern: ")
+                     current-prefix-arg))
+  (eclim/with-results hits ("locate_file" ("-p" (concat "^.*" pattern ".*$")) ("-s" "workspace") (if case-insensitive '("-i" "")))
+    (eclim--find-display-results pattern hits t #'eclim--format-locate-result)))
 
 ;;;###autoload
 (defun eclim/workspace-dir ()
