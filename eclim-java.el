@@ -371,7 +371,7 @@ universal argument the search will be made CASE-INSENSITIVE."
                                              (if (string-match-p "^[A-Z]" current-symbol)
                                                  current-symbol
                                                (eclim--java-current-type-name))))
-                     current-prefix-arg))
+                     "P"))
   (eclim-java-find-generic "workspace" "declarations" "type" type-name case-insensitive t))
 
 (defun eclim-java-find-generic (scope context type pattern &optional case-insensitive open-single-file)
@@ -385,7 +385,7 @@ be made CASE-INSENSITIVE."
                      (eclim--completing-read "Context: " eclim--java-search-contexts)
                      (eclim--completing-read "Type: " eclim--java-search-types)
                      (read-string "Pattern: ")
-                     current-prefix-arg))
+                     "P"))
   (eclim/with-results hits ("java_search" ("-p" pattern) ("-t" type) ("-x" context) ("-s" scope) (if case-insensitive '("-i" "")))
     (eclim--find-display-results pattern hits open-single-file)))
 
