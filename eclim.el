@@ -159,11 +159,11 @@ eclimd."
   (when (not eclim-executable)
     (error "Eclim installation not found. Please set eclim-executable."))
   (reduce (lambda (a b) (format "%s %s" a b))
-         (append (list eclim-executable "-command" (first args))
-                 (loop for a = (rest args) then (rest (rest a))
-                       for arg = (first a)
-                       for val = (second a)
-                       while arg append (if val (list arg (shell-quote-argument val)) (list arg))))))
+          (append (list eclim-executable "-command" (first args))
+                  (loop for a = (rest args) then (rest (rest a))
+                        for arg = (first a)
+                        for val = (second a)
+                        while arg append (if val (list arg (shell-quote-argument val)) (list arg))))))
 
 (defun eclim--parse-result (result)
   "Parses the result of an eclim operation, raising an error if
@@ -252,8 +252,8 @@ lists are then appended together."
 
 (defun eclim--command-should-sync-p (cmd args)
   (and (eclim--args-contains args '("-f" "-o"))
-                            (not (or (string= cmd "project_by_resource")
-                                     (string= cmd "project_link_resource")))))
+       (not (or (string= cmd "project_by_resource")
+                (string= cmd "project_link_resource")))))
 
 (defun eclim--execute-command-internal (executor cmd args)
   (lexical-let* ((expargs (eclim--expand-args args))
@@ -361,8 +361,8 @@ FILENAME is given, return that file's  project name instead."
                              (eclim/execute-command "project_by_resource" ("-f" file))))
     (if filename
         (get-project-name filename)
-        (or eclim--project-name
-            (and buffer-file-name (setq eclim--project-name (get-project-name buffer-file-name)))))))
+      (or eclim--project-name
+          (and buffer-file-name (setq eclim--project-name (get-project-name buffer-file-name)))))))
 
 (defun eclim--find-file (path-to-file)
   (if (not (string-match-p "!" path-to-file))
@@ -383,7 +383,7 @@ FILENAME is given, return that file's  project name instead."
         (beginning-of-buffer)
         (kill-buffer old-buffer)))))
 
-(defun eclim--find-display-results (pattern results &optional open-single-file format-fn)
+(defun eclim--find-display-results (pattern results &optional open-single-file)
   (if (and (= 1 (length results)) open-single-file) (eclim--visit-declaration (elt results 0))
     (pop-to-buffer (get-buffer-create "*eclim: find"))
     (let ((buffer-read-only nil))
@@ -393,7 +393,7 @@ FILENAME is given, return that file's  project name instead."
       (insert (concat "eclim java_search -p " pattern))
       (newline)
       (loop for result across results
-            do (insert (funcall (or format-fn #'eclim--format-find-result) result default-directory)))
+            do (insert (eclim--format-find-result result default-directory)))
       (goto-char 0)
       (grep-mode))))
 
@@ -407,14 +407,11 @@ FILENAME is given, return that file's  project name instead."
             (assoc-default 'column line)
             (assoc-default 'message line))))
 
-(defun eclim--format-locate-result (line &optional directory)
-  (format "%s:1:0\n" (assoc-default 'path line)))
-
 (defun eclim--visit-declaration (line)
   (ring-insert find-tag-marker-ring (point-marker))
   (eclim--find-file (assoc-default 'filename line))
   (goto-line (assoc-default 'line line))
-  (move-to-column (- (assoc-default 'column line) 1)))
+  (move-to-column (1- (assoc-default 'column line))))
 
 (defun eclim--string-strip (content)
   (replace-regexp-in-string "\s*$" "" content))
@@ -445,7 +442,14 @@ FILENAME is given, return that file's  project name instead."
   (interactive (list (read-string "Pattern: ")
                      current-prefix-arg))
   (eclim/with-results hits ("locate_file" ("-p" (concat "^.*" pattern ".*$")) ("-s" "workspace") (if case-insensitive '("-i" "")))
-    (eclim--find-display-results pattern hits t #'eclim--format-locate-result)))
+    (eclim--find-display-results pattern 
+                                 (apply #'vector 
+                                        (mapcar (lambda (hit) (list (cons 'filename (assoc-default 'path hit))
+                                                                    (cons 'line 1)
+                                                                    (cons 'column 1)
+                                                                    (cons 'message "")))
+                                                hits))
+                                 t)))
 
 ;;;###autoload
 (defun eclim/workspace-dir ()
