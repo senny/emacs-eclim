@@ -439,7 +439,7 @@ FILENAME is given, return that file's  project name instead."
 
 ;; Commands
 
-(defun eclim-locate-file (pattern &optional case-insensitive)
+(defun eclim-file-locate (pattern &optional case-insensitive)
   (interactive (list (read-string "Pattern: ") "P"))
   (eclim/with-results hits ("locate_file" ("-p" (concat "^.*" pattern ".*$")) ("-s" "workspace") (if case-insensitive '("-i" "")))
     (eclim--find-display-results pattern 

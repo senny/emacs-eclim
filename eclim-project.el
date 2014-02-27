@@ -282,35 +282,6 @@
   (eclim--project-buffer-refresh)
   (message "projects refreshed..."))
 
-(defun eclim--display-file-matches (header matches)
-  (when (get-buffer "*eclim: find*") (kill-buffer "*eclim: find*"))
-    (pop-to-buffer "*eclim: find*" t)
-    (when header (insert header))
-    (insert "searching for: " pattern "..." "\n\n")
-    (loop for match across matches
-          do (insert (format "%s:0:\t%s\n"
-                             (assoc-default 'path match)
-                             (assoc-default 'name match))))
-    (goto-char 0)
-    (grep-mode))
-
-(defun eclim-project-file-locate (pattern)
-  (interactive "MPattern: ")
-  (eclim/with-results matches ("locate_file" ("-p" pattern) ("-s" "project") ("-n" (eclim--project-name)))
-    (eclim--display-file-matches nil matches)))
-
-(defun eclim-file-locate (pattern)
-  (interactive "MPattern: ")
-  (eclim/with-results matches ("locate_file" ("-p" pattern) ("-s" "workspace"))
-    (eclim--display-file-matches
-     (concat "-*- mode: grep; default-directory: \"" (eclim/workspace-dir) "\" -*-")
-     matches)))
-
-(defun eclim-file-locate-fuzzy (pattern)
-  (interactive "MPattern: ")
-  (eclim-file-locate
-   (concat ".*" (replace-regexp-in-string "\\(.\\)" ".*?\\1" pattern) ".*")))
-
 (defun eclim-project-update (projects)
   (interactive (list (eclim--project-read)))
   (when (not (listp projects)) (set 'projects (list projects)))
