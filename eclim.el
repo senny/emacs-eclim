@@ -104,12 +104,6 @@ in the current workspace."
   :type '(choice (const :tag "Off" nil)
                  (const :tag "On" t)))
 
-(defvar eclim--snippet-directory
-  (concat (file-name-directory load-file-name) "snippets"))
-
-;; (defvar eclim--project-dir nil)
-;; (make-variable-buffer-local 'eclim--project-dir)
-
 (defvar eclim--project-name nil)
 (make-variable-buffer-local 'eclim--project-name)
 
@@ -477,8 +471,6 @@ FILENAME is given, return that file's  project name instead."
   eclim-mode-map
   (if eclim-mode
       (progn
-        (when (and (featurep 'yasnippet) eclim-use-yasnippet)
-          (yas/load-directory eclim--snippet-directory))
         (kill-local-variable 'eclim--project-dir)
         (kill-local-variable 'eclim--project-name)
         (kill-local-variable 'eclim--project-current-file)
