@@ -191,7 +191,7 @@ buffer."
     ;; we are completing an attribute; let's use yasnippet to get som nice completion going
     (let* ((end (point))
            (c (buffer-substring-no-properties eclim--completion-start end))
-           (completion (if (string-endswith-p c "\"") c (concat c "=\"\""))))
+           (completion (if (s-ends-with? "\"" c) c (concat c "=\"\""))))
       (when (string-match "\\(.*\\)=\"\\(.*\\)\"" completion)
         (delete-region eclim--completion-start end)
         (if (and eclim-use-yasnippet (featurep 'yasnippet)  yas-minor-mode)

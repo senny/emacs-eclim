@@ -32,6 +32,7 @@
 
 (eval-when-compile (require 'cl))
 (require 'etags)
+(require 's)
 
 ;;** Basics
 
@@ -136,14 +137,6 @@ in the current workspace."
 buffer instead."
   (interactive "P")
   (quit-window kill-buffer (selected-window)))
-
-(defun string-startswith-p (string prefix)
-  (eq t (compare-strings string nil (string-width prefix) prefix nil nil)))
-
-(defun string-endswith-p (string prefix)
-  (let* ((w (string-width string))
-         (s (- w (string-width prefix))))
-    (when (wholenump s) (eq t (compare-strings string (- w (string-width prefix)) w prefix nil nil)))))
 
 (defun eclim--make-command (args)
   "Creates a command string that can be executed from the
