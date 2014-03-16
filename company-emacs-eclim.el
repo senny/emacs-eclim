@@ -1,7 +1,7 @@
 ;; company-emacs-eclim.el --- an interface to the Eclipse IDE.
 ;;
 ;; Copyright (C) 2009-2012   Fredrik Appelberg
-;; Copyright (C) 2013   Dmitry Gutov
+;; Copyright (C) 2013-2014   Dmitry Gutov
 ;;
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -23,6 +23,8 @@
 ;; To activate this backend, replace company-eclim and/or company-nxml
 ;; with company-emacs-eclim in the eclim-backends list, or call the
 ;; convenience function company-emacs-eclim-setup.
+;;
+;; Minimum company-mode version required: 0.7.
 
 ;;* Eclim Company
 
@@ -39,6 +41,19 @@
               (remove-if (lambda (b) (find b '(company-nxml company-eclim)))
                          company-backends))))
 
+(defun company-emacs-eclim--candidates (prefix)
+  (mapcar
+   (lambda (str)
+     (if (string-match "(" str)
+         (propertize (substring str 0 (match-beginning 0)) 'eclim-meta str)
+       str))
+   (eclim--completion-candidates)))
+
+(defun company-emacs-eclim--annotation (candidate)
+  (let ((str (get-text-property 0 'eclim-meta candidate)))
+    (when (and str (string-match "(" str))
+      (substring str (match-beginning 0)))))
+
 (defun company-emacs-eclim (command &optional arg &rest ignored)
   "A `company-mode' back-end for eclim completion"
   (interactive (list 'interactive))
@@ -46,13 +61,15 @@
     (interactive (company-begin-backend 'company-emacs-eclim))
     (prefix (let ((start (eclim-completion-start)))
               (when start (buffer-substring-no-properties start (point)))))
-    (candidates (eclim--completion-candidates))
-    (meta (eclim--completion-documentation arg))
+    (candidates (company-emacs-eclim--candidates arg))
+    (annotation (company-emacs-eclim--annotation arg))
+    (meta (eclim--completion-documentation
+           (concat arg (company-emacs-eclim--annotation arg))))
     (no-cache (equal arg ""))
     (ignore-case t)
     (sorted t)
-    (crop (when (string-match "(" arg)
-            (substring arg 0 (match-beginning 0))))
-    (post-completion (eclim--completion-action))))
+    (post-completion (let ((ann (company-emacs-eclim--annotation arg)))
+                       (when ann (insert ann))
+                       (eclim--completion-action)))))
 
 (provide 'company-emacs-eclim)
