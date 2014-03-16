@@ -18,7 +18,7 @@
 ;;
 ;;; Description
 ;;
-;; company-emacs-eclim.el -- a company-mode backend that replaces company-eclim
+;; company-emacs-eclim.el -- company-mode backend that replaces company-eclim
 ;;
 ;; To activate this backend, replace company-eclim and/or company-nxml
 ;; with company-emacs-eclim in the eclim-backends list, or call the
@@ -55,7 +55,7 @@
       (substring str (match-beginning 0)))))
 
 (defun company-emacs-eclim (command &optional arg &rest ignored)
-  "A `company-mode' back-end for eclim completion"
+  "`company-mode' back-end for Eclim completion"
   (interactive (list 'interactive))
   (case command
     (interactive (company-begin-backend 'company-emacs-eclim))
