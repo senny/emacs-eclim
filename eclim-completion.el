@@ -65,7 +65,9 @@
               (php-mode
                (eclim/execute-command "php_complete" "-p" "-f" "-e" "-o"))
               ((javascript-mode js-mode)
-               (eclim/execute-command "javascript_complete" "-p" "-f" "-e" "-o"))))
+               (eclim/execute-command "javascript_complete" "-p" "-f" "-e" "-o"))
+              ((c++-mode c-mode)
+               (eclim/execute-command "c_complete" "-p" "-f" "-e" ("-l" "standard") "-o"))))
     (setq eclim--is-completing nil)))
 
 (defun eclim--completion-candidates-filter (c)
