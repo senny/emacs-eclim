@@ -31,6 +31,8 @@
 (require' eclim)
 (require 'eclim-project)
 (require 'eclim-problems)
+(eval-when-compile (require 'cl))
+(require 'cl-lib)
 
 (define-key eclim-mode-map (kbd "C-c C-e s") 'eclim-java-method-signature-at-point)
 (define-key eclim-mode-map (kbd "C-c C-e f d") 'eclim-java-find-declaration)

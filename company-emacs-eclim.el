@@ -33,6 +33,8 @@
 (require 'eclim-java)
 (require 'eclim-problems)
 (require 'company)
+(eval-when-compile (require 'cl))
+(require 'cl-lib)
 
 (defun company-emacs-eclim-setup ()
   "Convenience function that adds company-emacs-eclim to the list
