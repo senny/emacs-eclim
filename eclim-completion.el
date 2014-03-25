@@ -29,6 +29,10 @@
 ;;
 
 (require 'thingatpt)
+(eval-when-compile (require 'cl))
+(require 'cl-lib)
+(require 'eclim)
+(require 'eclim-java)
 
 (defun eclim--completion-candidate-type (candidate)
   "Returns the type of a candidate."
@@ -70,8 +74,8 @@
 
 (defun eclim--completion-candidates-filter (c)
   (case major-mode
-    ((xml-mode nxml-mode) (or (search "XML Schema" c)
-                              (search "Namespace" c)))
+    ((xml-mode nxml-mode) (or (cl-search "XML Schema" c)
+                              (cl-search "Namespace" c)))
     (t nil)))
 
 (defun eclim--completion-candidate-menu-item (candidate)
@@ -116,7 +120,7 @@ in a completion menu."
             (let ((list (all-completions word completion-list)))
               (setq list (sort list 'string<))
               (with-output-to-temp-buffer "*Completions*"
-                (display-completion-list list word)))
+                (display-completion-list list)))
           ;; Complete
           (delete-region beg (point))
           (insert compl)
@@ -164,6 +168,9 @@ buffer."
              (while (not (string-match "[<\n[:blank:]]" (char-to-string (char-before))))
                (backward-char))
              (point))))))
+
+(defvar yas-minor-mode)
+(declare-function yas/expand-snippet "yasnippet")
 
 (defun eclim--completion-action-java ()
   (let* ((end (point))
@@ -228,7 +235,7 @@ documentation strings."
 (defun eclim--completion-documentation (symbol)
   "Looks up the documentation string for the given SYMBOL in the
 completion candidates list."
-  (let ((doc (assoc-default 'info (find symbol eclim--completion-candidates :test #'string= :key #'eclim--completion-candidate-menu-item))))
+  (let ((doc (assoc-default 'info (cl-find symbol eclim--completion-candidates :test #'string= :key #'eclim--completion-candidate-menu-item))))
     (when doc
       (eclim--render-doc doc))))
 

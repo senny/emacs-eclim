@@ -31,6 +31,7 @@
 (require 'eclim)
 (require 'eclim-completion)
 (require 'eclim-java)
+(require 'eclim-problems)
 (require 'company)
 
 (defun company-emacs-eclim-setup ()
@@ -38,8 +39,8 @@
   of available company backends."
   (setq company-backends
         (cons 'company-emacs-eclim
-              (remove-if (lambda (b) (find b '(company-nxml company-eclim)))
-                         company-backends))))
+              (cl-remove-if (lambda (b) (cl-find b '(company-nxml company-eclim)))
+                            company-backends))))
 
 (defun company-emacs-eclim--candidates (prefix)
   (mapcar
@@ -56,9 +57,9 @@
 
 (defun company-emacs-eclim (command &optional arg &rest ignored)
   "`company-mode' back-end for Eclim completion"
-  (interactive (list 'interactive))
+  (interactive (list 'is-interactive))
   (case command
-    (interactive (company-begin-backend 'company-emacs-eclim))
+    (is-interactive (company-begin-backend 'company-emacs-eclim))
     (prefix (let ((start (eclim-completion-start)))
               (when start (buffer-substring-no-properties start (point)))))
     (candidates (company-emacs-eclim--candidates arg))

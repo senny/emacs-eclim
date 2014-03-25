@@ -30,6 +30,7 @@
 (require 'eclim)
 (require 'eclim-java)
 (require 'eclim-completion)
+(require 'eclim-problems)
 (require 'auto-complete)
 
 (defface ac-emacs-eclim-candidate-face
