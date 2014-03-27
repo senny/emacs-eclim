@@ -155,7 +155,7 @@ buffer."
   (setq eclim--completion-start
         (save-excursion
           (case major-mode
-            ((java-mode javascript-mode js-mode ruby-mode php-mode)
+            ((java-mode javascript-mode js-mode ruby-mode php-mode c-mode c++-mode)
              (progn
                (ignore-errors (beginning-of-thing 'symbol))
                ;; Completion candidates for annotations don't include '@'.
@@ -212,6 +212,7 @@ buffer."
 (defun eclim--completion-action ()
   (case major-mode
     ('java-mode (eclim--completion-action-java))
+    ((c-mode c++-mode) (eclim--completion-action-java))
     ('nxml-mode (eclim--completion-action-xml))
     (t (eclim--completion-action-default))))
 

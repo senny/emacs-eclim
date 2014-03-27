@@ -169,6 +169,7 @@ where <encoding> is the corresponding java name for this encoding." e e)))
               (let ((c (assoc-default (match-string 1 result)
                                       '(("xml_complete" "XML" "Eclipse Web Developer Tools")
                                         ("ruby_complete" "Ruby" "Eclipse Ruby Development Tools")
+                                        ("c_complete" "C/C++" "Eclipse C/C++ Development Tools")
                                         ("php_complete" "PHP" "Eclipse PHP Development Tools")))))
                 (if c (error "Eclim was not installed with %s support. Please make sure that %s are installed, then reinstall eclim." (first c) (second c))
                   (error result))))
@@ -473,7 +474,7 @@ FILENAME is given, return that file's  project name instead."
     (remove-hook 'after-save-hook 'eclim--after-save-hook 't)))
 
 (defcustom eclim-accepted-file-regexps
-  '("\\.java" "\\.js" "\\.xml" "\\.rb" "\\.php")
+  '("\\.java" "\\.js" "\\.xml" "\\.rb" "\\.php" "\\.c" "\\.cc" "\\.h")
   "List of regular expressions that are matched against filenames
 to decide if eclim should be automatically started on a
 particular file. By default all files part of a project managed
@@ -509,7 +510,8 @@ the use of eclim to java and ant files."
                (java-mode "java_src_update")
                (ruby-mode "ruby_src_update")
                (php-mode "php_src_update")
-               ((javascript-mode js-mode "javascript_src_update")))
+               ((c-mode c++-mode) "c_src_update")
+               ((javascript-mode js-mode) "javascript_src_update"))
              (eclim--expand-args (list "-p" "-f")))))
   t)
 
