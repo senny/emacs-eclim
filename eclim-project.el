@@ -26,6 +26,7 @@
 ;;* Eclim Project
 
 (defvar eclim-project-mode-hook nil)
+(defvar eclim-project-info-mode-hook nil)
 
 (defvar eclim--project-scopes '("project"
                                 "workspace"))
@@ -40,7 +41,7 @@
     (define-key map (kbd "U") 'eclim-project-unmark-all)
     (define-key map (kbd "o") 'eclim-project-open)
     (define-key map (kbd "c") 'eclim-project-close)
-    (define-key map (kbd "i") 'eclim-project-info)
+    (define-key map (kbd "i") 'eclim-project-info-mode)
     (define-key map (kbd "I") 'eclim-project-import)
     (define-key map (kbd "RET") 'eclim-project-goto)
     (define-key map (kbd "D") 'eclim-project-delete)
@@ -50,10 +51,15 @@
     (define-key map (kbd "q") 'eclim-quit-window)
     map))
 
+(defvar eclim-project-info-mode-map
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map special-mode-map)
+        map))
+
 
 (define-key eclim-mode-map (kbd "C-c C-e g") 'eclim-project-goto)
-(define-key eclim-mode-map (kbd "C-c C-e p p") 'eclim-manage-projects)
-(define-key eclim-mode-map (kbd "C-c C-e p m") 'eclim-manage-projects)
+(define-key eclim-mode-map (kbd "C-c C-e p p") 'eclim-project-mode)
+(define-key eclim-mode-map (kbd "C-c C-e p m") 'eclim-project-mode)
 (define-key eclim-mode-map (kbd "C-c C-e p i") 'eclim-project-import)
 (define-key eclim-mode-map (kbd "C-c C-e p c") 'eclim-project-create)
 (define-key eclim-mode-map (kbd "C-c C-e p g") 'eclim-project-goto)
@@ -86,29 +92,6 @@
 (defun eclim--project-set-current ()
   (ignore-errors
     (setq eclim--project-name (eclim--project-current-line))))
-
-(defun eclim--project-mode-init ()
-  (switch-to-buffer (get-buffer-create "*eclim: projects*"))
-  (eclim--project-mode)
-  (eclim--project-buffer-refresh)
-  (add-hook 'post-command-hook 'eclim--project-set-current nil t)
-  (beginning-of-buffer))
-
-(defun eclim--project-mode ()
-  "Manage all your eclim projects one buffer"
-  (kill-all-local-variables)
-  (buffer-disable-undo)
-  (setq major-mode 'eclim-project-mode
-        mode-name "eclim/project"
-        mode-line-process ""
-        truncate-lines t
-        line-move-visual nil
-        buffer-read-only t
-        default-directory (eclim/workspace-dir))
-  (hl-line-mode t)
-  (use-local-map eclim-project-mode-map)
-  (cd "~") ;; setting a defualt directoy avoids some problems with tramp
-  (run-mode-hooks 'eclim-project-mode-hook))
 
 (defun eclim--project-buffer-refresh ()
   (eclim--project-clear-cache)
@@ -335,24 +318,25 @@
                         :key (lambda (e) (assoc-default 'name e))
                         :test #'string=))))
 
-(defun eclim-project-info (project)
+(defun eclim-project-info-mode (project)
+  "Display detailed information about an eclim-project.
+
+\\{eclim-project-info-mode-map}"
   (interactive (list (eclim--project-read t)))
-  (let ((old-buffer (current-buffer))
-        (project-info "")
-        (project-settings ""))
-    (switch-to-buffer (get-buffer-create "*eclim: info*"))
-    (loop for attr in (eclim/project-info project)
-          do (insert (format "%s: %s\n" (car attr) (cdr attr))))
-    (insert "\n\nSETTINGS:\n")
-    (loop for attr across (eclim/project-settings project)
-          do (insert (format "%s: %s\n" (assoc-default 'name attr) (assoc-default 'value attr))))
-    (local-set-key (kbd "q") (lambda ()
-                               (interactive)
-                               (kill-buffer)))
-    (beginning-of-buffer)
-    (setq major-mode 'special-mode
-          mode-name "eclim/project-info"
-          buffer-read-only t)))
+  (with-help-window  "*eclim: info*"
+    (with-current-buffer "*eclim: info*"
+      (kill-all-local-variables)
+      (save-excursion
+        (loop for attr in (eclim/project-info project)
+              do (princ (format "%s: %s\n" (car attr) (cdr attr))))
+        (princ "\n\nSETTINGS:\n")
+        (loop for attr across (eclim/project-settings project)
+              do (princ (format "%s: %s\n" (assoc-default 'name attr) (assoc-default 'value attr))))
+        (use-local-map eclim-project-info-mode-map)
+        (setq major-mode 'eclim-project-info-mode
+              mode-name "eclim/project-info")
+        (put 'eclim-project-infomode 'modeclass 'special)
+        (run-mode-hooks eclim-project-info-mode-hook)))))
 
 (defun eclim-project-build ()
   "Triggers a build of the current project"
@@ -362,9 +346,31 @@
    "project_build" "-p"))
 
 ;;;###autoload
-(defun eclim-manage-projects ()
+(defun eclim-project-mode ()
+  "Manage all your eclim projects in one buffer.
+
+\\{eclim-project-mode-map}"
   (interactive)
+  (switch-to-buffer (get-buffer-create "*eclim: projects*"))
   (eclim--project-clear-cache)
-  (eclim--project-mode-init))
+  (kill-all-local-variables)
+  (buffer-disable-undo)
+  (setq major-mode 'eclim-project-mode
+        mode-name "eclim/project"
+        mode-line-process ""
+        truncate-lines t
+        line-move-visual nil
+        buffer-read-only t
+        default-directory (eclim/workspace-dir))
+  (put 'eclim-project-mode 'mode-class 'special)
+  (hl-line-mode t)
+  (use-local-map eclim-project-mode-map)
+  (cd "~") ;; setting a defualt directoy avoids some problems with tramp
+  (eclim--project-buffer-refresh)
+  (add-hook 'post-command-hook 'eclim--project-set-current nil t)
+  (beginning-of-buffer)
+  (run-mode-hooks 'eclim-project-mode-hook))
+
+(defalias 'eclim-manage-projects 'eclim-project-mode)
 
 (provide 'eclim-project)
