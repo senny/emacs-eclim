@@ -335,7 +335,7 @@
         (use-local-map eclim-project-info-mode-map)
         (setq major-mode 'eclim-project-info-mode
               mode-name "eclim/project-info")
-        (put 'eclim-project-infomode 'modeclass 'special)
+        (put 'eclim-project-info-mode 'mode-class 'special)
         (run-mode-hooks eclim-project-info-mode-hook)))))
 
 (defun eclim-project-build ()
