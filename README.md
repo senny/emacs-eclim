@@ -57,14 +57,12 @@ If you want to control eclimd from emacs, also add:
 
 Emacs-eclim tries its best to locate your Eclipse installation.  If
 you have Eclipse installed in a non-standard location
-(i.e. ~/opt/eclipse) you have two options:
-
-* Either customize the `eclim-executable` variable to make it point to the `eclim` executable within the Eclipe directory if necessary
-* Or, you can override the lookup by adding the following to your startup script.
+(i.e. ~/nonStandard/eclipse or /opt/eclipse) you may specify the paths manually by adding this to your startup script:
 
 ```lisp
 (custom-set-variables
- '(eclim-eclipse-dirs '("~/opt/eclipse")))
+  '(eclim-eclipse-dirs "~/nonStandard/eclipse")
+  '(eclim-executable "~/nonStandard/eclipse/eclim"))
 ```
 
 ### Displaying compilation error messages in the echo area
