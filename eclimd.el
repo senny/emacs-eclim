@@ -104,7 +104,8 @@ The caller must use `save-match-data' to preserve the match data if necessary."
   "Wait for the eclimd server to become active.
 This function also waits for the eclimd server to report that it is started.
 It returns the port it is listening on"
-  (let ((eclimd-start-regexp "Eclim Server Started on\\(?: port\\|:\\) \\(?:\\(?:[0-9]+\\.\\)\\{3\\}[0-9]+:\\)?\\([0-9]+\\)"))
+  (let ((eclimd-start-regexp "Eclim Server Started on\\(?: port\\|:\\) \\(?:\\(?:[0-9]+\\.\\)\\{3\\}[0-9]+:\\)?\\([0-9]+\\)")
+        eclimd-port)
     (save-match-data
       (let ((output (eclimd--match-process-output eclimd-start-regexp eclimd-process)))
 	(when output

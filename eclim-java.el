@@ -28,6 +28,11 @@
 ;;* Eclim Java
 
 (require 'json)
+(require' eclim)
+(require 'eclim-project)
+(require 'eclim-problems)
+(eval-when-compile (require 'cl))
+(require 'cl-lib)
 
 (define-key eclim-mode-map (kbd "C-c C-e s") 'eclim-java-method-signature-at-point)
 (define-key eclim-mode-map (kbd "C-c C-e f d") 'eclim-java-find-declaration)
@@ -41,6 +46,10 @@
 (define-key eclim-mode-map (kbd "C-c C-e d") 'eclim-java-doc-comment)
 (define-key eclim-mode-map (kbd "C-c C-e f s") 'eclim-java-format)
 (define-key eclim-mode-map (kbd "C-c C-e g") 'eclim-java-generate-getter-and-setter)
+
+(defvar eclim-corrections-previous-window-config nil)
+(defvar eclim-correction-command-info nil)
+(defvar eclim-java-show-documentation-history nil)
 
 (defvar eclim-java-show-documentation-map
   (let ((map (make-keymap)))
@@ -118,17 +127,6 @@ Java documentation under Android docs, so don't forget to set
     (define-key map (kbd "RET") 'eclim-java-correct-choose)
     map))
 
-(defvar eclim--is-completing nil)
-
-(defun eclim/java-src-update (&optional save-others)
-  "If `eclim-auto-save' is non-nil, save the current java
-buffer. In addition, if `save-others' is non-nil, also save any
-other unsaved buffer. Finally, tell eclim to update its java
-sources."
-  (when eclim-auto-save
-    (when (buffer-modified-p) (save-buffer)) ;; auto-save current buffer, prompt on saving others
-    (when save-others (save-some-buffers nil (lambda () (string-match "\\.java$" (buffer-file-name)))))))
-
 (defadvice delete-file (around eclim--delete-file activate)
   "Advice the `delete-file' function to trigger a source update
 in eclim when appropriate."
@@ -154,14 +152,15 @@ in eclim when appropriate."
              str)))))
 
 (defun eclim--java-parse-method-signature (signature)
-  (flet ((parser3/parse-arg (arg)
-                            (let ((arg-rev (reverse arg)))
-                              (cond ((null arg) nil)
-                                    ((= (length arg) 1) (list (list :type (first arg))))
-                                    ((listp (first arg-rev)) (list (cons :type arg)))
-                                    (t (list (cons :name (first arg-rev)) (cons :type (reverse (rest arg-rev)))))))))
+  (let ((parser3/parse-arg
+         (lambda (arg)
+           (let ((arg-rev (reverse arg)))
+             (cond ((null arg) nil)
+                   ((= (length arg) 1) (list (list :type (first arg))))
+                   ((listp (first arg-rev)) (list (cons :type arg)))
+                   (t (list (cons :name (first arg-rev)) (cons :type (reverse (rest arg-rev))))))))))
     (let ((ast (reverse (eclim--java-parser-read signature))))
-      (list (cons :arglist (mapcar #'parser3/parse-arg (first ast)))
+      (list (cons :arglist (mapcar parser3/parse-arg (first ast)))
             (cons :name (second ast))
             (cons :return (reverse (rest (rest ast))))))))
 
@@ -425,33 +424,33 @@ matters for buffers containing non-ASCII characters)."
 imports section of a java source file. This will preserve the
 undo history."
   (interactive)
-  (flet ((cut-imports ()
-                      (beginning-of-buffer)
-                      (if (re-search-forward "^import" nil t)
-                          (progn
-                            (beginning-of-line)
-                            (let ((beg (point)))
-                              (end-of-buffer)
-                              (re-search-backward "^import")
-                              (end-of-line)
-                              (let ((imports (buffer-substring-no-properties beg (point))))
-                                (delete-region beg (point))
-                                imports)))
-                        (progn
-                          (forward-line 1)
-                          (delete-blank-lines)
-                          (insert "\n\n\n")
-                          (forward-line -2)))))
+  (let ((cut-imports (lambda ()
+                       (goto-char (point-min))
+                       (if (re-search-forward "^import" nil t)
+                           (progn
+                             (beginning-of-line)
+                             (let ((beg (point)))
+                               (goto-char (point-max))
+                               (re-search-backward "^import")
+                               (end-of-line)
+                               (let ((imports (buffer-substring-no-properties beg (point))))
+                                 (delete-region beg (point))
+                                 imports)))
+                         (progn
+                           (forward-line 1)
+                           (delete-blank-lines)
+                           (insert "\n\n\n")
+                           (forward-line -2))))))
     (save-excursion
       (clear-visited-file-modtime)
-      (cut-imports)
+      (funcall cut-imports)
       (widen)
       (insert
        (let ((fname (buffer-file-name)))
          (with-temp-buffer
            (insert-file-contents fname)
-           (cut-imports))))
-      (not-modified)
+           (funcall cut-imports))))
+      (set-buffer-modified-p nil)
       (set-visited-file-modtime))))
 
 (defun eclim-java-import (type)
@@ -459,7 +458,7 @@ undo history."
 exist already."
   (interactive)
   (save-excursion
-    (beginning-of-buffer)
+    (goto-char (point-min))
     (let ((revert-buffer-function 'eclim-soft-revert-imports))
       (when (not (re-search-forward (format "^import %s;" type) nil t))
         (eclim/execute-command "java_import" "-p" "-f" "-o" "-e" ("-t" type))
@@ -471,7 +470,7 @@ sorts import statements. "
   (interactive)
   (let ((revert-buffer-function 'eclim-soft-revert-imports))
     (eclim/with-results res ("java_import_organize" "-p" "-f" "-o" "-e"
-                             (when types (list "-t" (reduce (lambda (a b) (concat a "," b)) types))))
+                             (when types (list "-t" (cl-reduce (lambda (a b) (concat a "," b)) types))))
       (eclim--problems-update-maybe)
       (when (vectorp res)
         (save-excursion
@@ -481,12 +480,14 @@ sorts import statements. "
 (defun format-type (type)
   (cond ((null type) nil)
         ((listp (first type))
-         (append (list "<") (rest (mapcan (lambda (type) (append (list ", ") (format-type type))) (first type))) (list ">")
+         (append (list "<") (rest (cl-mapcan (lambda (type) (append (list ", ") (format-type type))) (first type))) (list ">")
                (format-type (rest type))))
         (t (cons (let ((type-name (symbol-name (first type))))
                    (when (string-match "\\(.*\\.\\)?\\(.*\\)" type-name)
                      (match-string 2 type-name)))
                  (format-type (rest type))))))
+
+(declare-function yas/expand-snippet "yasnippet")
 
 (defun eclim-java-implement (&optional name)
   "Lets the user select from a list of methods to
@@ -494,14 +495,14 @@ implemnt/override, then inserts a skeleton for the chosen
 method."
   (interactive)
   (eclim/with-results response ("java_impl" "-p" "-f" "-o")
-    (flet ((join (glue items)
+    (cl-flet ((join (glue items)
                  (cond ((null items) "")
                        ((= 1 (length items)) (format "%s" (first items)))
-                       (t (reduce (lambda (a b) (format "%s%s%s" a glue b)) items))))
+                       (t (cl-reduce (lambda (a b) (format "%s%s%s" a glue b)) items))))
            (format-type (type)
                         (cond ((null type) nil)
                               ((listp (first type))
-                               (append (list "<") (rest (mapcan (lambda (type) (append (list ", ") (format-type type))) (first type))) (list ">")
+                               (append (list "<") (rest (cl-mapcan (lambda (type) (append (list ", ") (format-type type))) (first type))) (list ">")
                                        (format-type (rest type))))
                               (t (cons (let ((type-name (symbol-name (first type))))
                                          (when (string-match "\\(.*\\.\\)?\\(.*\\)" type-name)
@@ -510,23 +511,24 @@ method."
                                              (eclim-java-import (concat package class))
                                              class)))
                                        (format-type (rest type)))))))
-      (let* ((methods (remove-if-not (lambda (m) (or (null name)
-                                                     (string-match name m)))
-                                     (mapcar (lambda (x) (replace-regexp-in-string "[ \n\t]+" " " x))
-                                             (apply 'append
-                                                    (mapcar (lambda (x) (append (assoc-default 'methods x) nil))
-                                                            (assoc-default 'superTypes response))))))
+      (let* ((methods (cl-remove-if-not (lambda (m) (or (null name)
+                                                        (string-match name m)))
+                                        (mapcar (lambda (x) (replace-regexp-in-string "[ \n\t]+" " " x))
+                                                (apply 'append
+                                                       (mapcar (lambda (x) (append (assoc-default 'methods x) nil))
+                                                               (assoc-default 'superTypes response))))))
              (method (if (= 1 (length methods)) (first methods)
                        (eclim--completing-read "Signature: " methods)))
              (sig (eclim--java-parse-method-signature method))
              (ret (assoc-default :return sig)))
+        (require 'yasnippet)
         (yas/expand-snippet (format "@Override\n%s %s(%s) {$0}"
                                     (apply #'concat
-                                           (join " " (remove-if-not (lambda (m) (find m '(public protected private void))) (subseq ret 0 (1- (length ret)))))
+                                           (join " " (cl-remove-if-not (lambda (m) (cl-find m '(public protected private void))) (cl-subseq ret 0 (1- (length ret)))))
                                            " "
-                                           (format-type (remove-if (lambda (m) (find m '(abstract public protected private ))) ret)))
+                                           (format-type (cl-remove-if (lambda (m) (cl-find m '(abstract public protected private))) ret)))
                                     (assoc-default :name sig)
-                                    (join ", " (loop for arg in (remove-if #'null (assoc-default :arglist sig))
+                                    (join ", " (loop for arg in (cl-remove-if #'null (assoc-default :arglist sig))
                                                      for i from 0
                                                      collect (format "%s ${arg%s}" (apply #'concat (format-type (assoc-default :type arg))) i)))))))))
 
@@ -597,7 +599,7 @@ method."
                              (format "with index %s." index)
                            "here.")))
       (unless index
-        (setq index (string-to-int (match-string 1))))
+        (setq index (string-to-number (match-string 1))))
       (let ((info eclim-correction-command-info))
         (set-window-configuration eclim-corrections-previous-window-config)
         (message "Applying correction %s" index)
@@ -693,16 +695,16 @@ method."
           (let* ((doc-root-vars '(eclim-java-documentation-root
                                   eclim-java-android-documentation-root))
                  (path (replace-regexp-in-string "^[./]+" "" url))
-                 (fullpath (some (lambda (var)
-                                   (let ((fullpath (concat (symbol-value var)
-                                                           "/"
-                                                           path)))
-                                     (if (file-exists-p (replace-regexp-in-string
-                                                         "#.+"
-                                                         ""
-                                                         fullpath))
-                                         fullpath)))
-                                 doc-root-vars)))
+                 (fullpath (cl-some (lambda (var)
+                                      (let ((fullpath (concat (symbol-value var)
+                                                              "/"
+                                                              path)))
+                                        (if (file-exists-p (replace-regexp-in-string
+                                                            "#.+"
+                                                            ""
+                                                            fullpath))
+                                            fullpath)))
+                                    doc-root-vars)))
             (if fullpath
                 (browse-url (concat "file://" fullpath))
 

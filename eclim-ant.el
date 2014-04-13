@@ -26,6 +26,9 @@
 
 ;;* Eclim Ant
 
+(require 'eclim)
+(require 'eclim-project)
+
 (define-key eclim-mode-map (kbd "C-c C-e a c") 'eclim-ant-clear-cache)
 (define-key eclim-mode-map (kbd "C-c C-e a r") 'eclim-ant-run)
 (define-key eclim-mode-map (kbd "C-c C-e a a") 'eclim-ant-run)
@@ -67,7 +70,7 @@ stored. It is used globally for all eclim projects."
   (eclim--check-project project)
   (mapcar (lambda (line)
             (split-string line "|"))
-          (eclim--call-process "ant_validate" "-p" project "-f" file)))
+          (eclim--call-process "ant_validate" "-p" project "-f" buildfile)))
 
 (defun eclim/ant-target-list (project buildfile)
   (eclim--check-project project)
@@ -87,9 +90,11 @@ buffer. The resulst are displayed in a deticated compilation buffer."
   (let ((buffer-read-only nil))
     (erase-buffer)
     (dolist (line (eclim/ant-validate project file))
-      (insert (eclim--convert-find-result-to-string line))
+      ;; XXX: where does eclim--convert-find-result-to-string come from?
+      ;; (insert (eclim--convert-find-result-to-string line))
+      (error "???")
       (newline)))
-  (beginning-of-buffer)
+  (goto-char (point-min))
   (compilation-mode))
 
 (defun eclim-ant-run (target)
