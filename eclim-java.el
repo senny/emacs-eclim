@@ -620,6 +620,7 @@ method."
 
 
 (defun eclim-java-show-documentation-for-current-element ()
+  "Displays the doc comments for the element at the pointers position."
   (interactive)
   (let ((symbol (symbol-at-point)))
     (if symbol
