@@ -32,3 +32,4 @@
    project_link_resource command, so that external source files not in the
    eclipse working directory are correctly handled.
  * fixed a problem with highlighting when files are in directories that are symbolic links
+ * Make the project major modes adhere to emacs major mode conventions
