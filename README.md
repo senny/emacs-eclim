@@ -61,7 +61,7 @@ you have Eclipse installed in a non-standard location
 
 ```lisp
 (custom-set-variables
-  '(eclim-eclipse-dirs "~/nonStandard/eclipse")
+  '(eclim-eclipse-dirs '("~/nonStandard/eclipse"))
   '(eclim-executable "~/nonStandard/eclipse/eclim"))
 ```
 
