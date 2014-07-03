@@ -70,8 +70,8 @@
 
 (defun eclim--check-nature (nature)
   (let ((natures (or eclim--project-natures-cache
-                     (setq eclim--project-natures-cache))))
-    (when (not (assoc-string nature natures))
+                    (setq eclim--project-natures-cache (eclim/project-nature-aliases)))))
+    (when (not (member nature (append natures nil)))
       (error (concat "invalid project nature: " nature)))))
 
 (defun eclim--check-project (project)
@@ -258,7 +258,23 @@
   (eclim--project-buffer-refresh))
 
 (defun eclim--project-nature-read ()
-  (completing-read "Type: " (append (eclim/project-nature-aliases) '())))
+  (completing-read "Nature: " (append (eclim/project-nature-aliases) nil)))
+
+(defun eclim-project-nature-add (nature)
+  (interactive (list (eclim--project-nature-read)))
+  (message (eclim/project-nature-add eclim--project-name nature)))
+
+(defun eclim-project-nature-remove (nature)
+  (interactive (list (completing-read "Remove nature: "
+                                      (append
+                                       (cdadr (aref (eclim/project-natures eclim--project-name) 0))
+                                       nil))))
+  (message (eclim/project-nature-remove eclim--project-name nature)))
+
+(defun eclim-project-natures ()
+  (interactive)
+  (message (with-output-to-string
+             (princ (cdadr (aref (eclim/project-natures eclim--project-name) 0))))))
 
 (defun eclim-project-mode-refresh ()
   (interactive)
