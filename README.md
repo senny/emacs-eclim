@@ -2,11 +2,11 @@
 [Eclim](http://eclim.org) is an Eclipse plugin which exposes Eclipse
 features through a server interface.  When this server is started, the
 command line utility eclim can be used to issue requests to that
-server.
+server. 
 
 Emacs-eclim uses the eclim server to integrate eclipse with
 emacs. This project wants to bring some of the invaluable features
-from eclipse to emacs.
+from eclipse to emacs. Please note, emacs-eclim **is limited to mostly java support at this time.**
 
 It is also possible to start and stop the eclim daemon from emacs using the
 `eclimd` package.
