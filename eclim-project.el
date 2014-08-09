@@ -248,7 +248,7 @@
       (progn (setq target (read-string "Target: "))
              (setq package (read-string "Package: "))
              (setq application (read-string "Application: "))
-             (emssage (eclim/project-create path nature name target package application)))
+             (message (eclim/project-create path nature name target package application)))
       (message (eclim/project-create path nature name))
   (eclim--project-buffer-refresh)))
 
