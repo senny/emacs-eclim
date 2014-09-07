@@ -355,6 +355,13 @@ has been found."
     (eclim/with-results hits ("java_search" "-n" "-f" ("-o" (car i)) ("-l" (length (cdr i))) ("-x" "declaration"))
       (eclim--find-display-results (cdr i) hits t))))
 
+(defun eclim-c-find-declaration ()
+  "Find and display the declaration of the c identifier at point."
+  (interactive)
+  (let ((i (eclim--java-identifier-at-point t)))
+    (eclim/with-results hits ("c_search" "-n" "-f" ("-o" (car i)) ("-l" (length (cdr i))))
+      (eclim--find-display-results (cdr i) hits t))))
+
 (defun eclim-java-find-references ()
   "Find and display references for the java identifier at point."
   (interactive)
