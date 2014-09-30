@@ -163,9 +163,9 @@
 
 (defun eclim-problems-highlight ()
   (interactive)
-  (save-restriction
-    (widen)
-    (when (eclim--file-managed-p)
+  (when (eclim--accepted-p (buffer-file-name))
+    (save-restriction
+      (widen)
       (eclim--problems-clear-highlights)
       (loop for problem across (remove-if-not (lambda (p) (string= (assoc-default 'filename p) (file-truename (buffer-file-name)))) eclim--problems-list)
             do (eclim--problems-insert-highlight problem)))))
