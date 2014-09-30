@@ -212,6 +212,9 @@ it asynchronously."
        (when (not (minibuffer-window-active-p (minibuffer-window)))
          (message "refreshing... %s " (current-buffer)))
        (eclim/with-results-async ,res ("problems" ("-p" eclim--problems-project) (when (string= "e" eclim--problems-filter) '("-e" "true")))
+         (loop for problem across ,res
+               do (let ((filecell (assq 'filename problem)))
+                    (when filecell (setcdr filecell (file-truename (cdr filecell))))))
          (setq eclim--problems-list ,res)
          (let ((,problems ,res))
            ,@body)))))
