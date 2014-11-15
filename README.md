@@ -13,6 +13,8 @@ It is also possible to start and stop the eclim daemon from emacs using the
 
 You can ask questions or discuss new features at our [Google Group](https://groups.google.com/forum/#!forum/emacs-eclim)
 
+> *NOTE: This project is currently unmaintained. We are looking for a new [maintainer](https://github.com/senny/emacs-eclim/issues/155).*
+
 ## A note about Eclim versions
 
 Prior to version 1.7.3, eclim used a proprietary protocol for
