@@ -152,15 +152,6 @@
 (defun eclim--problems-clear-highlights ()
   (remove-overlays nil nil 'category 'eclim-problem))
 
-(defadvice find-file (after eclim-problems-highlight-on-find-file activate)
-  (eclim-problems-highlight))
-(defadvice find-file-other-window (after eclim-problems-highlight-on-find-file-other-window activate)
-  (eclim-problems-highlight))
-(defadvice other-window (after eclim-problems-highlight-on-other-window activate)
-  (eclim-problems-highlight))
-(defadvice switch-to-buffer (after eclim-problems-highlight-switch-to-buffer activate)
-  (eclim-problems-highlight))
-
 (defun eclim-problems-highlight ()
   (interactive)
   (when (eclim--accepted-p (buffer-file-name))
@@ -169,6 +160,15 @@
       (eclim--problems-clear-highlights)
       (loop for problem across (remove-if-not (lambda (p) (string= (assoc-default 'filename p) (file-truename (buffer-file-name)))) eclim--problems-list)
             do (eclim--problems-insert-highlight problem)))))
+
+(defadvice find-file (after eclim-problems-highlight-on-find-file activate)
+  (eclim-problems-highlight))
+(defadvice find-file-other-window (after eclim-problems-highlight-on-find-file-other-window activate)
+  (eclim-problems-highlight))
+(defadvice other-window (after eclim-problems-highlight-on-other-window activate)
+  (eclim-problems-highlight))
+(defadvice switch-to-buffer (after eclim-problems-highlight-switch-to-buffer activate)
+  (eclim-problems-highlight))
 
 (defun eclim--problems-get-current-problem ()
   (let ((buf (get-buffer "*eclim: problems*")))
