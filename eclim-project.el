@@ -151,6 +151,7 @@
                           (eclim--project-column-end 3)))))
 
 (defun eclim/project-list ()
+  (interactive)
   (eclim/execute-command "project_list"))
 
 (defun eclim/project-import (folder)
