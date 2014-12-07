@@ -61,6 +61,9 @@ You can freeze emacs until eclimd is ready to accept commands with this variable
 (defvar eclimd-process-buffer nil
   "Buffer used for communication with eclimd process")
 
+(defvar eclimd-port nil
+  "The active eclimd port number")
+
 (defvar eclimd-process nil
   "The active eclimd process")
 
@@ -108,9 +111,9 @@ It returns the port it is listening on"
     (save-match-data
       (let ((output (eclimd--match-process-output eclimd-start-regexp eclimd-process)))
 	(when output
-	  (setq eclimd-port (match-string 1 output))
+	  (let ((eclimd-port (match-string 1 output)))
 	  (message (concat "eclimd serving at port " eclimd-port)))))
-    eclimd-port))
+    eclimd-port)))
 
 (defun start-eclimd (workspace-dir)
   (interactive (list (read-directory-name "Workspace directory: "
