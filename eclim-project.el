@@ -99,7 +99,7 @@
     (let ((inhibit-read-only t)
           (line-number (line-number-at-pos)))
       (erase-buffer)
-      (loop for project across (eclim/project-list)
+      (cl-loop for project across (eclim/project-list)
             do (eclim--insert-project project))
       (goto-line line-number))))
 
@@ -343,7 +343,7 @@
     (with-current-buffer "*eclim: info*"
       (kill-all-local-variables)
       (save-excursion
-        (loop for attr in (eclim/project-info project)
+        (cl-loop for attr in (eclim/project-info project)
               do (princ (format "%s: %s\n" (car attr) (cdr attr))))
         (princ "\n\nSETTINGS:\n")
         (loop for attr across (eclim/project-settings project)

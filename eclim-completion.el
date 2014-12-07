@@ -147,7 +147,7 @@ buffer."
 (defun eclim--completion-yasnippet-convert (completion)
   "Convert a completion string to a yasnippet template"
   (apply #' concat
-            (loop for c across (replace-regexp-in-string ", " "," completion)
+            (cl-loop for c across (replace-regexp-in-string ", " "," completion)
                   collect (case c
                             (40 "(${")
                             (60 "<${")

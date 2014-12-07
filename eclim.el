@@ -219,8 +219,8 @@ strings and will be called on completion."
 (defun eclim--args-contains (args flags)
   "Check if an (unexpanded) ARGS list contains any of the
 specified FLAGS."
-  (loop for f in flags
-        return (find f args :test #'string= :key (lambda (a) (if (listp a) (car a) a)))))
+  (cl-loop for f in flags
+        return (cl-find f args :test #'string= :key (lambda (a) (if (listp a) (car a) a)))))
 
 (defun eclim--expand-args (args)
   "Takes a list of command-line arguments with which to call the
@@ -229,7 +229,7 @@ list. If it is a string, its default value is looked up in
 `eclim--default-args' and used to construct a list. The argument
 lists are then appended together."
   (mapcar (lambda (a) (if (numberp a) (number-to-string a) a))
-          (loop for a in args
+          (cl-loop for a in args
                 append (if (listp a)
                            (if (stringp (car a))
                                (list (car a) (eval (cadr a)))
@@ -380,7 +380,7 @@ FILENAME is given, return that file's  project name instead."
         (newline 2)
         (insert (concat "eclim java_search -p " pattern))
         (newline)
-        (loop for result across results
+        (cl-loop for result across results
               do (insert (eclim--format-find-result result default-directory)))
         (goto-char 0)
         (grep-mode)))))
@@ -488,7 +488,7 @@ the use of eclim to java and ant files."
 (defun eclim--accepted-filename-p (filename)
   "Return t if and only one of the regular expressions in
 `eclim-accepted-file-regexps' matches FILENAME."
-  (if (member-if
+  (if (cl-member-if
        (lambda (regexp) (string-match regexp filename))
        eclim-accepted-file-regexps)
       t))

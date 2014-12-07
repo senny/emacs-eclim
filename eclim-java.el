@@ -272,7 +272,7 @@ has been found."
                  (kill-buffer (find-buffer-visiting from))
                  (find-file to)))
       (save-excursion
-        (loop for file in (mapcar (lambda (x) (assoc-default 'file x)) res)
+        (cl-loop for file in (mapcar (lambda (x) (assoc-default 'file x)) res)
               do (when file
                    (let ((buf (get-file-buffer (file-name-nondirectory file))))
                      (when buf
@@ -336,7 +336,7 @@ has been found."
   (eclim/with-results hits ("java_search" ("-p" (cdr (assoc 'qualified node))) ("-t" "type") ("-x" "declarations") ("-s" "workspace"))
     (add-to-list 'node `(file-path . ,(assoc-default 'message (elt hits 0))))
     (let ((children (cdr (assoc 'children node))))
-      (loop for child across children do
+      (cl-loop for child across children do
             (eclim--java-insert-file-path-for-hierarchy-nodes child)))
     node))
 
@@ -490,7 +490,7 @@ sorts import statements. "
 (defun format-type (type)
   (cond ((null type) nil)
         ((listp (first type))
-         (append (list "<") (rest (mapcan (lambda (type) (append (list ", ") (format-type type))) (first type))) (list ">")
+         (append (list "<") (rest (cl-mapcan (lambda (type) (append (list ", ") (format-type type))) (first type))) (list ">")
                (format-type (rest type))))
         (t (cons (let ((type-name (symbol-name (first type))))
                    (when (string-match "\\(.*\\.\\)?\\(.*\\)" type-name)
@@ -510,7 +510,7 @@ method."
            (format-type (type)
                         (cond ((null type) nil)
                               ((listp (first type))
-                               (append (list "<") (rest (mapcan (lambda (type) (append (list ", ") (format-type type))) (first type))) (list ">")
+                               (append (list "<") (rest (cl-mapcan (lambda (type) (append (list ", ") (format-type type))) (first type))) (list ">")
                                        (format-type (rest type))))
                               (t (cons (let ((type-name (symbol-name (first type))))
                                          (when (string-match "\\(.*\\.\\)?\\(.*\\)" type-name)
