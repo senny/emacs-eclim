@@ -30,9 +30,7 @@
 
 ;;* Eclim
 
-(eval-when-compile (require 'cl))
-(require 'etags)
-(require 's)
+(mapc 'require '(cl-lib etags s))
 
 ;;** Basics
 
