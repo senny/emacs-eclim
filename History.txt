@@ -17,6 +17,7 @@
  * Support for auto-complete-mode
  * eclimd module to start/stop eclimd from emacs
  * Generation of getter and setter methods.
+ * User commands for adding, listing and removing project natures.
  
 === Bugfixes
  * removed extra parentheses around function
