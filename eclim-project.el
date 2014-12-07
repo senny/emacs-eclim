@@ -101,9 +101,9 @@
     (let ((inhibit-read-only t)
           (line-number (line-number-at-pos)))
       (erase-buffer)
-      (loop for project across (eclim/project-list)
+      (cl-loop for project across (eclim/project-list)
             do (eclim--insert-project project))
-      (goto-line line-number))))
+      (forward-line line-number))))
 
 (defun eclim--insert-project (project)
   (insert (format "  | %-6s | %-30s | %s\n"
@@ -130,7 +130,7 @@
   (interactive)
   (let ((marked-projects '()))
     (save-excursion
-      (beginning-of-buffer)
+      (goto-char (point-min))
       (while (re-search-forward "*" nil t)
         (push (eclim--project-current-line) marked-projects)))
     marked-projects))
@@ -247,9 +247,9 @@
                      (eclim--project-nature-read)))
   ;;android project is need the vars target,package,application
   (if (string-equal nature "android")
-      (progn (setq target (read-string "Target: "))
-             (setq package (read-string "Package: "))
-             (setq application (read-string "Application: "))
+      (let ((target (read-string "Target: "))
+             (package (read-string "Package: "))
+             (application (read-string "Application: ")))
              (message (eclim/project-create path nature name target package application)))
       (message (eclim/project-create path nature name))
   (eclim--project-buffer-refresh)))
@@ -312,7 +312,7 @@
 (defun eclim-project-mark-all ()
   (interactive)
   (save-excursion
-    (beginning-of-buffer)
+    (goto-char (point-min))
     (loop do (eclim--project-insert-mark-current 'dired-mark)
           until (not (forward-line 1)))))
 
@@ -324,7 +324,7 @@
 (defun eclim-project-unmark-all ()
   (interactive)
   (save-excursion
-    (beginning-of-buffer)
+    (goto-char (point-min))
     (loop do (eclim--project-remove-mark-current)
           until (not (forward-line 1)))))
 
@@ -332,7 +332,7 @@
   (interactive (list (eclim--project-read t)))
   (ido-find-file-in-dir
    (assoc-default 'path
-                  (find project (eclim/project-list)
+                  (cl-find project (eclim/project-list)
                         :key (lambda (e) (assoc-default 'name e))
                         :test #'string=))))
 
@@ -348,7 +348,7 @@
         (loop for attr in (eclim/project-info project)
               do (princ (format "%s: %s\n" (car attr) (cdr attr))))
         (princ "\n\nSETTINGS:\n")
-        (loop for attr across (eclim/project-settings project)
+        (cl-loop for attr across (eclim/project-settings project)
               do (princ (format "%s: %s\n" (assoc-default 'name attr) (assoc-default 'value attr))))
         (use-local-map eclim-project-info-mode-map)
         (setq major-mode 'eclim-project-info-mode
@@ -386,7 +386,7 @@
   (cd "~") ;; setting a defualt directoy avoids some problems with tramp
   (eclim--project-buffer-refresh)
   (add-hook 'post-command-hook 'eclim--project-set-current nil t)
-  (beginning-of-buffer)
+  (goto-char (point-min))
   (run-mode-hooks 'eclim-project-mode-hook))
 
 (defalias 'eclim-manage-projects 'eclim-project-mode)
