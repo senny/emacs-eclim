@@ -120,6 +120,15 @@ Java documentation under Android docs, so don't forget to set
 
 (defvar eclim--is-completing nil)
 
+(defun eclim/groovy-src-update (&optional save-others)
+  "If `eclim-auto-save' is non-nil, save the current java
+ buffer. In addition, if `save-others' is non-nil, also save any
+ other unsaved buffer. Finally, tell eclim to update its java
+ sources."
+  (when eclim-auto-save
+    (when (buffer-modified-p) (save-buffer)) ;; auto-save current buffer, prompt on saving others
+    (when save-others (save-some-buffers nil (lambda () (string-match "\\.groovy$" (buffer-file-name)))))))
+
 (defun eclim/java-src-update (&optional save-others)
   "If `eclim-auto-save' is non-nil, save the current java
 buffer. In addition, if `save-others' is non-nil, also save any

@@ -66,7 +66,7 @@
     (meta (eclim--completion-documentation
            (concat arg (company-emacs-eclim--annotation arg))))
     (no-cache (equal arg ""))
-    (ignore-case t)
+    (ignore-case nil)
     (sorted t)
     (post-completion (let ((ann (company-emacs-eclim--annotation arg)))
                        (when ann (insert ann))
