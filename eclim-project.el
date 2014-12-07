@@ -25,6 +25,8 @@
 
 ;;* Eclim Project
 
+(require 'cl-lib)
+
 (defvar eclim-project-mode-hook nil)
 (defvar eclim-project-info-mode-hook nil)
 

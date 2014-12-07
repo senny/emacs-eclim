@@ -30,15 +30,8 @@
 
 ;;* Eclim
 
-(eval-when-compile (require 'cl-lib))
-
-(require 'eclim-project)
-(require 'eclim-java)
-(require 'eclim-ant)
-(require 'eclim-maven)
-(require 'eclim-problems)
-(require 'etags)
-(require 's)
+(mapc #'require '(cl-lib eclim-project eclim-java
+                         eclim-ant eclim-maven eclim-problems etags s))
 
 ;;** Basics
 
@@ -152,11 +145,11 @@ eclimd."
   (when (not eclim-executable)
     (error "Eclim installation not found. Please set eclim-executable."))
   (cl-reduce (lambda (a b) (format "%s %s" a b))
-          (append (list eclim-executable "-command" (first args))
-                  (loop for a = (rest args) then (rest (rest a))
-                        for arg = (first a)
-                        for val = (second a)
-                        while arg append (if val (list arg (shell-quote-argument val)) (list arg))))))
+             (append (list eclim-executable "-command" (first args))
+                     (cl-loop for a = (rest args) then (rest (rest a))
+                           for arg = (first a)
+                           for val = (second a)
+                           while arg append (if val (list arg (shell-quote-argument val)) (list arg))))))
 
 (defun eclim--parse-result (result)
   "Parses the result of an eclim operation, raising an error if
@@ -227,7 +220,7 @@ strings and will be called on completion."
 (defun eclim--args-contains (args flags)
   "Check if an (unexpanded) ARGS list contains any of the
 specified FLAGS."
-  (loop for f in flags
+  (cl-loop for f in flags
         return (cl-find f args :test #'string= :key (lambda (a) (if (listp a) (car a) a)))))
 
 (defun eclim--expand-args (args)
@@ -237,7 +230,7 @@ list. If it is a string, its default value is looked up in
 `eclim--default-args' and used to construct a list. The argument
 lists are then appended together."
   (mapcar (lambda (a) (if (numberp a) (number-to-string a) a))
-          (loop for a in args
+          (cl-loop for a in args
                 append (if (listp a)
                            (if (stringp (car a))
                                (list (car a) (eval (cadr a)))
@@ -353,7 +346,7 @@ argument FILENAME is given, return that file's project root directory."
   "Returns this file's project name. If the optional argument
 FILENAME is given, return that file's  project name instead."
   (cl-labels ((get-project-name (file)
-                             (eclim/execute-command "project_by_resource" ("-f" file))))
+                                (eclim/execute-command "project_by_resource" ("-f" file))))
     (if filename
         (get-project-name filename)
       (or eclim--project-name
@@ -375,7 +368,7 @@ FILENAME is given, return that file's  project name instead."
                                          "/" file-name))))
       (let ((old-buffer (current-buffer)))
         (archive-extract)
-	(goto-char (point-min))
+        (goto-char (point-min))
         (kill-buffer old-buffer)))))
 
 (defun eclim--find-display-results (pattern results &optional open-single-file)
@@ -388,7 +381,7 @@ FILENAME is given, return that file's  project name instead."
         (newline 2)
         (insert (concat "eclim java_search -p " pattern))
         (newline)
-        (loop for result across results
+        (cl-loop for result across results
               do (insert (eclim--format-find-result result default-directory)))
         (goto-char 0)
         (grep-mode)))))
@@ -437,8 +430,8 @@ FILENAME is given, return that file's  project name instead."
 (defun eclim-file-locate (pattern &optional case-insensitive)
   (interactive (list (read-string "Pattern: ") "P"))
   (eclim/with-results hits ("locate_file" ("-p" (concat "^.*" pattern ".*$")) ("-s" "workspace") (if case-insensitive '("-i" "")))
-    (eclim--find-display-results pattern 
-                                 (apply #'vector 
+    (eclim--find-display-results pattern
+                                 (apply #'vector
                                         (mapcar (lambda (hit) (list (cons 'filename (assoc-default 'path hit))
                                                                     (cons 'line 1)
                                                                     (cons 'column 1)
@@ -518,7 +511,7 @@ the use of eclim to java and ant files."
                (groovy-mode "groovy_src_update")
                (ruby-mode "ruby_src_update")
                (php-mode "php_src_update")
-               
+
                ((c-mode c++-mode) "c_src_update")
                ((javascript-mode js-mode) "javascript_src_update"))
              (eclim--expand-args (list "-p" "-f")))))
