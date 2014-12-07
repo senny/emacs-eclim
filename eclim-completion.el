@@ -63,23 +63,17 @@
                (assoc-default 'completions
                               (eclim/execute-command "java_complete" "-p" "-f" "-e" ("-l" "standard") "-o")))
               ((xml-mode nxml-mode)
-               (assoc-default 'completions
-			      (eclim/execute-command "xml_complete" "-p" "-f" "-e" "-o")))
+               (eclim/execute-command "xml_complete" "-p" "-f" "-e" "-o"))
               (groovy-mode
-               (assoc-default 'completions
-			      (eclim/execute-command "groovy_complete" "-p" "-f" "-e" ("-l" "standard") "-o")))
+               (eclim/execute-command "groovy_complete" "-p" "-f" "-e" ("-l" "standard") "-o"))
               (ruby-mode
-               (assoc-default 'completions
-			      (eclim/execute-command "ruby_complete" "-p" "-f" "-e" "-o")))
+               (eclim/execute-command "ruby_complete" "-p" "-f" "-e" "-o"))
               (php-mode
-               (assoc-default 'completions
-			      (eclim/execute-command "php_complete" "-p" "-f" "-e" "-o")))
+               (eclim/execute-command "php_complete" "-p" "-f" "-e" "-o"))
               ((javascript-mode js-mode)
-               (assoc-default 'completions
-			      (eclim/execute-command "javascript_complete" "-p" "-f" "-e" "-o")))
+               (eclim/execute-command "javascript_complete" "-p" "-f" "-e" "-o"))
               ((c++-mode c-mode)
-               (assoc-default 'completions
-			      (eclim/execute-command "c_complete" "-p" "-f" "-e" ("-l" "standard") "-o")))))
+               (eclim/execute-command "c_complete" "-p" "-f" "-e" ("-l" "standard") "-o"))))
     (setq eclim--is-completing nil)))
 
 (defvar yas-minor-mode)
@@ -102,7 +96,7 @@ in a completion menu."
   (with-no-warnings
     (remove-if #'eclim--completion-candidates-filter
                (mapcar #'eclim--completion-candidate-menu-item
-               (eclim--complete)))))
+                       (eclim--complete)))))
 
 (defun eclim--basic-complete-internal (completion-list)
   "Displays a buffer of basic completions."
