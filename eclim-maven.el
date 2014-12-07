@@ -26,7 +26,7 @@
 ;;* Eclim Maven
 
 (require 'compile)
-
+(require 'eclim)
 ;; Add regexp to make compilation-mode understand maven2 errors
 (setq compilation-error-regexp-alist
       (append (list

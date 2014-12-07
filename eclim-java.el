@@ -28,6 +28,14 @@
 ;;* Eclim Java
 
 (require 'json)
+(require' eclim)
+(require 'eclim-project)
+(require 'eclim-problems)
+
+(declare-function yas/expand-snippet "yasnippet")
+(defvar eclim-corrections-previous-window-config nil)
+(defvar eclim-correction-command-info nil)
+(defvar eclim-java-show-documentation-history nil)
 
 (define-key eclim-mode-map (kbd "C-c C-e s") 'eclim-java-method-signature-at-point)
 (define-key eclim-mode-map (kbd "C-c C-e f d") 'eclim-java-find-declaration)
@@ -163,7 +171,7 @@ in eclim when appropriate."
              str)))))
 
 (defun eclim--java-parse-method-signature (signature)
-  (flet ((parser3/parse-arg (arg)
+  (cl-flet ((parser3/parse-arg (arg)
                             (let ((arg-rev (reverse arg)))
                               (cond ((null arg) nil)
                                     ((= (length arg) 1) (list (list :type (first arg))))
@@ -267,12 +275,12 @@ has been found."
     (eclim/with-results res ("java_refactor_rename" "-p" "-e" "-f" ("-n" n)
                              ("-o" (car i)) ("-l" (length (cdr i))))
       (if (stringp res) (error res))
-      (loop for (from to) in (mapcar (lambda (x) (list (assoc-default 'from x) (assoc-default 'to x))) res)
+      (cl-loop for (from to) in (mapcar (lambda (x) (list (assoc-default 'from x) (assoc-default 'to x))) res)
             do (when (and from to)
                  (kill-buffer (find-buffer-visiting from))
                  (find-file to)))
       (save-excursion
-        (loop for file in (mapcar (lambda (x) (assoc-default 'file x)) res)
+        (cl-loop for file in (mapcar (lambda (x) (assoc-default 'file x)) res)
               do (when file
                    (let ((buf (get-file-buffer (file-name-nondirectory file))))
                      (when buf
@@ -310,7 +318,7 @@ has been found."
                                         (eclim--visit-declaration position)))
         (insert declaration)))
     (newline)
-    (loop for caller across (cdr (assoc 'callers node))
+    (cl-loop for caller across (cdr (assoc 'callers node))
           do (eclim--java-insert-call-hierarchy-node project caller (1+ level)))))
 
 (defun eclim-java-hierarchy (project file offset encoding)
@@ -336,7 +344,7 @@ has been found."
   (eclim/with-results hits ("java_search" ("-p" (cdr (assoc 'qualified node))) ("-t" "type") ("-x" "declarations") ("-s" "workspace"))
     (add-to-list 'node `(file-path . ,(assoc-default 'message (elt hits 0))))
     (let ((children (cdr (assoc 'children node))))
-      (loop for child across children do
+      (cl-loop for child across children do
             (eclim--java-insert-file-path-for-hierarchy-nodes child)))
     node))
 
@@ -354,7 +362,7 @@ has been found."
         (insert declaration))))
   (newline)
   (let ((children (cdr (assoc 'children node))))
-    (loop for child across children do
+    (cl-loop for child across children do
           (eclim--java-insert-hierarchy-node project child (+ level 1)))))
 
 (defun eclim-java-find-declaration ()
@@ -480,7 +488,7 @@ sorts import statements. "
   (interactive)
   (let ((revert-buffer-function 'eclim-soft-revert-imports))
     (eclim/with-results res ("java_import_organize" "-p" "-f" "-o" "-e"
-                             (when types (list "-t" (reduce (lambda (a b) (concat a "," b)) types))))
+                             (when types (list "-t" (cl-reduce (lambda (a b) (concat a "," b)) types))))
       (eclim--problems-update-maybe)
       (when (vectorp res)
         (save-excursion
@@ -506,11 +514,11 @@ method."
     (flet ((join (glue items)
                  (cond ((null items) "")
                        ((= 1 (length items)) (format "%s" (first items)))
-                       (t (reduce (lambda (a b) (format "%s%s%s" a glue b)) items))))
+                       (t (cl-reduce (lambda (a b) (format "%s%s%s" a glue b)) items))))
            (format-type (type)
                         (cond ((null type) nil)
                               ((listp (first type))
-                               (append (list "<") (rest (mapcan (lambda (type) (append (list ", ") (format-type type))) (first type))) (list ">")
+                               (append (list "<") (rest (cl-mapcan (lambda (type) (append (list ", ") (format-type type))) (first type))) (list ">")
                                        (format-type (rest type))))
                               (t (cons (let ((type-name (symbol-name (first type))))
                                          (when (string-match "\\(.*\\.\\)?\\(.*\\)" type-name)
@@ -519,7 +527,7 @@ method."
                                              (eclim-java-import (concat package class))
                                              class)))
                                        (format-type (rest type)))))))
-      (let* ((methods (remove-if-not (lambda (m) (or (null name)
+      (let* ((methods (cl-remove-if-not (lambda (m) (or (null name)
                                                      (string-match name m)))
                                      (mapcar (lambda (x) (replace-regexp-in-string "[ \n\t]+" " " x))
                                              (apply 'append
@@ -531,11 +539,11 @@ method."
              (ret (assoc-default :return sig)))
         (yas/expand-snippet (format "@Override\n%s %s(%s) {$0}"
                                     (apply #'concat
-                                           (join " " (remove-if-not (lambda (m) (find m '(public protected private void))) (subseq ret 0 (1- (length ret)))))
+                                           (join " " (cl-remove-if-not (lambda (m) (find m '(public protected private void))) (subseq ret 0 (1- (length ret)))))
                                            " "
-                                           (format-type (remove-if (lambda (m) (find m '(abstract public protected private ))) ret)))
+                                           (format-type (cl-remove-if (lambda (m) (find m '(abstract public protected private ))) ret)))
                                     (assoc-default :name sig)
-                                    (join ", " (loop for arg in (remove-if #'null (assoc-default :arglist sig))
+                                    (join ", " (cl-loop for arg in (cl-remove-if #'null (assoc-default :arglist sig))
                                                      for i from 0
                                                      collect (format "%s ${arg%s}" (apply #'concat (format-type (assoc-default :type arg))) i)))))))))
 
@@ -606,7 +614,7 @@ method."
                              (format "with index %s." index)
                            "here.")))
       (unless index
-        (setq index (string-to-int (match-string 1))))
+        (setq index (string-to-number (match-string 1))))
       (let ((info eclim-correction-command-info))
         (set-window-configuration eclim-corrections-previous-window-config)
         (message "Applying correction %s" index)
@@ -702,7 +710,7 @@ method."
           (let* ((doc-root-vars '(eclim-java-documentation-root
                                   eclim-java-android-documentation-root))
                  (path (replace-regexp-in-string "^[./]+" "" url))
-                 (fullpath (some (lambda (var)
+                 (fullpath (cl-some (lambda (var)
                                    (let ((fullpath (concat (symbol-value var)
                                                            "/"
                                                            path)))

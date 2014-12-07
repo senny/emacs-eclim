@@ -56,9 +56,9 @@
 
 (defun company-emacs-eclim (command &optional arg &rest ignored)
   "`company-mode' back-end for Eclim completion"
-  (interactive (list 'interactive))
+  (interactive (list 'is-interactive))
   (case command
-    (interactive (company-begin-backend 'company-emacs-eclim))
+    (is-interactive (company-begin-backend 'company-emacs-eclim))
     (prefix (let ((start (eclim-completion-start)))
               (when start (buffer-substring-no-properties start (point)))))
     (candidates (company-emacs-eclim--candidates arg))

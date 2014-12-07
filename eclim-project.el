@@ -25,7 +25,9 @@
 
 ;;* Eclim Project
 
+(require 'eclim)
 (require 'cl-lib)
+(eval-when-compile (require 'cl))
 
 (defvar eclim-project-mode-hook nil)
 (defvar eclim-project-info-mode-hook nil)
@@ -56,7 +58,7 @@
 (defvar eclim-project-info-mode-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map special-mode-map)
-        map))
+    map))
 
 
 (define-key eclim-mode-map (kbd "C-c C-e g") 'eclim-project-goto)
@@ -72,7 +74,7 @@
 
 (defun eclim--check-nature (nature)
   (let ((natures (or eclim--project-natures-cache
-                    (setq eclim--project-natures-cache (eclim/project-nature-aliases)))))
+                     (setq eclim--project-natures-cache (eclim/project-nature-aliases)))))
     (when (not (member nature (append natures nil)))
       (error (concat "invalid project nature: " nature)))))
 
@@ -102,8 +104,9 @@
           (line-number (line-number-at-pos)))
       (erase-buffer)
       (cl-loop for project across (eclim/project-list)
-            do (eclim--insert-project project))
-      (forward-line line-number))))
+               do (eclim--insert-project project))
+      (goto-char (point-min))
+      (forward-line (1- line-number)))))
 
 (defun eclim--insert-project (project)
   (insert (format "  | %-6s | %-30s | %s\n"
@@ -249,11 +252,11 @@
   ;;android project is need the vars target,package,application
   (if (string-equal nature "android")
       (let ((target (read-string "Target: "))
-             (package (read-string "Package: "))
-             (application (read-string "Application: ")))
-             (message (eclim/project-create path nature name target package application)))
-      (message (eclim/project-create path nature name))
-  (eclim--project-buffer-refresh)))
+            (package (read-string "Package: "))
+            (application (read-string "Application: ")))
+        (message (eclim/project-create path nature name target package application)))
+    (message (eclim/project-create path nature name))
+    (eclim--project-buffer-refresh)))
 
 (defun eclim-project-import (folder)
   (interactive "DProject Directory: ")
@@ -334,8 +337,8 @@
   (ido-find-file-in-dir
    (assoc-default 'path
                   (cl-find project (eclim/project-list)
-                        :key (lambda (e) (assoc-default 'name e))
-                        :test #'string=))))
+                           :key (lambda (e) (assoc-default 'name e))
+                           :test #'string=))))
 
 (defun eclim-project-info-mode (project)
   "Display detailed information about an eclim-project.
@@ -350,7 +353,7 @@
               do (princ (format "%s: %s\n" (car attr) (cdr attr))))
         (princ "\n\nSETTINGS:\n")
         (cl-loop for attr across (eclim/project-settings project)
-              do (princ (format "%s: %s\n" (assoc-default 'name attr) (assoc-default 'value attr))))
+                 do (princ (format "%s: %s\n" (assoc-default 'name attr) (assoc-default 'value attr))))
         (use-local-map eclim-project-info-mode-map)
         (setq major-mode 'eclim-project-info-mode
               mode-name "eclim/project-info")

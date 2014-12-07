@@ -30,8 +30,11 @@
 
 ;;* Eclim
 
-(mapc #'require '(cl-lib eclim-project eclim-java
-                         eclim-ant eclim-maven eclim-problems etags s))
+(eval-when-compile (require 'cl))
+(require 'cl-lib)
+(require 'etags)
+(require 's)
+(require 'json)
 
 ;;** Basics
 
@@ -124,6 +127,7 @@ in the current workspace."
 (defvar eclim--compressed-urls-regexp "^\\(\\(?:jar\\|file\\|zip\\)://\\)")
 (defvar eclim--compressed-file-path-replacement-regexp "\\\\")
 (defvar eclim--compressed-file-path-removal-regexp "^/")
+(defvar eclim--is-completing nil)
 
 (defun eclim-toggle-print-debug-messages ()
   (interactive)
@@ -147,9 +151,9 @@ eclimd."
   (cl-reduce (lambda (a b) (format "%s %s" a b))
              (append (list eclim-executable "-command" (first args))
                      (cl-loop for a = (rest args) then (rest (rest a))
-                           for arg = (first a)
-                           for val = (second a)
-                           while arg append (if val (list arg (shell-quote-argument val)) (list arg))))))
+                              for arg = (first a)
+                              for val = (second a)
+                              while arg append (if val (list arg (shell-quote-argument val)) (list arg))))))
 
 (defun eclim--parse-result (result)
   "Parses the result of an eclim operation, raising an error if
@@ -209,19 +213,20 @@ strings and will be called on completion."
                               (kill-buffer buf)))))
             (set-process-sentinel proc sentinel)))))))
 
-(setq eclim--default-args
-      '(("-n" . (eclim--project-name))
-        ("-p" . (or (eclim--project-name) (error "Could not find eclipse project for %s" (buffer-name (current-buffer)))))
-        ("-e" . (eclim--current-encoding))
-        ("-f" . (eclim--project-current-file))
-        ("-o" . (eclim--byte-offset))
-        ("-s" . "project")))
+(defvar eclim--default-args
+  '(("-n" . (eclim--project-name))
+    ("-p" . (or (eclim--project-name) (error "Could not find eclipse project for %s" (buffer-name (current-buffer)))))
+    ("-e" . (eclim--current-encoding))
+    ("-f" . (eclim--project-current-file))
+    ("-o" . (eclim--byte-offset))
+    ("-s" . "project")))
 
-(defun eclim--args-contains (args flags)
-  "Check if an (unexpanded) ARGS list contains any of the
+(eval-and-compile
+  (defun eclim--args-contains (args flags)
+    "Check if an (unexpanded) ARGS list contains any of the
 specified FLAGS."
-  (cl-loop for f in flags
-        return (cl-find f args :test #'string= :key (lambda (a) (if (listp a) (car a) a)))))
+    (cl-loop for f in flags
+             return (cl-find f args :test #'string= :key (lambda (a) (if (listp a) (car a) a))))))
 
 (defun eclim--expand-args (args)
   "Takes a list of command-line arguments with which to call the
@@ -231,12 +236,12 @@ list. If it is a string, its default value is looked up in
 lists are then appended together."
   (mapcar (lambda (a) (if (numberp a) (number-to-string a) a))
           (cl-loop for a in args
-                append (if (listp a)
-                           (if (stringp (car a))
-                               (list (car a) (eval (cadr a)))
-                             (or (eval a) (list nil nil)))
-                         (list a (eval (cdr (or (assoc a eclim--default-args)
-                                                (error "sorry, no default value for: %s" a)))))))))
+                   append (if (listp a)
+                              (if (stringp (car a))
+                                  (list (car a) (eval (cadr a)))
+                                (or (eval a) (list nil nil)))
+                            (list a (eval (cdr (or (assoc a eclim--default-args)
+                                                   (error "sorry, no default value for: %s" a)))))))))
 
 (defun eclim--command-should-sync-p (cmd args)
   (and (eclim--args-contains args '("-f" "-o"))
@@ -367,6 +372,7 @@ FILENAME is given, return that file's  project name instead."
                                          eclim--compressed-file-path-replacement-regexp
                                          "/" file-name))))
       (let ((old-buffer (current-buffer)))
+	;; (require 'arc-mode)
         (archive-extract)
         (goto-char (point-min))
         (kill-buffer old-buffer)))))
@@ -382,7 +388,7 @@ FILENAME is given, return that file's  project name instead."
         (insert (concat "eclim java_search -p " pattern))
         (newline)
         (cl-loop for result across results
-              do (insert (eclim--format-find-result result default-directory)))
+                 do (insert (eclim--format-find-result result default-directory)))
         (goto-char 0)
         (grep-mode)))))
 
