@@ -26,6 +26,9 @@
 
 ;;* Eclim Ant
 
+(require 'eclim)
+(require 'eclim-project)
+
 (define-key eclim-mode-map (kbd "C-c C-e a c") 'eclim-ant-clear-cache)
 (define-key eclim-mode-map (kbd "C-c C-e a r") 'eclim-ant-run)
 (define-key eclim-mode-map (kbd "C-c C-e a a") 'eclim-ant-run)
@@ -89,7 +92,7 @@ buffer. The resulst are displayed in a deticated compilation buffer."
     (dolist (line (eclim/ant-validate project file))
       (insert (eclim--convert-find-result-to-string line))
       (newline)))
-  (beginning-of-buffer)
+  (goto-char (point-min))
   (compilation-mode))
 
 (defun eclim-ant-run (target)

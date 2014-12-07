@@ -29,6 +29,10 @@
 ;;
 
 (require 'thingatpt)
+(eval-when-compile (require 'cl))
+(require 'cl-lib)
+(require 'eclim)
+(require 'eclim-java)
 
 (defun eclim--completion-candidate-type (candidate)
   "Returns the type of a candidate."
@@ -59,29 +63,26 @@
                (assoc-default 'completions
                               (eclim/execute-command "java_complete" "-p" "-f" "-e" ("-l" "standard") "-o")))
               ((xml-mode nxml-mode)
-               (assoc-default 'completions
-			      (eclim/execute-command "xml_complete" "-p" "-f" "-e" "-o")))
+               (eclim/execute-command "xml_complete" "-p" "-f" "-e" "-o"))
               (groovy-mode
-               (assoc-default 'completions
-			      (eclim/execute-command "groovy_complete" "-p" "-f" "-e" ("-l" "standard") "-o")))
+               (eclim/execute-command "groovy_complete" "-p" "-f" "-e" ("-l" "standard") "-o"))
               (ruby-mode
-               (assoc-default 'completions
-			      (eclim/execute-command "ruby_complete" "-p" "-f" "-e" "-o")))
+               (eclim/execute-command "ruby_complete" "-p" "-f" "-e" "-o"))
               (php-mode
-               (assoc-default 'completions
-			      (eclim/execute-command "php_complete" "-p" "-f" "-e" "-o")))
+               (eclim/execute-command "php_complete" "-p" "-f" "-e" "-o"))
               ((javascript-mode js-mode)
-               (assoc-default 'completions
-			      (eclim/execute-command "javascript_complete" "-p" "-f" "-e" "-o")))
+               (eclim/execute-command "javascript_complete" "-p" "-f" "-e" "-o"))
               ((c++-mode c-mode)
-               (assoc-default 'completions
-			      (eclim/execute-command "c_complete" "-p" "-f" "-e" ("-l" "standard") "-o")))))
+               (eclim/execute-command "c_complete" "-p" "-f" "-e" ("-l" "standard") "-o"))))
     (setq eclim--is-completing nil)))
+
+(defvar yas-minor-mode)
+(declare-function yas/expand-snippet "yasnippet")
 
 (defun eclim--completion-candidates-filter (c)
   (case major-mode
-    ((xml-mode nxml-mode) (or (search "XML Schema" c)
-                              (search "Namespace" c)))
+    ((xml-mode nxml-mode) (or (cl-search "XML Schema" c)
+                              (cl-search "Namespace" c)))
     (t nil)))
 
 (defun eclim--completion-candidate-menu-item (candidate)
@@ -95,7 +96,7 @@ in a completion menu."
   (with-no-warnings
     (remove-if #'eclim--completion-candidates-filter
                (mapcar #'eclim--completion-candidate-menu-item
-               (eclim--complete)))))
+                       (eclim--complete)))))
 
 (defun eclim--basic-complete-internal (completion-list)
   "Displays a buffer of basic completions."
@@ -240,7 +241,7 @@ documentation strings."
 (defun eclim--completion-documentation (symbol)
   "Looks up the documentation string for the given SYMBOL in the
 completion candidates list."
-  (let ((doc (assoc-default 'info (find symbol eclim--completion-candidates :test #'string= :key #'eclim--completion-candidate-menu-item))))
+  (let ((doc (assoc-default 'info (cl-find symbol eclim--completion-candidates :test #'string= :key #'eclim--completion-candidate-menu-item))))
     (when doc
       (eclim--render-doc doc))))
 
