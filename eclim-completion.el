@@ -60,6 +60,8 @@
                               (eclim/execute-command "java_complete" "-p" "-f" "-e" ("-l" "standard") "-o")))
               ((xml-mode nxml-mode)
                (eclim/execute-command "xml_complete" "-p" "-f" "-e" "-o"))
+              (groovy-mode
+               (eclim/execute-command "groovy_complete" "-p" "-f" "-e" ("-l" "standard") "-o"))
               (ruby-mode
                (eclim/execute-command "ruby_complete" "-p" "-f" "-e" "-o"))
               (php-mode
@@ -155,7 +157,7 @@ buffer."
   (setq eclim--completion-start
         (save-excursion
           (case major-mode
-            ((java-mode javascript-mode js-mode ruby-mode php-mode c-mode c++-mode)
+            ((java-mode javascript-mode js-mode ruby-mode groovy-mode php-mode c-mode c++-mode)
              (progn
                (ignore-errors (beginning-of-thing 'symbol))
                ;; Completion candidates for annotations don't include '@'.
@@ -212,6 +214,7 @@ buffer."
 (defun eclim--completion-action ()
   (case major-mode
     ('java-mode (eclim--completion-action-java))
+    ('groovy-mode (eclim--completion-action-java))
     ((c-mode c++-mode) (eclim--completion-action-java))
     ('nxml-mode (eclim--completion-action-xml))
     (t (eclim--completion-action-default))))

@@ -198,8 +198,8 @@
 (defun eclim-problems-correct ()
   (interactive)
   (let ((p (eclim--problems-get-current-problem)))
-    (if (not (string-match "\.java$" (cdr (assoc 'filename p))))
-        (error "Not a Java file. Corrections are currently supported only for Java.")
+    (if (not (string-match "\\.\\(groovy\\|java\\)$" (cdr (assoc 'filename p))))
+        (error "Not a Java or Groovy file. Corrections are currently supported only for Java or Groovy.")
       (eclim-problems-open-current)
       (eclim-java-correct (cdr (assoc 'line p)) (eclim--byte-offset)))))
 
