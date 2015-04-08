@@ -499,8 +499,8 @@ the use of eclim to java and ant files."
   "Return t if and only if eclim should be automatically started on filename."
   (and
    filename
-   (eclim--file-managed-p filename)
-   (eclim--accepted-filename-p filename)))
+   (eclim--accepted-filename-p filename)
+   (eclim--file-managed-p filename)))
 
 ;; Request an eclipse source update when files are saved
 (defun eclim--after-save-hook ()

@@ -163,9 +163,9 @@
 
 (defun eclim-problems-highlight ()
   (interactive)
-  (save-restriction
-    (widen)
-    (when (eclim--file-managed-p)
+  (when (eclim--accepted-p (buffer-file-name))
+    (save-restriction
+      (widen)
       (eclim--problems-clear-highlights)
       (loop for problem across (remove-if-not (lambda (p) (string= (assoc-default 'filename p) (file-truename (buffer-file-name)))) eclim--problems-list)
             do (eclim--problems-insert-highlight problem)))))
@@ -212,6 +212,9 @@ it asynchronously."
        (when (not (minibuffer-window-active-p (minibuffer-window)))
          (message "refreshing... %s " (current-buffer)))
        (eclim/with-results-async ,res ("problems" ("-p" eclim--problems-project) (when (string= "e" eclim--problems-filter) '("-e" "true")))
+         (loop for problem across ,res
+               do (let ((filecell (assq 'filename problem)))
+                    (when filecell (setcdr filecell (file-truename (cdr filecell))))))
          (setq eclim--problems-list ,res)
          (let ((,problems ,res))
            ,@body)))))
