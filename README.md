@@ -4,7 +4,7 @@
 [Eclim](http://eclim.org) is an Eclipse plugin which exposes Eclipse
 features through a server interface.  When this server is started, the
 command line utility eclim can be used to issue requests to that
-server. 
+server.
 
 Emacs-eclim uses the eclim server to integrate eclipse with
 emacs. This project wants to bring some of the invaluable features
@@ -38,7 +38,7 @@ number. You can see and download previous releases
    * Installation from the [MELPA][melpa] package archive. Just add
    the archive to `package-archives` if you haven't already, and then
    install emacs-eclim with the `package-install` command.
-   * Manual installation from GitHub. 
+   * Manual installation from GitHub.
        1. (`git clone git://github.com/senny/emacs-eclim.git`)
        1. Add `(add-to-list 'load-path "/path/to/emacs-eclim/")` to your startup script.
 1. Add the following code to your emacs startup script
@@ -191,7 +191,7 @@ Read more about emacs-eclim:
 Have a quick look at our [Contribution Guidelines](CONTRIBUTING.md)
 and hack away.
 
-[yasnippet]:http://code.google.com/p/yasnippet/
+[yasnippet]:https://github.com/capitaomorte/yasnippet
 [company-mode]:http://nschum.de/src/emacs/company-mode/
 [auto-complete-mode]:http://cx4a.org/software/auto-complete/
 [melpa]:http://melpa.milkbox.net/
