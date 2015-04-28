@@ -80,9 +80,9 @@
         mode-name "eclim/problems"
         mode-line-process ""
         truncate-lines t
-        line-move-visual nil
         buffer-read-only t
         default-directory (eclim/workspace-dir))
+  (setq-local line-move-visual nil)
   (setq mode-line-format
         (list "-"
               'mode-line-mule-info
