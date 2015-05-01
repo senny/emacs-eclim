@@ -192,8 +192,8 @@ Have a quick look at our [Contribution Guidelines](CONTRIBUTING.md)
 and hack away.
 
 [yasnippet]:https://github.com/capitaomorte/yasnippet
-[company-mode]:http://nschum.de/src/emacs/company-mode/
-[auto-complete-mode]:http://cx4a.org/software/auto-complete/
+[company-mode]:https://github.com/company-mode/company-mode
+[auto-complete-mode]:https://github.com/auto-complete/auto-complete
 [melpa]:http://melpa.milkbox.net/
 [repo]:https://github.com/senny/emacs-eclim
 
