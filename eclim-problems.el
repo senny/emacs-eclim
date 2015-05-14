@@ -158,7 +158,7 @@
     (save-restriction
       (widen)
       (eclim--problems-clear-highlights)
-      (loop for problem across (remove-if-not (lambda (p) (string= (assoc-default 'filename p) (file-truename (buffer-file-name)))) eclim--problems-list)
+      (loop for problem across (remove-if-not (lambda (p) (string= (assoc-default 'filename p) (buffer-file-name))) eclim--problems-list)
             do (eclim--problems-insert-highlight problem)))))
 
 (defadvice find-file (after eclim-problems-highlight-on-find-file activate)
