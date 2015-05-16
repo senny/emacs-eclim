@@ -41,6 +41,7 @@
 (define-key eclim-mode-map (kbd "C-c C-e d") 'eclim-java-doc-comment)
 (define-key eclim-mode-map (kbd "C-c C-e f s") 'eclim-java-format)
 (define-key eclim-mode-map (kbd "C-c C-e g") 'eclim-java-generate-getter-and-setter)
+(define-key eclim-mode-map (kbd "C-c C-e t") 'eclim-run-junit)
 
 (defvar eclim-java-show-documentation-map
   (let ((map (make-keymap)))
@@ -560,6 +561,24 @@ method."
     (compile (concat eclim-executable " -command java -p "  eclim--project-name
                      " -c " (eclim-package-and-class)))))
 
+(defun eclim-run-junit (project file offset encoding)
+  "Run the current JUnit class or method at point.
+
+This method hooks onto the running Eclipse process and is thus
+much faster than running mvn test -Dtest=TestClass#method."
+  (interactive (list (eclim--project-name)
+                     (eclim--project-current-file)
+                     (eclim--byte-offset)
+                     (eclim--current-encoding)))
+  (if (not (string= major-mode "java-mode"))
+      (message "Running JUnit tests only makes sense for Java buffers.")
+    (compile
+     (concat eclim-executable
+             " -command java_junit -p " project
+             " -f " file
+             " -o " (number-to-string offset)
+             " -e " encoding))))
+
 (defun eclim-java-correct (line offset)
   "Must be called with the problematic file opened in the current buffer."
   (message "Getting corrections...")
@@ -737,6 +756,5 @@ method."
   (erase-buffer)
   (insert (pop eclim-java-show-documentation-history))
   (goto-char (point-min)))
-
 
 (provide 'eclim-java)
