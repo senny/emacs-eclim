@@ -548,7 +548,7 @@ method."
     (let ((corrections (cdr (assoc 'corrections correction-info)))
           (cmenu (list)))
       (if (eq (length corrections) 0)
-          (cons cmenu '("No automatic corrections found. Sorry."))
+          (message "No automatic corrections found. Sorry."))
 
         (dotimes (i (length corrections))
           (let ((correction (aref corrections i)))
@@ -567,7 +567,7 @@ method."
                "-f"
                ("-l" line)
                ("-o" offset)
-               ("-a" choice)))))))))
+               ("-a" choice))))))))
 
 (defun eclim-java-show-documentation-for-current-element ()
   "Displays the doc comments for the element at the pointers position."
