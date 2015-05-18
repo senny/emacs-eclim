@@ -547,20 +547,17 @@ method."
   (eclim/with-results correction-info ("java_correct" "-p" "-f" ("-l" line) ("-o" offset))
     (if (stringp correction-info)
         (message correction-info)
-      (let ((corrections (cdr (assoc 'corrections correction-info)))
-            (cmenu (list)))
+      (let ((corrections (cdr (assoc 'corrections correction-info))))
         (if (eq (length corrections) 0)
             (message "No automatic corrections found. Sorry."))
-        (dotimes (i (length corrections))
-          (let ((correction (aref corrections i)))
-            (setq cmenu
-                  (cons
-                   (popup-make-item
-                    (cdr (assoc 'description correction))
-                    :value i
-                    :document (cdr (assoc 'preview correction)))
-                   cmenu))))
-        (let ((choice (popup-menu* (reverse cmenu))))
+        (setq-local cmenu
+                    (mapcar (lambda (correction)
+                              (popup-make-item
+                               (cdr (assoc 'description correction))
+                               :value (cdr (assoc 'index correction))
+                               :document (cdr (assoc 'preview correction))))
+                            corrections))
+        (let ((choice (popup-menu* cmenu)))
           (when choice
             (eclim/with-results correction-info
               ("java_correct"
