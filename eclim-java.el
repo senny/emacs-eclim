@@ -545,11 +545,12 @@ method."
 
 (defun eclim-java-correct (line offset)
   (eclim/with-results correction-info ("java_correct" "-p" "-f" ("-l" line) ("-o" offset))
-    (let ((corrections (cdr (assoc 'corrections correction-info)))
-          (cmenu (list)))
-      (if (eq (length corrections) 0)
-          (message "No automatic corrections found. Sorry."))
-
+    (if (stringp correction-info)
+        (message correction-info)
+      (let ((corrections (cdr (assoc 'corrections correction-info)))
+            (cmenu (list)))
+        (if (eq (length corrections) 0)
+            (message "No automatic corrections found. Sorry."))
         (dotimes (i (length corrections))
           (let ((correction (aref corrections i)))
             (setq cmenu
@@ -567,7 +568,7 @@ method."
                "-f"
                ("-l" line)
                ("-o" offset)
-               ("-a" choice))))))))
+               ("-a" choice)))))))))
 
 (defun eclim-java-show-documentation-for-current-element ()
   "Displays the doc comments for the element at the pointers position."
