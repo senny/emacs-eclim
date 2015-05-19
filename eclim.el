@@ -334,14 +334,10 @@ value is computed for that file's instead."
       (and file
            (eclim--project-name file)))))
 
-(defun eclim--project-dir (&optional filename)
+(defun eclim--project-dir (&optional projectname)
   "Return this file's project root directory. If the optional
 argument FILENAME is given, return that file's project root directory."
-  (let ((root (locate-dominating-file (or filename buffer-file-name) ".project")))
-    (when root
-      (directory-file-name
-       (file-name-directory
-        (expand-file-name root))))))
+  (assoc-default 'path (eclim/project-info (or projectname (eclim--project-name)))))
 
 (defun eclim--project-name (&optional filename)
   "Returns this file's project name. If the optional argument
@@ -535,7 +531,7 @@ the use of eclim to java and ant files."
   (lambda ()
     (if (and buffer-file-name
              (eclim--accepted-p buffer-file-name)
-             (eclim--project-dir buffer-file-name))
+             (eclim--project-dir))
         (eclim-mode 1))))
 
 (require 'eclim-project)
