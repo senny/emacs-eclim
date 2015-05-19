@@ -335,7 +335,7 @@ value is computed for that file's instead."
            (eclim--project-name file)))))
 
 (defun eclim--project-dir (&optional projectname)
-  "Return this file's project root directory. If the optional
+  "Return this project's root directory. If the optional
 argument PROJECTNAME is given, return that project's root directory."
   (assoc-default 'path (eclim/project-info (or projectname (eclim--project-name)))))
 
