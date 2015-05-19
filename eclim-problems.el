@@ -140,7 +140,7 @@
     (eclim--problem-goto-pos problem)
     (let* ((id (eclim--java-identifier-at-point t t))
            (start (car id))
-           (end (+ (car id) (length (cdr id)))))
+           (end (+ (car id) (max 1 (length (cdr id))))))
       (let ((highlight (make-overlay start end (current-buffer) t t)))
         (overlay-put highlight 'face
                      (if (eq t (assoc-default 'warning problem))
