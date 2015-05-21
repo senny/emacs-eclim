@@ -527,6 +527,7 @@ the use of eclim to java and ant files."
     (not-modified)
     (set-visited-file-modtime)))
 
+;;;###autoload
 (define-globalized-minor-mode global-eclim-mode eclim-mode
   (lambda ()
     (if (and buffer-file-name
