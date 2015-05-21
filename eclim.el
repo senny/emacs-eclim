@@ -431,8 +431,8 @@ FILENAME is given, return that file's  project name instead."
 (defun eclim-file-locate (pattern &optional case-insensitive)
   (interactive (list (read-string "Pattern: ") "P"))
   (eclim/with-results hits ("locate_file" ("-p" (concat "^.*" pattern ".*$")) ("-s" "workspace") (if case-insensitive '("-i" "")))
-    (eclim--find-display-results pattern 
-                                 (apply #'vector 
+    (eclim--find-display-results pattern
+                                 (apply #'vector
                                         (mapcar (lambda (hit) (list (cons 'filename (assoc-default 'path hit))
                                                                     (cons 'line 1)
                                                                     (cons 'column 1)
@@ -512,7 +512,7 @@ the use of eclim to java and ant files."
                (groovy-mode "groovy_src_update")
                (ruby-mode "ruby_src_update")
                (php-mode "php_src_update")
-               
+
                ((c-mode c++-mode) "c_src_update")
                ((javascript-mode js-mode) "javascript_src_update"))
              (eclim--expand-args (list "-p" "-f")))))
@@ -543,5 +543,12 @@ the use of eclim to java and ant files."
 (require 'eclim-ant)
 (require 'eclim-maven)
 (require 'eclim-problems)
+
+(add-to-list 'minor-mode-alist
+             '(eclim-mode (:eval (eclim-modeline-string))))
+
+(defun eclim-modeline-string ()
+  (when eclim-mode
+    (concat "Eclim " (eclim-problems-modeline-string))))
 
 (provide 'eclim)

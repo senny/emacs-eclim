@@ -272,7 +272,7 @@ it asynchronously."
           (goto-char (point-min))
           (forward-line (1- line-number)))))))
 
-(defun eclim--problems-filtered (&optional ignore-type-filter)
+(defun eclim--problems-filtered ()
   "Filter reported problems by eclim.
 
 It filters out problems using the ECLIM--PROBLEMS-FILEFILTER
@@ -281,17 +281,29 @@ are also filtered according to ECLIM--PROBLEMS-FILTER, i.e.,
 error type. Otherwise, error type is ignored. This is useful when
 other mechanisms, like compilation's mode
 COMPILATION-SKIP-THRESHOLD, implement this feature."
-  (remove-if-not
-   (lambda (x) (and
-                (or (not eclim--problems-filefilter)
-                    (string= (assoc-default 'filename x) eclim--problems-file))
-                (or ignore-type-filter
-                    (not eclim--problems-filter)
-                    (and (string= "e" eclim--problems-filter)
-                         (not (eq t (assoc-default 'warning x))))
-                    (and (string= "w" eclim--problems-filter)
-                         (eq t (assoc-default 'warning x))))))
-   eclim--problems-list))
+  (eclim--filter-problems eclim--problems-filter eclim--problems-filefilter eclim--problems-file eclim--problems-list))
+
+(defun eclim--warning-filterp (x)
+  (eq t (assoc-default 'warning x)))
+
+(defun eclim--error-filterp (x)
+  (not (eclim--warning-filterp x)))
+
+(defun eclim--choose-type-filter (type-filter)
+  (cond
+   ((not type-filter) '(lambda (_) t))
+   ((string= "e" type-filter) 'eclim--error-filterp)
+   (t 'eclim--warning-filterp)))
+
+(defun eclim--choose-file-filter (file-filter file)
+  (if (not file-filter)
+      '(lambda (_) t)
+    '(lambda (x) (string= (assoc-default 'filename x) file))))
+
+(defun eclim--filter-problems (type-filter file-filter file problems)
+  (let ((type-filterp (eclim--choose-type-filter type-filter))
+        (file-filterp (eclim--choose-file-filter file-filter file)))
+    (remove-if-not (lambda (x) (and (funcall type-filterp x) (funcall file-filterp x))) problems)))
 
 (defun eclim--insert-problem (problem filecol-size)
   (let* ((filecol-format-string (concat "%-" (number-to-string filecol-size) "s"))
@@ -443,5 +455,20 @@ is convenient as it lets the user navigate between errors using
     (let ((line (assoc-default 'line problem))
           (col (assoc-default 'column problem)))
       (insert (format "%s:%s:%s: %s: %s\n" filename line col (upcase type) description)))))
+
+(defun eclim--count-current-errors ()
+  (length
+   (eclim--filter-problems "e" t (buffer-file-name (current-buffer)) eclim--problems-list)))
+
+(defun eclim--count-current-warnings ()
+  (length
+   (eclim--filter-problems "w" t (buffer-file-name (current-buffer)) eclim--problems-list)))
+
+(defun eclim-problems-modeline-string ()
+  "Returns modeline string with additional info about
+problems for current file"
+  (concat (format " : %s/%s"
+                  (eclim--count-current-errors)
+                  (eclim--count-current-warnings))))
 
 (provide 'eclim-problems)
