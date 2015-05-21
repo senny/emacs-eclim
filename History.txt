@@ -18,7 +18,8 @@
  * eclimd module to start/stop eclimd from emacs
  * Generation of getter and setter methods.
  * User commands for adding, listing and removing project natures.
- 
+ * Running all JUnit tests in a class or just the test method at point.
+
 === Bugfixes
  * removed extra parentheses around function
  * fixed a problem on startup when the eclimd server was not started
