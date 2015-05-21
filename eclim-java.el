@@ -129,7 +129,7 @@ in eclim when appropriate."
         (fn nil))
     (ignore-errors
       (and (setq pr (eclim--project-name filename))
-           (setq fn (file-relative-name filename (eclim--project-dir filename)))))
+           (setq fn (file-relative-name filename (eclim--project-dir pr)))))
     ad-do-it
     (when (and pr fn)
       (ignore-errors (apply 'eclim--call-process (list "java_src_update" "-p" pr "-f" fn))))))
