@@ -189,11 +189,16 @@
                        eclim--problems-list)
               (error "No problem on this line")))))))
 
-(defun eclim-problems-open-current ()
+(defun eclim-problems-open-current (&optional same-window)
   (interactive)
   (let* ((p (eclim--problems-get-current-problem)))
-    (find-file-other-window (assoc-default 'filename p))
+    (funcall (if same-window
+         'find-file
+       'find-file-other-window)
+     (assoc-default 'filename p))
     (eclim--problem-goto-pos p)))
+
+(funcall (if t '+ '-) 1 2)
 
 (defun eclim-problems-correct ()
   (interactive)
@@ -390,7 +395,7 @@ without switching to it."
     (with-current-buffer eclim--problems-buffer-name
       (eclim-problems-buffer-refresh))))
 
-(defun eclim-problems-next ()
+(defun eclim-problems-next (&optional same-window)
   (interactive)
   (let ((prob-buf (get-buffer eclim--problems-buffer-name)))
     (when prob-buf
@@ -399,16 +404,24 @@ without switching to it."
           (setq eclim--problems-list-at-first nil)
         (forward-line 1))
       (hl-line-move hl-line-overlay)
-      (eclim-problems-open-current))))
+      (eclim-problems-open-current same-window))))
 
-(defun eclim-problems-previous ()
+(defun eclim-problems-previous (&optional same-window)
   (interactive)
   (let ((prob-buf (get-buffer eclim--problems-buffer-name)))
     (when prob-buf
       (set-buffer prob-buf)
       (forward-line -1)
       (hl-line-move hl-line-overlay)
-      (eclim-problems-open-current))))
+      (eclim-problems-open-current same-window))))
+
+(defun eclim-problems-next-same-window ()
+  (interactive)
+  (eclim-problems-next t))
+
+(defun eclim-problems-previous-same-window ()
+  (interactive)
+  (eclim-problems-previous t))
 
 (defun eclim--problems-update-maybe ()
   "If autoupdate is enabled, this function triggers a delayed
