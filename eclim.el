@@ -334,14 +334,10 @@ value is computed for that file's instead."
       (and file
            (eclim--project-name file)))))
 
-(defun eclim--project-dir (&optional filename)
-  "Return this file's project root directory. If the optional
-argument FILENAME is given, return that file's project root directory."
-  (let ((root (locate-dominating-file (or filename buffer-file-name) ".project")))
-    (when root
-      (directory-file-name
-       (file-name-directory
-        (expand-file-name root))))))
+(defun eclim--project-dir (&optional projectname)
+  "Return this project's root directory. If the optional
+argument PROJECTNAME is given, return that project's root directory."
+  (assoc-default 'path (eclim/project-info (or projectname (eclim--project-name)))))
 
 (defun eclim--project-name (&optional filename)
   "Returns this file's project name. If the optional argument
@@ -431,8 +427,8 @@ FILENAME is given, return that file's  project name instead."
 (defun eclim-file-locate (pattern &optional case-insensitive)
   (interactive (list (read-string "Pattern: ") "P"))
   (eclim/with-results hits ("locate_file" ("-p" (concat "^.*" pattern ".*$")) ("-s" "workspace") (if case-insensitive '("-i" "")))
-    (eclim--find-display-results pattern 
-                                 (apply #'vector 
+    (eclim--find-display-results pattern
+                                 (apply #'vector
                                         (mapcar (lambda (hit) (list (cons 'filename (assoc-default 'path hit))
                                                                     (cons 'line 1)
                                                                     (cons 'column 1)
@@ -512,7 +508,7 @@ the use of eclim to java and ant files."
                (groovy-mode "groovy_src_update")
                (ruby-mode "ruby_src_update")
                (php-mode "php_src_update")
-               
+
                ((c-mode c++-mode) "c_src_update")
                ((javascript-mode js-mode) "javascript_src_update"))
              (eclim--expand-args (list "-p" "-f")))))
@@ -531,11 +527,12 @@ the use of eclim to java and ant files."
     (not-modified)
     (set-visited-file-modtime)))
 
+;;;###autoload
 (define-globalized-minor-mode global-eclim-mode eclim-mode
   (lambda ()
     (if (and buffer-file-name
              (eclim--accepted-p buffer-file-name)
-             (eclim--project-dir buffer-file-name))
+             (eclim--project-dir))
         (eclim-mode 1))))
 
 (require 'eclim-project)
@@ -543,5 +540,12 @@ the use of eclim to java and ant files."
 (require 'eclim-ant)
 (require 'eclim-maven)
 (require 'eclim-problems)
+
+(add-to-list 'minor-mode-alist
+             '(eclim-mode (:eval (eclim-modeline-string))))
+
+(defun eclim-modeline-string ()
+  (when eclim-mode
+    (concat "Eclim " (eclim-problems-modeline-string))))
 
 (provide 'eclim)

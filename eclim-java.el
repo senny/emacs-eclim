@@ -41,6 +41,7 @@
 (define-key eclim-mode-map (kbd "C-c C-e d") 'eclim-java-doc-comment)
 (define-key eclim-mode-map (kbd "C-c C-e f s") 'eclim-java-format)
 (define-key eclim-mode-map (kbd "C-c C-e g") 'eclim-java-generate-getter-and-setter)
+(define-key eclim-mode-map (kbd "C-c C-e t") 'eclim-run-junit)
 
 (defvar eclim-java-show-documentation-map
   (let ((map (make-keymap)))
@@ -101,23 +102,6 @@ Java documentation under Android docs, so don't forget to set
                                       "implementors"
                                       "references"))
 
-(defvar eclim-java-correct-map
-  (let ((map (make-keymap)))
-    (suppress-keymap map t)
-    (define-key map (kbd "q") 'eclim-java-correct-quit)
-    (define-key map (kbd "0") 'eclim-java-correct-choose-by-digit)
-    (define-key map (kbd "1") 'eclim-java-correct-choose-by-digit)
-    (define-key map (kbd "2") 'eclim-java-correct-choose-by-digit)
-    (define-key map (kbd "3") 'eclim-java-correct-choose-by-digit)
-    (define-key map (kbd "4") 'eclim-java-correct-choose-by-digit)
-    (define-key map (kbd "5") 'eclim-java-correct-choose-by-digit)
-    (define-key map (kbd "6") 'eclim-java-correct-choose-by-digit)
-    (define-key map (kbd "7") 'eclim-java-correct-choose-by-digit)
-    (define-key map (kbd "8") 'eclim-java-correct-choose-by-digit)
-    (define-key map (kbd "9") 'eclim-java-correct-choose-by-digit)
-    (define-key map (kbd "RET") 'eclim-java-correct-choose)
-    map))
-
 (defvar eclim--is-completing nil)
 
 (defun eclim/groovy-src-update (&optional save-others)
@@ -145,7 +129,7 @@ in eclim when appropriate."
         (fn nil))
     (ignore-errors
       (and (setq pr (eclim--project-name filename))
-           (setq fn (file-relative-name filename (eclim--project-dir filename)))))
+           (setq fn (file-relative-name filename (eclim--project-dir pr)))))
     ad-do-it
     (when (and pr fn)
       (ignore-errors (apply 'eclim--call-process (list "java_src_update" "-p" pr "-f" fn))))))
@@ -560,80 +544,47 @@ method."
     (compile (concat eclim-executable " -command java -p "  eclim--project-name
                      " -c " (eclim-package-and-class)))))
 
+(defun eclim-run-junit (project file offset encoding)
+  "Run the current JUnit class or method at point.
+
+This method hooks onto the running Eclipse process and is thus
+much faster than running mvn test -Dtest=TestClass#method."
+  (interactive (list (eclim--project-name)
+                     (eclim--project-current-file)
+                     (eclim--byte-offset)
+                     (eclim--current-encoding)))
+  (if (not (string= major-mode "java-mode"))
+      (message "Running JUnit tests only makes sense for Java buffers.")
+    (compile
+     (concat eclim-executable
+             " -command java_junit -p " project
+             " -f " file
+             " -o " (number-to-string offset)
+             " -e " encoding))))
+
 (defun eclim-java-correct (line offset)
-  "Must be called with the problematic file opened in the current buffer."
-  (message "Getting corrections...")
   (eclim/with-results correction-info ("java_correct" "-p" "-f" ("-l" line) ("-o" offset))
-    (let ((window-config (current-window-configuration))
-          (corrections (cdr (assoc 'corrections correction-info)))
-          (project (eclim--project-name))) ;; store project name before buffer change
-      (pop-to-buffer "*corrections*")
-      (erase-buffer)
-      (use-local-map eclim-java-correct-map)
-
-      (insert "Problem: " (cdr (assoc 'message correction-info)) "\n\n")
-      (if (eq (length corrections) 0)
-          (insert "No automatic corrections found. Sorry.")
-        (insert (substitute-command-keys
-                 (concat
-                  "Choose a correction by pressing \\[eclim-java-correct-choose]"
-                  " on it or typing its index. Press \\[eclim-java-correct-quit] to quit"))))
-      (insert "\n\n")
-
-      (dotimes (i (length corrections))
-        (let ((correction (aref corrections i)))
-          (insert "------------------------------------------------------------\n"
-                  "Correction "
-                  (int-to-string (cdr (assoc 'index correction)))
-                  ": " (cdr (assoc 'description correction)) "\n\n"
-                  "Preview:\n\n"
-                  (cdr (assoc 'preview correction))
-                  "\n\n")))
-      (goto-char (point-min))
-      (make-local-variable 'eclim-corrections-previous-window-config)
-      (setq eclim-corrections-previous-window-config window-config)
-      (make-local-variable 'eclim-correction-command-info)
-      (setq eclim-correction-command-info (list 'project project
-                                                'line line
-                                                'offset offset)))))
-
-(defun eclim-java-correct-choose (&optional index)
-  (interactive)
-  (save-excursion
-    (if index
-        (goto-char (point-max)))
-    (if (not (re-search-backward (concat "^Correction "
-                                         (if index
-                                             index
-                                           "\\([0-9]+\\)")
-                                         ":")
-                                 nil t))
-        (message (concat "No correction "
-                         (if index
-                             (format "with index %s." index)
-                           "here.")))
-      (unless index
-        (setq index (string-to-int (match-string 1))))
-      (let ((info eclim-correction-command-info))
-        (set-window-configuration eclim-corrections-previous-window-config)
-        (message "Applying correction %s" index)
-        (eclim/with-results correction-info ("java_correct"
-                                             ("-p" (plist-get info 'project))
-                                             "-f"
-                                             ("-l" (plist-get info 'line))
-                                             ("-o" (plist-get info 'offset))
-                                             ("-a" index))
-          (eclim--problems-update-maybe))))))
-
-(defun eclim-java-correct-choose-by-digit ()
-  (interactive)
-  (eclim-java-correct-choose (this-command-keys)))
-
-
-(defun eclim-java-correct-quit ()
-  (interactive)
-  (set-window-configuration eclim-corrections-previous-window-config))
-
+    (if (stringp correction-info)
+        (message correction-info)
+      (let ((corrections (cdr (assoc 'corrections correction-info))))
+        (if (eq (length corrections) 0)
+            (message "No automatic corrections found. Sorry."))
+        (setq-local cmenu
+                    (mapcar (lambda (correction)
+                              (popup-make-item
+                               (cdr (assoc 'description correction))
+                               :value (cdr (assoc 'index correction))
+                               :document (cdr (assoc 'preview correction))))
+                            corrections))
+        (let ((choice (popup-menu* cmenu)))
+          (when choice
+            (eclim/with-results correction-info
+              ("java_correct"
+               ("-p" eclim--project-name)
+               "-f"
+               ("-l" line)
+               ("-o" offset)
+               ("-a" choice)))))))))
 
 (defun eclim-java-show-documentation-for-current-element ()
   "Displays the doc comments for the element at the pointers position."
@@ -737,6 +688,5 @@ method."
   (erase-buffer)
   (insert (pop eclim-java-show-documentation-history))
   (goto-char (point-min)))
-
 
 (provide 'eclim-java)
