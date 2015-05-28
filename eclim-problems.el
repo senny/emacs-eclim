@@ -198,8 +198,6 @@
      (assoc-default 'filename p))
     (eclim--problem-goto-pos p)))
 
-(funcall (if t '+ '-) 1 2)
-
 (defun eclim-problems-correct ()
   (interactive)
   (let ((p (eclim--problems-get-current-problem)))
