@@ -147,7 +147,7 @@ in eclim when appropriate."
              str)))))
 
 (defun eclim--java-parse-method-signature (signature)
-  (flet ((parser3/parse-arg (arg)
+  (cl-flet ((parser3/parse-arg (arg)
                             (let ((arg-rev (reverse arg)))
                               (cond ((null arg) nil)
                                     ((= (length arg) 1) (list (list :type (first arg))))
@@ -425,7 +425,7 @@ matters for buffers containing non-ASCII characters)."
 imports section of a java source file. This will preserve the
 undo history."
   (interactive)
-  (flet ((cut-imports ()
+  (cl-flet ((cut-imports ()
                       (beginning-of-buffer)
                       (if (re-search-forward "^import" nil t)
                           (progn
@@ -494,7 +494,7 @@ implemnt/override, then inserts a skeleton for the chosen
 method."
   (interactive)
   (eclim/with-results response ("java_impl" "-p" "-f" "-o")
-    (flet ((join (glue items)
+    (cl-flet ((join (glue items)
                  (cond ((null items) "")
                        ((= 1 (length items)) (format "%s" (first items)))
                        (t (reduce (lambda (a b) (format "%s%s%s" a glue b)) items))))
