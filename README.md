@@ -141,6 +141,7 @@ variables you can tweak:
 ## Dependencies
 * [s.el](https://github.com/magnars/s.el) for string manipulation functions
 * json.el (part of emacs as of version 23)
+* [popup.el](https://github.com/auto-complete/popup-el) for inplace popup menus
 
 ## Optional dependencies
 * A recent version (0.6.0 or later) of [yasnippet]

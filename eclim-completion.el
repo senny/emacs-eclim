@@ -57,7 +57,7 @@
             (case major-mode
               (java-mode
                (assoc-default 'completions
-                              (eclim/execute-command "java_complete" "-p" "-f" "-e" ("-l" "standard") "-o")))
+                 (eclim/execute-command "java_complete" "-p" "-f" "-e" ("-l" "standard") "-o")))
               ((xml-mode nxml-mode)
                (eclim/execute-command "xml_complete" "-p" "-f" "-e" "-o"))
               (groovy-mode
@@ -68,6 +68,8 @@
                (eclim/execute-command "php_complete" "-p" "-f" "-e" "-o"))
               ((javascript-mode js-mode)
                (eclim/execute-command "javascript_complete" "-p" "-f" "-e" "-o"))
+              (scala-mode 
+               (eclim/execute-command "scala_complete" "-p" "-f" "-e" ("-l" "standard") "-o"))
               ((c++-mode c-mode)
                (eclim/execute-command "c_complete" "-p" "-f" "-e" ("-l" "standard") "-o"))))
     (setq eclim--is-completing nil)))
@@ -157,7 +159,7 @@ buffer."
   (setq eclim--completion-start
         (save-excursion
           (case major-mode
-            ((java-mode javascript-mode js-mode ruby-mode groovy-mode php-mode c-mode c++-mode)
+            ((java-mode javascript-mode js-mode ruby-mode groovy-mode php-mode c-mode c++-mode scala-mode)
              (progn
                (ignore-errors (beginning-of-thing 'symbol))
                ;; Completion candidates for annotations don't include '@'.
