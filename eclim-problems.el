@@ -1,3 +1,5 @@
+(require 'popup)
+
 (defgroup eclim-problems nil
   "Problems: settings for displaying the problems buffer and highlighting errors in code."
   :group 'eclim)
