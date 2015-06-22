@@ -20,6 +20,7 @@
  * User commands for adding, listing and removing project natures.
  * Running all JUnit tests in a class or just the test method at point.
  * additional info in modeline about errors and warnings
+ * add note on s.el prerequisites
 
 === Bugfixes
  * removed extra parentheses around function
