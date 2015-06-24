@@ -52,6 +52,9 @@
     (candidate-face . ac-emacs-eclim-candidate-face)
     (symbol . "f")))
 
+(defun ac-emacs-eclim-action ()
+  (eclim--completion-action eclim--completion-start (point)))
+
 (defun ac-emacs-eclim-java-setup ()
   (add-to-list 'ac-sources 'ac-source-emacs-eclim))
 
