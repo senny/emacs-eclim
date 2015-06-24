@@ -71,7 +71,13 @@
     (ignore-case nil)
     (sorted t)
     (post-completion (let ((ann (company-emacs-eclim--annotation arg)))
-                       (when ann (insert ann))
-                       (eclim--completion-action)))))
+                       (when ann
+                         (insert ann)
+                         (company-emacs-eclim-action ann))))))
+
+(defun company-emacs-eclim-action (call)
+  (let* ((end (point))
+         (beg (- end (length call))))
+    (eclim--completion-action beg end)))
 
 (provide 'company-emacs-eclim)

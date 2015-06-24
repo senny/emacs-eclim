@@ -36,3 +36,4 @@
    eclipse working directory are correctly handled.
  * fixed a problem with highlighting when files are in directories that are symbolic links
  * Make the project major modes adhere to emacs major mode conventions
+ * fixed a problem with company-sort-by-occurrence when using company-mode
