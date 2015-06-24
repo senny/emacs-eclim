@@ -67,6 +67,9 @@
 (defun ac-emacs-eclim-c-setup ()
   (add-to-list 'ac-sources 'ac-source-emacs-eclim))
 
+(defun ac-emacs-eclim-scala-setup ()
+  (add-to-list 'ac-sources 'ac-source-emacs-eclim))
+
 (defun ac-emacs-eclim-config ()
   (add-hook 'java-mode-hook 'ac-emacs-eclim-java-setup)
   (add-hook 'groovy-mode-hook '(lambda() (interactive)
@@ -76,6 +79,7 @@
   (add-hook 'php-mode-hook 'ac-emacs-eclim-php-setup)
   (add-hook 'ruby-mode-hook 'ac-emacs-eclim-ruby-setup)
   (add-hook 'c-mode-hook 'ac-emacs-eclim-c-setup)
-  (add-hook 'c++-mode-hook 'ac-emacs-eclim-c-setup))
+  (add-hook 'c++-mode-hook 'ac-emacs-eclim-c-setup)
+  (add-hook 'scala-mode-hook 'ac-emacs-eclim-scala-setup))
 
 (provide 'ac-emacs-eclim-source)
