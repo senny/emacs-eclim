@@ -57,7 +57,7 @@
             (case major-mode
               (java-mode
                (assoc-default 'completions
-                 (eclim/execute-command "java_complete" "-p" "-f" "-e" ("-l" "standard") "-o")))
+                              (eclim/execute-command "java_complete" "-p" "-f" "-e" ("-l" "standard") "-o")))
               ((xml-mode nxml-mode)
                (eclim/execute-command "xml_complete" "-p" "-f" "-e" "-o"))
               (groovy-mode
@@ -68,7 +68,7 @@
                (eclim/execute-command "php_complete" "-p" "-f" "-e" "-o"))
               ((javascript-mode js-mode)
                (eclim/execute-command "javascript_complete" "-p" "-f" "-e" "-o"))
-              (scala-mode 
+              (scala-mode
                (eclim/execute-command "scala_complete" "-p" "-f" "-e" ("-l" "standard") "-o"))
               ((c++-mode c-mode)
                (eclim/execute-command "c_complete" "-p" "-f" "-e" ("-l" "standard") "-o"))))
@@ -91,7 +91,7 @@ in a completion menu."
   (with-no-warnings
     (remove-if #'eclim--completion-candidates-filter
                (mapcar #'eclim--completion-candidate-menu-item
-               (eclim--complete)))))
+                       (eclim--complete)))))
 
 (defun eclim--basic-complete-internal (completion-list)
   "Displays a buffer of basic completions."

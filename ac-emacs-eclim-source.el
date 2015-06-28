@@ -43,14 +43,14 @@
   :group 'auto-complete)
 
 (ac-define-source emacs-eclim
-  '((candidates . eclim--completion-candidates)
-    (action . eclim--completion-action)
-    (prefix . eclim-completion-start)
-    (document . eclim--completion-documentation)
-    (cache)
-    (selection-face . ac-emacs-eclim-selection-face)
-    (candidate-face . ac-emacs-eclim-candidate-face)
-    (symbol . "f")))
+                  '((candidates . eclim--completion-candidates)
+                    (action . eclim--completion-action)
+                    (prefix . eclim-completion-start)
+                    (document . eclim--completion-documentation)
+                    (cache)
+                    (selection-face . ac-emacs-eclim-selection-face)
+                    (candidate-face . ac-emacs-eclim-candidate-face)
+                    (symbol . "f")))
 
 (defun ac-emacs-eclim-action ()
   (eclim--completion-action eclim--completion-start (point)))
