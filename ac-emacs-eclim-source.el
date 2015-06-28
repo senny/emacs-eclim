@@ -76,7 +76,8 @@
 (defun ac-emacs-eclim-config ()
   (add-hook 'java-mode-hook 'ac-emacs-eclim-java-setup)
   (add-hook 'groovy-mode-hook '(lambda() (interactive)
-                                 (add-to-list 'ac-sources 'ac-source-emacs-eclim)))
+                                 (add-to-list 'ac-sources
+                                              'ac-source-emacs-eclim)))
   (add-hook 'xml-mode-hook 'ac-emacs-eclim-xml-setup)
   (add-hook 'nxml-mode-hook 'ac-emacs-eclim-xml-setup)
   (add-hook 'php-mode-hook 'ac-emacs-eclim-php-setup)

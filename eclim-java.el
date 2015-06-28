@@ -1,3 +1,4 @@
+;; -*- mode: Lisp; elisp-lint-ignored-validators: ("fill-column" "package-format"); -*-
 ;; eclim-java.el --- an interface to the Eclipse IDE.
 ;;
 ;; Copyright (C) 2009  Yves Senn <yves senn * gmx ch>
@@ -28,19 +29,24 @@
 ;;* Eclim Java
 
 (require 'json)
+(require 'eclim)
+(require 'yasnippet)
 
-(define-key eclim-mode-map (kbd "C-c C-e s") 'eclim-java-method-signature-at-point)
+(define-key eclim-mode-map (kbd "C-c C-e s")
+  'eclim-java-method-signature-at-point)
 (define-key eclim-mode-map (kbd "C-c C-e f d") 'eclim-java-find-declaration)
 (define-key eclim-mode-map (kbd "C-c C-e f r") 'eclim-java-find-references)
 (define-key eclim-mode-map (kbd "C-c C-e f t") 'eclim-java-find-type)
 (define-key eclim-mode-map (kbd "C-c C-e f f") 'eclim-java-find-generic)
-(define-key eclim-mode-map (kbd "C-c C-e r") 'eclim-java-refactor-rename-symbol-at-point)
+(define-key eclim-mode-map (kbd "C-c C-e r")
+  'eclim-java-refactor-rename-symbol-at-point)
 (define-key eclim-mode-map (kbd "C-c C-e i") 'eclim-java-import-organize)
 (define-key eclim-mode-map (kbd "C-c C-e h") 'eclim-java-hierarchy)
 (define-key eclim-mode-map (kbd "C-c C-e z") 'eclim-java-implement)
 (define-key eclim-mode-map (kbd "C-c C-e d") 'eclim-java-doc-comment)
 (define-key eclim-mode-map (kbd "C-c C-e f s") 'eclim-java-format)
-(define-key eclim-mode-map (kbd "C-c C-e g") 'eclim-java-generate-getter-and-setter)
+(define-key eclim-mode-map (kbd "C-c C-e g")
+  'eclim-java-generate-getter-and-setter)
 (define-key eclim-mode-map (kbd "C-c C-e t") 'eclim-run-junit)
 
 (defvar eclim-java-show-documentation-map
@@ -51,6 +57,7 @@
     (define-key map (kbd "q") 'eclim-quit-window)
     map))
 
+(defvar eclim-java-show-documentation-history)
 
 (defgroup eclim-java nil
   "Java: editing, browsing, refactoring"
@@ -67,8 +74,8 @@ the current buffer is contained within this list"
 (defcustom eclim-java-documentation-root nil
   "Root directory of Java HTML documentation.
 
-If Android is used then Eclipse may refer standard Java elements from the copy of
-Java documentation under Android docs, so don't forget to set
+If Android is used then Eclipse may refer standard Java elements from
+the copy of Java documentation under Android docs, so don't forget to set
 `eclim-java-android-documentation-root' too in that case."
   :group 'eclim-java
   :type 'directory)
@@ -104,6 +111,7 @@ Java documentation under Android docs, so don't forget to set
 
 (defvar eclim--is-completing nil)
 
+
 (defun eclim/groovy-src-update (&optional save-others)
   "If `eclim-auto-save' is non-nil, save the current java
  buffer. In addition, if `save-others' is non-nil, also save any
@@ -111,7 +119,10 @@ Java documentation under Android docs, so don't forget to set
  sources."
   (when eclim-auto-save
     (when (buffer-modified-p) (save-buffer)) ;; auto-save current buffer, prompt on saving others
-    (when save-others (save-some-buffers nil (lambda () (string-match "\\.groovy$" (buffer-file-name)))))))
+    (when save-others
+      (save-some-buffers nil
+                         (lambda () (string-match "\\.groovy$"
+                                                  (buffer-file-name)))))))
 
 (defun eclim/java-src-update (&optional save-others)
   "If `eclim-auto-save' is non-nil, save the current java
@@ -120,7 +131,11 @@ other unsaved buffer. Finally, tell eclim to update its java
 sources."
   (when eclim-auto-save
     (when (buffer-modified-p) (save-buffer)) ;; auto-save current buffer, prompt on saving others
-    (when save-others (save-some-buffers nil (lambda () (string-match "\\.java$" (buffer-file-name)))))))
+    (when save-others
+      (save-some-buffers nil
+                         (lambda () (string-match "\\.java$"
+                                                  (buffer-file-name)))))))
+
 
 (defadvice delete-file (around eclim--delete-file activate)
   "Advice the `delete-file' function to trigger a source update
@@ -132,7 +147,8 @@ in eclim when appropriate."
            (setq fn (file-relative-name filename (eclim--project-dir pr)))))
     ad-do-it
     (when (and pr fn)
-      (ignore-errors (apply 'eclim--call-process (list "java_src_update" "-p" pr "-f" fn))))))
+      (ignore-errors (apply 'eclim--call-process
+                            (list "java_src_update" "-p" pr "-f" fn))))))
 
 (defun eclim--java-parser-read (str)
   (first
@@ -147,12 +163,16 @@ in eclim when appropriate."
              str)))))
 
 (defun eclim--java-parse-method-signature (signature)
-  (cl-flet ((parser3/parse-arg (arg)
-			       (let ((arg-rev (reverse arg)))
-				 (cond ((null arg) nil)
-				       ((= (length arg) 1) (list (list :type (first arg))))
-				       ((listp (first arg-rev)) (list (cons :type arg)))
-				       (t (list (cons :name (first arg-rev)) (cons :type (reverse (rest arg-rev)))))))))
+  (cl-flet
+      ((parser3/parse-arg (arg)
+                          (let ((arg-rev (reverse arg)))
+                            (cond ((null arg) nil)
+                                  ((= (length arg) 1)
+                                   (list (list :type (first arg))))
+                                  ((listp (first arg-rev))
+                                   (list (cons :type arg)))
+                                  (t (list (cons :name (first arg-rev))
+                                           (cons :type (reverse (rest arg-rev)))))))))
     (let ((ast (reverse (eclim--java-parser-read signature))))
       (list (cons :arglist (mapcar #'parser3/parse-arg (first ast)))
             (cons :name (second ast))
@@ -164,7 +184,8 @@ declaration has been found. TYPE may be either 'class',
 'interface', 'enum' or nil, meaning 'match all of the above'."
   (save-excursion
     (if (re-search-backward
-         (concat (or type "\\(class\\|interface\\|enum\\)") "\\s-+\\([^<{\s-]+\\)") nil t)
+         (concat (or type "\\(class\\|interface\\|enum\\)")
+                 "\\s-+\\([^<{\s-]+\\)") nil t)
         (match-string 2)
       "")))
 
@@ -180,7 +201,8 @@ has been found."
 (defun eclim/java-classpath-variables ()
   ;; TODO: fix trailing whitespaces
   (mapcar (lambda (line)
-            (split-string line "-")) (eclim--call-process "java_classpath_variables")))
+            (split-string line "-"))
+          (eclim--call-process "java_classpath_variables")))
 
 (defun eclim/java-classpath-variable-create (name path)
   (eclim--call-process "java_classpath_variable_create" "-n" name "-p" path))
@@ -206,7 +228,8 @@ has been found."
 (defun eclim-java-format ()
   "Format the source code of the current java source file."
   (interactive)
-  (eclim/execute-command "java_format" "-p" "-f" ("-h" 0) ("-t" (1- (point-max))) "-e"))
+  (eclim/execute-command "java_format" "-p" "-f" ("-h" 0)
+                         ("-t" (1- (point-max))) "-e"))
 
 (defun eclim-java-generate-getter-and-setter (project file offset encoding)
   "Generates getter and setter methods for the symbol at point."
@@ -271,7 +294,7 @@ has been found."
   (let ((boundary "\\([<>()\\[\\.\s\t\n!=,;]\\|]\\)"))
     (save-excursion
       (if (re-search-backward boundary nil t)
-        (forward-char))
+          (forward-char))
       (let ((top-node (eclim/java-call-hierarchy project file (eclim--byte-offset)
                                                  (length (cdr (eclim--java-identifier-at-point t))) encoding)))
         (pop-to-buffer "*eclim: call hierarchy*" t)
@@ -282,20 +305,23 @@ has been found."
            project
            top-node
            0))))))
+
 (defun eclim--java-insert-call-hierarchy-node (project node level)
   (let ((declaration (cdr (assoc 'name node))))
     (insert (format (concat "%-"(number-to-string (* level 2)) "s=> ") ""))
     (lexical-let ((position (cdr (assoc 'position node))))
       (if position
-        (insert-text-button declaration
-                            'follow-link t
-                            'help-echo declaration
-                            'action #'(lambda (&rest ignore)
-                                        (eclim--visit-declaration position)))
+          (insert-text-button declaration
+                              'follow-link t
+                              'help-echo declaration
+                              'action #'(lambda (&rest ignore)
+                                          (eclim--visit-declaration position)))
         (insert declaration)))
     (newline)
     (loop for caller across (cdr (assoc 'callers node))
-          do (eclim--java-insert-call-hierarchy-node project caller (1+ level)))))
+          do (eclim--java-insert-call-hierarchy-node project
+                                                     caller
+                                                     (1+ level)))))
 
 (defun eclim-java-hierarchy (project file offset encoding)
   (interactive (list (eclim--project-name)
@@ -314,10 +340,14 @@ has been found."
        0))))
 
 (defun eclim--java-insert-file-path-for-hierarchy-nodes (node)
-                                        ;Can't use *-find-type here because it will pop a buffer
-                                        ;that isn't part of the project which then breaks future
-                                        ;*-find-type calls and isn't what we want here anyway.
-  (eclim/with-results hits ("java_search" ("-p" (cdr (assoc 'qualified node))) ("-t" "type") ("-x" "declarations") ("-s" "workspace"))
+  ;;Can't use *-find-type here because it will pop a buffer
+  ;;that isn't part of the project which then breaks future
+  ;;*-find-type calls and isn't what we want here anyway.
+  (eclim/with-results hits ("java_search"
+                            ("-p" (cdr (assoc 'qualified node)))
+                            ("-t" "type")
+                            ("-x" "declarations")
+                            ("-s" "workspace"))
     (add-to-list 'node `(file-path . ,(assoc-default 'message (elt hits 0))))
     (let ((children (cdr (assoc 'children node))))
       (loop for child across children do
@@ -345,48 +375,72 @@ has been found."
   "Find and display the declaration of the java identifier at point."
   (interactive)
   (let ((i (eclim--java-identifier-at-point t)))
-    (eclim/with-results hits ("java_search" "-n" "-f" ("-o" (car i)) ("-l" (length (cdr i))) ("-x" "declaration"))
+    (eclim/with-results hits ("java_search"
+                              "-n"
+                              "-f"
+                              ("-o" (car i))
+                              ("-l" (length (cdr i)))
+                              ("-x" "declaration"))
       (eclim--find-display-results (cdr i) hits t))))
 
 (defun eclim-c-find-declaration ()
   "Find and display the declaration of the c identifier at point."
   (interactive)
   (let ((i (eclim--java-identifier-at-point t)))
-    (eclim/with-results hits ("c_search" "-n" "-f" ("-o" (car i)) ("-l" (length (cdr i))))
+    (eclim/with-results hits ("c_search"
+                              "-n"
+                              "-f"
+                              ("-o" (car i))
+                              ("-l" (length (cdr i))))
       (eclim--find-display-results (cdr i) hits t))))
 
 (defun eclim-java-find-references ()
   "Find and display references for the java identifier at point."
   (interactive)
   (let ((i (eclim--java-identifier-at-point t)))
-    (eclim/with-results hits ("java_search" "-n" "-f" ("-o" (car i)) ("-l" (length (cdr i))) ("-x" "references"))
+    (eclim/with-results hits ("java_search"
+                              "-n"
+                              "-f"
+                              ("-o" (car i))
+                              ("-l" (length (cdr i)))
+                              ("-x" "references"))
       (eclim--find-display-results (cdr i) hits))))
 
 (defun eclim-java-find-type (type-name &optional case-insensitive)
   "Searches the project for a given class. The TYPE-NAME is the
 pattern, which will be used for the search. If invoked with the
 universal argument the search will be made CASE-INSENSITIVE."
-  (interactive (list (read-string "Name: " (let ((case-fold-search nil)
-                                                 (current-symbol (symbol-name (symbol-at-point))))
-                                             (if (string-match-p "^[A-Z]" current-symbol)
-                                                 current-symbol
-                                               (eclim--java-current-type-name))))
-                     "P"))
-  (eclim-java-find-generic "workspace" "declarations" "type" type-name case-insensitive t))
+  (interactive (list
+                (read-string "Name: "
+                             (let ((case-fold-search nil)
+                                   (current-symbol (symbol-name (symbol-at-point))))
+                               (if (string-match-p "^[A-Z]" current-symbol)
+                                   current-symbol
+                                 (eclim--java-current-type-name))))
+                "P"))
+  (eclim-java-find-generic "workspace" "declarations"
+                           "type" type-name case-insensitive t))
 
-(defun eclim-java-find-generic (scope context type pattern &optional case-insensitive open-single-file)
+(defun eclim-java-find-generic (scope context type pattern &optional
+                                      case-insensitive open-single-file)
   "Searches within SCOPE (all/project/type) for a
 TYPE (all/annotation/class/classOrEnum/classOrInterface/constructor/enum/field/interface/method/package/type)
 matching the given
 CONTEXT (all/declarations/implementors/references) and
 PATTERN. If invoked with the universal argument the search will
 be made CASE-INSENSITIVE."
-  (interactive (list (eclim--completing-read "Scope: " eclim--java-search-scopes)
-                     (eclim--completing-read "Context: " eclim--java-search-contexts)
-                     (eclim--completing-read "Type: " eclim--java-search-types)
-                     (read-string "Pattern: ")
-                     "P"))
-  (eclim/with-results hits ("java_search" ("-p" pattern) ("-t" type) ("-x" context) ("-s" scope) (if case-insensitive '("-i" "")))
+  (interactive (list
+                (eclim--completing-read "Scope: " eclim--java-search-scopes)
+                (eclim--completing-read "Context: " eclim--java-search-contexts)
+                (eclim--completing-read "Type: " eclim--java-search-types)
+                (read-string "Pattern: ")
+                "P"))
+  (eclim/with-results hits ("java_search"
+                            ("-p" pattern)
+                            ("-t" type)
+                            ("-x" context)
+                            ("-s" scope)
+                            (if case-insensitive '("-i" "")))
     (eclim--find-display-results pattern hits open-single-file)))
 
 (defun eclim--java-identifier-at-point (&optional full position)
@@ -425,23 +479,24 @@ matters for buffers containing non-ASCII characters)."
 imports section of a java source file. This will preserve the
 undo history."
   (interactive)
-  (cl-flet ((cut-imports ()
-			 (beginning-of-buffer)
-			 (if (re-search-forward "^import" nil t)
-			     (progn
-			       (beginning-of-line)
-			       (let ((beg (point)))
-				 (end-of-buffer)
-				 (re-search-backward "^import")
-				 (end-of-line)
-				 (let ((imports (buffer-substring-no-properties beg (point))))
-				   (delete-region beg (point))
-				   imports)))
-			   (progn
-			     (forward-line 1)
-			     (delete-blank-lines)
-			     (insert "\n\n\n")
-			     (forward-line -2)))))
+  (cl-flet ((cut-imports
+             ()
+             (goto-char (point-min))
+             (if (re-search-forward "^import" nil t)
+                 (progn
+                   (beginning-of-line)
+                   (let ((beg (point)))
+                     (goto-char (point-max))
+                     (re-search-backward "^import")
+                     (end-of-line)
+                     (let ((imports (buffer-substring-no-properties beg (point))))
+                       (delete-region beg (point))
+                       imports)))
+               (progn
+                 (forward-line 1)
+                 (delete-blank-lines)
+                 (insert "\n\n\n")
+                 (forward-line -2)))))
     (save-excursion
       (clear-visited-file-modtime)
       (cut-imports)
@@ -451,7 +506,7 @@ undo history."
          (with-temp-buffer
            (insert-file-contents fname)
            (cut-imports))))
-      (not-modified)
+      (set-buffer-modified-p nil)
       (set-visited-file-modtime))))
 
 (defun eclim-java-import (type)
@@ -459,7 +514,7 @@ undo history."
 exist already."
   (interactive)
   (save-excursion
-    (beginning-of-buffer)
+    (goto-char (point-min))
     (let ((revert-buffer-function 'eclim-soft-revert-imports))
       (when (not (re-search-forward (format "^import %s;" type) nil t))
         (eclim/execute-command "java_import" "-p" "-f" "-o" "-e" ("-t" type))
@@ -481,8 +536,8 @@ sorts import statements. "
 (defun format-type (type)
   (cond ((null type) nil)
         ((listp (first type))
-         (append (list "<") (rest (mapcan (lambda (type) (append (list ", ") (format-type type))) (first type))) (list ">")
-               (format-type (rest type))))
+         (append (list "<") (rest (cl-mapcan (lambda (type) (append (list ", ") (format-type type))) (first type))) (list ">")
+                 (format-type (rest type))))
         (t (cons (let ((type-name (symbol-name (first type))))
                    (when (string-match "\\(.*\\.\\)?\\(.*\\)" type-name)
                      (match-string 2 type-name)))
@@ -495,38 +550,38 @@ method."
   (interactive)
   (eclim/with-results response ("java_impl" "-p" "-f" "-o")
     (cl-flet ((join (glue items)
-		    (cond ((null items) "")
-			  ((= 1 (length items)) (format "%s" (first items)))
-			  (t (reduce (lambda (a b) (format "%s%s%s" a glue b)) items))))
-	      (format-type (type)
-			   (cond ((null type) nil)
-				 ((listp (first type))
-				  (append (list "<") (rest (mapcan (lambda (type) (append (list ", ") (format-type type))) (first type))) (list ">")
-					  (format-type (rest type))))
-				 (t (cons (let ((type-name (symbol-name (first type))))
-					    (when (string-match "\\(.*\\.\\)?\\(.*\\)" type-name)
-					      (let ((package (match-string 1 type-name))
-						    (class (match-string 2 type-name)))
-						(eclim-java-import (concat package class))
-						class)))
-					  (format-type (rest type)))))))
-      (let* ((methods (remove-if-not (lambda (m) (or (null name)
-                                                     (string-match name m)))
-                                     (mapcar (lambda (x) (replace-regexp-in-string "[ \n\t]+" " " x))
-                                             (apply 'append
-                                                    (mapcar (lambda (x) (append (assoc-default 'methods x) nil))
-                                                            (assoc-default 'superTypes response))))))
+                    (cond ((null items) "")
+                          ((= 1 (length items)) (format "%s" (first items)))
+                          (t (cl-reduce (lambda (a b) (format "%s%s%s" a glue b)) items))))
+              (format-type (type)
+                           (cond ((null type) nil)
+                                 ((listp (first type))
+                                  (append (list "<") (rest (cl-mapcan (lambda (type) (append (list ", ") (format-type type))) (first type))) (list ">")
+                                          (format-type (rest type))))
+                                 (t (cons (let ((type-name (symbol-name (first type))))
+                                            (when (string-match "\\(.*\\.\\)?\\(.*\\)" type-name)
+                                              (let ((package (match-string 1 type-name))
+                                                    (class (match-string 2 type-name)))
+                                                (eclim-java-import (concat package class))
+                                                class)))
+                                          (format-type (rest type)))))))
+      (let* ((methods (cl-remove-if-not (lambda (m) (or (null name)
+                                                        (string-match name m)))
+                                        (mapcar (lambda (x) (replace-regexp-in-string "[ \n\t]+" " " x))
+                                                (apply 'append
+                                                       (mapcar (lambda (x) (append (assoc-default 'methods x) nil))
+                                                               (assoc-default 'superTypes response))))))
              (method (if (= 1 (length methods)) (first methods)
                        (eclim--completing-read "Signature: " methods)))
              (sig (eclim--java-parse-method-signature method))
              (ret (assoc-default :return sig)))
-        (yas/expand-snippet (format "@Override\n%s %s(%s) {$0}"
+        (yas-expand-snippet (format "@Override\n%s %s(%s) {$0}"
                                     (apply #'concat
-                                           (join " " (remove-if-not (lambda (m) (find m '(public protected private void))) (subseq ret 0 (1- (length ret)))))
+                                           (join " " (cl-remove-if-not (lambda (m) (cl-find m '(public protected private void))) (cl-subseq ret 0 (1- (length ret)))))
                                            " "
-                                           (format-type (remove-if (lambda (m) (find m '(abstract public protected private ))) ret)))
+                                           (format-type (cl-remove-if (lambda (m) (cl-find m '(abstract public protected private ))) ret)))
                                     (assoc-default :name sig)
-                                    (join ", " (loop for arg in (remove-if #'null (assoc-default :arglist sig))
+                                    (join ", " (loop for arg in (cl-remove-if #'null (assoc-default :arglist sig))
                                                      for i from 0
                                                      collect (format "%s ${arg%s}" (apply #'concat (format-type (assoc-default :type arg))) i)))))))))
 
@@ -569,14 +624,14 @@ much faster than running mvn test -Dtest=TestClass#method."
       (let ((corrections (cdr (assoc 'corrections correction-info))))
         (if (eq (length corrections) 0)
             (message "No automatic corrections found. Sorry."))
-        (setq-local cmenu
-                    (mapcar (lambda (correction)
-                              (popup-make-item
-                               (cdr (assoc 'description correction))
-                               :value (cdr (assoc 'index correction))
-                               :document (cdr (assoc 'preview correction))))
-                            corrections))
-        (let ((choice (popup-menu* cmenu)))
+        (let* ((cmenu
+                (mapcar (lambda (correction)
+                          (popup-make-item
+                           (cdr (assoc 'description correction))
+                           :value (cdr (assoc 'index correction))
+                           :document (cdr (assoc 'preview correction))))
+                        corrections))
+               (choice (popup-menu* cmenu)))
           (when choice
             (eclim/with-results correction-info
               ("java_correct"
@@ -660,16 +715,16 @@ much faster than running mvn test -Dtest=TestClass#method."
           (let* ((doc-root-vars '(eclim-java-documentation-root
                                   eclim-java-android-documentation-root))
                  (path (replace-regexp-in-string "^[./]+" "" url))
-                 (fullpath (some (lambda (var)
-                                   (let ((fullpath (concat (symbol-value var)
-                                                           "/"
-                                                           path)))
-                                     (if (file-exists-p (replace-regexp-in-string
-                                                         "#.+"
-                                                         ""
-                                                         fullpath))
-                                         fullpath)))
-                                 doc-root-vars)))
+                 (fullpath (cl-some (lambda (var)
+                                      (let ((fullpath (concat (symbol-value var)
+                                                              "/"
+                                                              path)))
+                                        (if (file-exists-p (replace-regexp-in-string
+                                                            "#.+"
+                                                            ""
+                                                            fullpath))
+                                            fullpath)))
+                                    doc-root-vars)))
             (if fullpath
                 (browse-url (concat "file://" fullpath))
 

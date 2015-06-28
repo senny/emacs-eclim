@@ -1,0 +1,15 @@
+language: java
+cache: apt
+env:
+  - CI=true
+
+install:
+  - sudo add-apt-repository -y ppa:cassou/emacs && sudo apt-get update -qq && sudo apt-get -f install -qq && sudo apt-get install -qq emacs24 emacs24-el
+  - cd /tmp
+  - mkdir /home/travis/opt && wget http://download.eclipse.org/technology/epp/downloads/release/luna/R/eclipse-java-luna-R-linux-gtk-x86_64.tar.gz -O eclipse.tar.gz && tar -xf eclipse.tar.gz -C /home/travis/opt
+  - wget http://sourceforge.net/projects/eclim/files/latest/download -O eclim.jar && java -Dvim.skip=true -Declipse.home=/home/travis/opt/eclipse -jar eclim.jar install
+  - cd - && cd tests && git clone https://github.com/nschum/elisp-lint.git
+  - cd -
+script:
+  - emacs -Q --batch -l tests/emacs-eclim-linter-init.el -f elisp-lint-files-batch *.el
+  - true

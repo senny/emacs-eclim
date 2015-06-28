@@ -26,6 +26,7 @@
 ;;* Eclim Maven
 
 (require 'compile)
+(require 'eclim)
 
 ;; Add regexp to make compilation-mode understand maven2 errors
 (setq compilation-error-regexp-alist
@@ -37,7 +38,8 @@
 (define-key eclim-mode-map (kbd "C-c C-e m r") 'eclim-maven-run)
 
 (defvar eclim-maven-lifecycle-phases
-  '("validate" "compile" "test" "package" "integration" "verify" "install" "deploy"))
+  '("validate" "compile" "test" "package"
+    "integration" "verify" "install" "deploy"))
 
 (defun eclim--maven-lifecycle-phase-read ()
   (completing-read "Phase: " eclim-maven-lifecycle-phases))

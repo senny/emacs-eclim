@@ -1,4 +1,5 @@
 [![License GPL 3][badge-license]](http://www.gnu.org/licenses/gpl-3.0.txt)
+[![Build Status](https://travis-ci.org/kleewho/emacs-eclim.svg?branch=travis)](https://travis-ci.org/kleewho/emacs-eclim)
 [![MELPA](http://melpa.org/packages/emacs-eclim-badge.svg)](http://melpa.org/#/emacs-eclim)
 [![MELPA Stable](http://stable.melpa.org/packages/emacs-eclim-badge.svg)](http://stable.melpa.org/#/emacs-eclim)
 

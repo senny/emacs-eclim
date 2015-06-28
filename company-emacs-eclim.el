@@ -38,8 +38,9 @@
   of available company backends."
   (setq company-backends
         (cons 'company-emacs-eclim
-              (remove-if (lambda (b) (find b '(company-nxml company-eclim)))
-                         company-backends))))
+              (cl-remove-if (lambda (b) (cl-find b '(company-nxml
+                                                     company-eclim)))
+                            company-backends))))
 
 (defun company-emacs-eclim--candidates (prefix)
   (mapcar

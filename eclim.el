@@ -46,6 +46,8 @@
   :type '(sexp)
   :group 'eclim)
 
+(defvar eclim--default-args)
+
 (defun eclim-executable-find ()
   (let (file)
     (dolist (eclipse-root eclim-eclipse-dirs)
@@ -59,21 +61,27 @@
   (let ((file "~/.eclipse"))
     (and (file-exists-p
           (setq file (expand-file-name file)))
-         (setq file (car (last (directory-files file t "^org.eclipse.platform_"))))
+         (setq file (car (last (directory-files file
+                                                t
+                                                "^org.eclipse.platform_"))))
          (file-exists-p
           (setq file (expand-file-name "plugins" file)))
          (setq file (car (last (directory-files file t "^org.eclim_"))))
          (file-exists-p (setq file (expand-file-name "bin/eclim" file)))
          file)))
 
-(defcustom eclim-interactive-completion-function (if ido-mode 'ido-completing-read 'completing-read)
+(defcustom eclim-interactive-completion-function (if ido-mode
+                                                     'ido-completing-read
+                                                   'completing-read)
   "Defines a function which is used by eclim to complete a list of
 choices interactively."
   :group 'eclim
   :type 'function)
 
 (defcustom eclim-executable
-  (or (executable-find "eclim") (eclim-homedir-executable-find) (eclim-executable-find))
+  (or (executable-find "eclim")
+      (eclim-homedir-executable-find)
+      (eclim-executable-find))
   "Location of eclim executable."
   :group 'eclim
   :type 'file)
@@ -129,7 +137,8 @@ in the current workspace."
 (defun eclim-toggle-print-debug-messages ()
   (interactive)
   (message "Debug messages %s."
-           (if (setq eclim-print-debug-messages (not eclim-print-debug-messages))
+           (if (setq eclim-print-debug-messages
+                     (not eclim-print-debug-messages))
                "on" "off")))
 
 (defun eclim-quit-window (&optional kill-buffer)
@@ -145,12 +154,15 @@ operation, and the rest are flags/values to be passed on to
 eclimd."
   (when (not eclim-executable)
     (error "Eclim installation not found. Please set eclim-executable."))
-  (reduce (lambda (a b) (format "%s %s" a b))
-          (append (list eclim-executable "-command" (first args))
-                  (loop for a = (rest args) then (rest (rest a))
-                        for arg = (first a)
-                        for val = (second a)
-                        while arg append (if val (list arg (shell-quote-argument val)) (list arg))))))
+  (cl-reduce (lambda (a b) (format "%s %s" a b))
+             (append (list eclim-executable "-command" (first args))
+                     (loop for a = (rest args) then (rest (rest a))
+                           for arg = (first a)
+                           for val = (second a)
+                           while arg append (if val
+                                                (list arg (shell-quote-argument
+                                                           val))
+                                              (list arg))))))
 
 (defun eclim--parse-result (result)
   "Parses the result of an eclim operation, raising an error if
@@ -166,13 +178,14 @@ the result is not valid JSON."
 evaluating (add-to-list 'eclim--file-coding-system-mapping '(\"%s\" . \"<encoding>\"))
 where <encoding> is the corresponding java name for this encoding." e e)))
              ((string-match "No command '\\(.*\\)' found" result)
-              (let ((c (assoc-default (match-string 1 result)
-                                      '(("xml_complete" "XML" "Eclipse Web Developer Tools")
-                                        ("groovy_complete" "Groovy" "Eclipse Groovy Development Tools")
-                                        ("ruby_complete" "Ruby" "Eclipse Ruby Development Tools")
-                                        ("c_complete" "C/C++" "Eclipse C/C++ Development Tools")
-                                        ("php_complete" "PHP" "Eclipse PHP Development Tools")
-                                        ("scala_complete" "Scala" "Eclipse Scala Development Tools")))))
+              (let ((c (assoc-default
+                        (match-string 1 result)
+                        '(("xml_complete" "XML" "Eclipse Web Developer Tools")
+                          ("groovy_complete" "Groovy" "Eclipse Groovy Development Tools")
+                          ("ruby_complete" "Ruby" "Eclipse Ruby Development Tools")
+                          ("c_complete" "C/C++" "Eclipse C/C++ Development Tools")
+                          ("php_complete" "PHP" "Eclipse PHP Development Tools")
+                          ("scala_complete" "Scala" "Eclipse Scala Development Tools")))))
                 (if c (error "Eclim was not installed with %s support. Please make sure that %s are installed, then reinstall eclim." (first c) (second c))
                   (error result))))
              ((string-match ".*Exception: \\(.*\\)" result)
@@ -195,25 +208,30 @@ asynchronously. CALLBACK is a function that accepts a list of
 strings and will be called on completion."
   (lexical-let ((handler callback)
                 (cmd (eclim--make-command args)))
-    (when (not (find cmd eclim--currently-running-async-calls :test #'string=))
-      (lexical-let ((buf (get-buffer-create (generate-new-buffer-name "*eclim-async*"))))
+    (when (not (cl-find cmd eclim--currently-running-async-calls
+                        :test #'string=))
+      (lexical-let ((buf (get-buffer-create
+                          (generate-new-buffer-name "*eclim-async*"))))
         (when eclim-print-debug-messages
           (message "Executing: %s" cmd)
           (message "Using async buffer %s" buf))
         (push cmd eclim--currently-running-async-calls)
-        (let ((proc (start-process-shell-command "eclim" buf (eclim--make-command args))))
-          (let ((sentinel (lambda (process signal)
-                            (unwind-protect
-                                (save-excursion
-                                  (setq eclim--currently-running-async-calls (remove-if (lambda (x) (string= cmd x)) eclim--currently-running-async-calls))
-                                  (set-buffer (process-buffer process))
-                                  (funcall handler (eclim--parse-result (buffer-substring 1 (point-max)))))
-                              (kill-buffer buf)))))
-            (set-process-sentinel proc sentinel)))))))
+        (let* ((proc (start-process-shell-command "eclim"
+                                                  buf (eclim--make-command args)))
+               (sentinel (lambda (process signal)
+                           (unwind-protect
+                               (save-excursion
+                                 (setq eclim--currently-running-async-calls (cl-remove-if (lambda (x) (string= cmd x)) eclim--currently-running-async-calls))
+                                 (set-buffer (process-buffer process))
+                                 (funcall handler (eclim--parse-result (buffer-substring 1 (point-max)))))
+                             (kill-buffer buf)))))
+            (set-process-sentinel proc sentinel))))))
 
 (setq eclim--default-args
       '(("-n" . (eclim--project-name))
-        ("-p" . (or (eclim--project-name) (error "Could not find eclipse project for %s" (buffer-name (current-buffer)))))
+        ("-p" . (or (eclim--project-name)
+                    (error "Could not find eclipse project for %s"
+                           (buffer-name (current-buffer)))))
         ("-e" . (eclim--current-encoding))
         ("-f" . (eclim--project-current-file))
         ("-o" . (eclim--byte-offset))
@@ -223,7 +241,9 @@ strings and will be called on completion."
   "Check if an (unexpanded) ARGS list contains any of the
 specified FLAGS."
   (loop for f in flags
-        return (find f args :test #'string= :key (lambda (a) (if (listp a) (car a) a)))))
+        return (cl-find f args :test
+                        #'string= :key
+                        (lambda (a) (if (listp a) (car a) a)))))
 
 (defun eclim--expand-args (args)
   "Takes a list of command-line arguments with which to call the
@@ -252,7 +272,9 @@ lists are then appended together."
     (when sync (eclim/java-src-update))
     (when check
       (ignore-errors
-        (eclim--check-project (if (listp check) (eval (second check)) (eclim--project-name)))))
+        (eclim--check-project (if (listp check)
+                                  (eval (second check))
+                                (eclim--project-name)))))
     (let ((attrs-before (if sync (file-attributes (buffer-file-name)) nil)))
       (funcall executor (cons cmd expargs)
                (lambda ()
@@ -261,8 +283,10 @@ lists are then appended together."
                      (when (and (file-exists-p (buffer-file-name))
                                 attrs-before
                                 (or
-                                 (not (= (second (sixth attrs-before)) (second (sixth attrs-curr)))) ;; mod time
-                                 (not (= (eighth attrs-before) (eighth attrs-curr))))) ;; size time
+                                 (not (= (second (sixth attrs-before))
+                                         (second (sixth attrs-curr)))) ;; mod
+                                 (not (= (eighth attrs-before)
+                                         (eighth attrs-curr))))) ;; size time
                        (revert-buffer t t t)))))))))
 
 (defmacro eclim/execute-command (cmd &rest args)
@@ -338,27 +362,32 @@ value is computed for that file's instead."
 (defun eclim--project-dir (&optional projectname)
   "Return this project's root directory. If the optional
 argument PROJECTNAME is given, return that project's root directory."
-  (assoc-default 'path (eclim/project-info (or projectname (eclim--project-name)))))
+  (assoc-default 'path (eclim/project-info (or projectname
+                                               (eclim--project-name)))))
 
 (defun eclim--project-name (&optional filename)
   "Returns this file's project name. If the optional argument
 FILENAME is given, return that file's  project name instead."
-  (labels ((get-project-name (file)
-                             (eclim/execute-command "project_by_resource" ("-f" file))))
+  (cl-labels ((get-project-name (file)
+                                (eclim/execute-command "project_by_resource"
+                                                       ("-f" file))))
     (if filename
         (get-project-name filename)
       (or eclim--project-name
-          (and buffer-file-name (setq eclim--project-name (get-project-name buffer-file-name)))))))
+          (and buffer-file-name (setq eclim--project-name
+                                      (get-project-name buffer-file-name)))))))
 
 (defun eclim--find-file (path-to-file)
   (if (not (string-match-p "!" path-to-file))
-      (unless (and (buffer-file-name) (file-equal-p path-to-file (buffer-file-name)))
+      (unless (and (buffer-file-name)
+                   (file-equal-p path-to-file (buffer-file-name)))
         (find-file path-to-file))
     (let* ((parts (split-string path-to-file "!"))
-           (archive-name (replace-regexp-in-string eclim--compressed-urls-regexp "" (first parts)))
+           (archive-name (replace-regexp-in-string eclim--compressed-urls-regexp
+                                                   "" (first parts)))
            (file-name (second parts)))
       (find-file-other-window archive-name)
-      (beginning-of-buffer)
+      (goto-char (point-min))
       (re-search-forward (replace-regexp-in-string
                           eclim--compressed-file-path-removal-regexp ""
                           (regexp-quote (replace-regexp-in-string
@@ -366,11 +395,11 @@ FILENAME is given, return that file's  project name instead."
                                          "/" file-name))))
       (let ((old-buffer (current-buffer)))
         (archive-extract)
-        (beginning-of-buffer)
+        (goto-char (point-min))
         (kill-buffer old-buffer)))))
 
 (defun eclim--find-display-results (pattern results &optional open-single-file)
-  (let ((results (remove-if (lambda (result) (string-match (rx bol (or "jar" "zip") ":") (assoc-default 'filename result))) results)))
+  (let ((results (cl-remove-if (lambda (result) (string-match (rx bol (or "jar" "zip") ":") (assoc-default 'filename result))) results)))
     (if (and (= 1 (length results)) open-single-file) (eclim--visit-declaration (elt results 0))
       (pop-to-buffer (get-buffer-create "*eclim: find"))
       (let ((buffer-read-only nil))
@@ -397,7 +426,8 @@ FILENAME is given, return that file's  project name instead."
 (defun eclim--visit-declaration (line)
   (ring-insert find-tag-marker-ring (point-marker))
   (eclim--find-file (assoc-default 'filename line))
-  (goto-line (assoc-default 'line line))
+  (goto-char (point-min))
+  (forward-line (1- (assoc-default 'line line)))
   (move-to-column (1- (assoc-default 'column line))))
 
 (defun eclim--string-strip (content)
@@ -427,7 +457,10 @@ FILENAME is given, return that file's  project name instead."
 
 (defun eclim-file-locate (pattern &optional case-insensitive)
   (interactive (list (read-string "Pattern: ") "P"))
-  (eclim/with-results hits ("locate_file" ("-p" (concat "^.*" pattern ".*$")) ("-s" "workspace") (if case-insensitive '("-i" "")))
+  (eclim/with-results hits ("locate_file"
+                            ("-p" (concat "^.*" pattern ".*$"))
+                            ("-s" "workspace")
+                            (if case-insensitive '("-i" "")))
     (eclim--find-display-results pattern
                                  (apply #'vector
                                         (mapcar (lambda (hit) (list (cons 'filename (assoc-default 'path hit))
@@ -472,7 +505,8 @@ FILENAME is given, return that file's  project name instead."
     (remove-hook 'after-save-hook 'eclim--after-save-hook 't)))
 
 (defcustom eclim-accepted-file-regexps
-  '("\\.java" "\\.js" "\\.xml" "\\.rb" "\\.groovy" "\\.php" "\\.c" "\\.cc" "\\.h" "\\.scala")
+  '("\\.java" "\\.js" "\\.xml" "\\.rb" "\\.groovy"
+    "\\.php" "\\.c" "\\.cc" "\\.h" "\\.scala")
   "List of regular expressions that are matched against filenames
 to decide if eclim should be automatically started on a
 particular file. By default all files part of a project managed

@@ -51,18 +51,18 @@
 (defvar eclim--problems-project nil) ;; problems are relative to this project
 (defvar eclim--problems-file nil) ;; problems are relative to this file (when eclim--problems-filefilter is non-nil)
 
-(setq eclim-problems-mode-map
-      (let ((map (make-keymap)))
-        (suppress-keymap map t)
-        (define-key map (kbd "a") 'eclim-problems-show-all)
-        (define-key map (kbd "e") 'eclim-problems-show-errors)
-        (define-key map (kbd "g") 'eclim-problems-buffer-refresh)
-        (define-key map (kbd "q") 'eclim-quit-window)
-        (define-key map (kbd "w") 'eclim-problems-show-warnings)
-        (define-key map (kbd "f") 'eclim-problems-toggle-filefilter)
-        (define-key map (kbd "c") 'eclim-problems-correct)
-        (define-key map (kbd "RET") 'eclim-problems-open-current)
-        map))
+(defvar eclim-problems-mode-map
+  (let ((map (make-keymap)))
+    (suppress-keymap map t)
+    (define-key map (kbd "a") 'eclim-problems-show-all)
+    (define-key map (kbd "e") 'eclim-problems-show-errors)
+    (define-key map (kbd "g") 'eclim-problems-buffer-refresh)
+    (define-key map (kbd "q") 'eclim-quit-window)
+    (define-key map (kbd "w") 'eclim-problems-show-warnings)
+    (define-key map (kbd "f") 'eclim-problems-toggle-filefilter)
+    (define-key map (kbd "c") 'eclim-problems-correct)
+    (define-key map (kbd "RET") 'eclim-problems-open-current)
+    map))
 
 (define-key eclim-mode-map (kbd "C-c C-e b") 'eclim-problems)
 (define-key eclim-mode-map (kbd "C-c C-e o") 'eclim-problems-open)
@@ -160,7 +160,7 @@
     (save-restriction
       (widen)
       (eclim--problems-clear-highlights)
-      (loop for problem across (remove-if-not (lambda (p) (string= (assoc-default 'filename p) (buffer-file-name))) eclim--problems-list)
+      (loop for problem across (cl-remove-if-not (lambda (p) (string= (assoc-default 'filename p) (buffer-file-name))) eclim--problems-list)
             do (eclim--problems-insert-highlight problem)))))
 
 (defadvice find-file (after eclim-problems-highlight-on-find-file activate)
@@ -186,7 +186,7 @@
         (widen)
         (let ((line (line-number-at-pos))
               (col (current-column)))
-          (or (find-if (lambda (p) (and (string= (assoc-default 'filename p) (file-truename buffer-file-name))
+          (or (cl-find-if (lambda (p) (and (string= (assoc-default 'filename p) (file-truename buffer-file-name))
                                         (= (assoc-default 'line p) line)))
                        eclim--problems-list)
               (error "No problem on this line")))))))
@@ -195,9 +195,9 @@
   (interactive)
   (let* ((p (eclim--problems-get-current-problem)))
     (funcall (if same-window
-         'find-file
-       'find-file-other-window)
-     (assoc-default 'filename p))
+                 'find-file
+               'find-file-other-window)
+             (assoc-default 'filename p))
     (eclim--problem-goto-pos p)))
 
 (defun eclim-problems-correct ()

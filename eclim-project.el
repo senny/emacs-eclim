@@ -25,8 +25,13 @@
 
 ;;* Eclim Project
 
+(require 'eclim)
+
 (defvar eclim-project-mode-hook nil)
 (defvar eclim-project-info-mode-hook nil)
+(defvar eclim--project-natures-cache nil)
+(defvar eclim--projects-cache nil)
+(defvar eclim--project-name nil)
 
 (defvar eclim--project-scopes '("project"
                                 "workspace"))
@@ -54,7 +59,7 @@
 (defvar eclim-project-info-mode-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map special-mode-map)
-        map))
+    map))
 
 
 (define-key eclim-mode-map (kbd "C-c C-e g") 'eclim-project-goto)
@@ -70,13 +75,15 @@
 
 (defun eclim--check-nature (nature)
   (let ((natures (or eclim--project-natures-cache
-                    (setq eclim--project-natures-cache (eclim/project-nature-aliases)))))
+                     (setq eclim--project-natures-cache
+                           (eclim/project-nature-aliases)))))
     (when (not (member nature (append natures nil)))
       (error (concat "invalid project nature: " nature)))))
 
 (defun eclim--check-project (project)
   (let ((projects (or eclim--projects-cache
-                      (setq eclim--projects-cache (mapcar (lambda (p) (assoc-default 'name p)) (eclim/project-list))))))
+                      (setq eclim--projects-cache
+                            (eclim--list-project-names)))))
     (when (not (assoc-string project projects))
       (error (concat "invalid project: " project))))) ;
 
@@ -87,7 +94,10 @@
         (or (if single nil (eclim--project-get-marked))
             (eclim--project-current-line)))
     (eclim--completing-read "Project: "
-                            (mapcar (lambda (p) (assoc-default 'name p)) (eclim/project-list)))))
+                            (eclim--list-project-names))))
+
+(defun eclim--list-project-names ()
+  (mapcar (lambda (p) (assoc-default 'name p)) (eclim/project-list)))
 
 (defun eclim--project-set-current ()
   (ignore-errors
@@ -101,12 +111,16 @@
       (erase-buffer)
       (loop for project across (eclim/project-list)
             do (eclim--insert-project project))
-      (goto-line line-number))))
+      (goto-char (point-min))
+      (forward-line (1- line-number)))))
 
 (defun eclim--insert-project (project)
   (insert (format "  | %-6s | %-30s | %s\n"
-                  (if (eq :json-false (assoc-default 'open project)) "closed" "open")
-                  (truncate-string-to-width (assoc-default 'name project) 30 0 nil t)
+                  (if (eq :json-false (assoc-default 'open project))
+                      "closed"
+                    "open")
+                  (truncate-string-to-width (assoc-default 'name project)
+                                            30 0 nil t)
                   (assoc-default 'path project))))
 
 (defun eclim--project-insert-mark-current (face)
@@ -128,7 +142,7 @@
   (interactive)
   (let ((marked-projects '()))
     (save-excursion
-      (beginning-of-buffer)
+      (goto-char (point-min))
       (while (re-search-forward "*" nil t)
         (push (eclim--project-current-line) marked-projects)))
     marked-projects))
@@ -155,11 +169,19 @@
   (eclim--project-clear-cache)
   (eclim--call-process "project_import" "-f" (expand-file-name folder)))
 
-(defun eclim/project-create (folder natures name &optional target package application depends)
+(defun eclim/project-create (folder natures name &optional
+                                    target package application depends)
   ;; TODO: allow multiple natures
   ;; add the vars target,package,application for android project
   (eclim--project-clear-cache)
-  (eclim--call-process "project_create" "-f" folder "-n" natures "-p" name "-a" "--target" target "--package" package "--application" application))
+  (eclim--call-process "project_create"
+                       "-f" folder
+                       "-n" natures
+                       "-p" name
+                       "-a"
+                       "--target" target
+                       "--package" package
+                       "--application" application))
 
 (defun eclim/project-delete (project)
   (eclim--check-project project)
@@ -223,11 +245,13 @@
 
 (defun eclim/project-classpath (&optional delimiter)
   "return project classpath for the current buffer."
-  (eclim/execute-command "java_classpath" "-p" ("-d" delimiter)))
+  (eclim/execute-command "java_classpath" "-p" "-d" delimiter))
 
 (defun eclim-project-rename (project name)
   (interactive (let ((project-name (eclim--project-read t)))
-                 (list project-name (read-string (concat "Rename <" project-name "> To: ")))))
+                 (list
+                  project-name
+                  (read-string (concat "Rename <" project-name "> To: ")))))
   (message (eclim/project-rename project name))
   (eclim--project-buffer-refresh))
 
@@ -241,16 +265,18 @@
 
 (defun eclim-project-create (name path nature)
   (interactive (list (read-string "Name: ")
-                     (expand-file-name (read-directory-name "Project Directory: "))
+                     (expand-file-name (read-directory-name
+                                        "Project Directory: "))
                      (eclim--project-nature-read)))
   ;;android project is need the vars target,package,application
   (if (string-equal nature "android")
-      (progn (setq target (read-string "Target: "))
-             (setq package (read-string "Package: "))
-             (setq application (read-string "Application: "))
-             (message (eclim/project-create path nature name target package application)))
-      (message (eclim/project-create path nature name))
-  (eclim--project-buffer-refresh)))
+      (let ((target (read-string "Target: "))
+            (package (read-string "Package: "))
+            (application (read-string "Application: ")))
+        (message (eclim/project-create path nature name
+                                       target package application)))
+    (message (eclim/project-create path nature name))
+    (eclim--project-buffer-refresh)))
 
 (defun eclim-project-import (folder)
   (interactive "DProject Directory: ")
@@ -265,16 +291,20 @@
   (message (eclim/project-nature-add eclim--project-name nature)))
 
 (defun eclim-project-nature-remove (nature)
-  (interactive (list (completing-read "Remove nature: "
-                                      (append
-                                       (cdadr (aref (eclim/project-natures eclim--project-name) 0))
-                                       nil))))
+  (interactive
+   (list
+    (completing-read "Remove nature: "
+                     (append
+                      (cdadr (aref (eclim/project-natures eclim--project-name)
+                                   0))
+                      nil))))
   (message (eclim/project-nature-remove eclim--project-name nature)))
 
 (defun eclim-project-natures ()
   (interactive)
   (message (with-output-to-string
-             (princ (cdadr (aref (eclim/project-natures eclim--project-name) 0))))))
+             (princ
+              (cdadr (aref (eclim/project-natures eclim--project-name) 0))))))
 
 (defun eclim-project-mode-refresh ()
   (interactive)
@@ -285,7 +315,7 @@
   (interactive (list (eclim--project-read)))
   (when (not (listp projects)) (set 'projects (list projects)))
   (dolist (project projects)
-    (eclim/execute-command "project_update" ("-p" project)))
+    (eclim/execute-command "project_update" "-p" project))
   (eclim--project-buffer-refresh))
 
 (defun eclim-project-open (projects)
@@ -310,7 +340,7 @@
 (defun eclim-project-mark-all ()
   (interactive)
   (save-excursion
-    (beginning-of-buffer)
+    (goto-char (point-min))
     (loop do (eclim--project-insert-mark-current 'dired-mark)
           until (not (forward-line 1)))))
 
@@ -322,7 +352,7 @@
 (defun eclim-project-unmark-all ()
   (interactive)
   (save-excursion
-    (beginning-of-buffer)
+    (goto-char (point-min))
     (loop do (eclim--project-remove-mark-current)
           until (not (forward-line 1)))))
 
@@ -330,9 +360,9 @@
   (interactive (list (eclim--project-read t)))
   (ido-find-file-in-dir
    (assoc-default 'path
-                  (find project (eclim/project-list)
-                        :key (lambda (e) (assoc-default 'name e))
-                        :test #'string=))))
+                  (cl-find project (eclim/project-list)
+                           :key (lambda (e) (assoc-default 'name e))
+                           :test #'string=))))
 
 (defun eclim-project-info-mode (project)
   "Display detailed information about an eclim-project.
@@ -347,7 +377,9 @@
               do (princ (format "%s: %s\n" (car attr) (cdr attr))))
         (princ "\n\nSETTINGS:\n")
         (loop for attr across (eclim/project-settings project)
-              do (princ (format "%s: %s\n" (assoc-default 'name attr) (assoc-default 'value attr))))
+              do (princ (format "%s: %s\n"
+                                (assoc-default 'name attr)
+                                (assoc-default 'value attr))))
         (use-local-map eclim-project-info-mode-map)
         (setq major-mode 'eclim-project-info-mode
               mode-name "eclim/project-info")
@@ -384,7 +416,7 @@
   (cd "~") ;; setting a defualt directoy avoids some problems with tramp
   (eclim--project-buffer-refresh)
   (add-hook 'post-command-hook 'eclim--project-set-current nil t)
-  (beginning-of-buffer)
+  (goto-char (point-min))
   (run-mode-hooks 'eclim-project-mode-hook))
 
 (defalias 'eclim-manage-projects 'eclim-project-mode)
