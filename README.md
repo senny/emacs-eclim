@@ -204,4 +204,3 @@ and hack away.
 
 [badge-license]: https://img.shields.io/badge/license-GPL_3-green.svg
 
-[![githalytics.com alpha](https://cruel-carlota.pagodabox.com/1d9209f5584dec16ce325c6d70631963 "githalytics.com")](http://githalytics.com/senny/emacs-eclim)
