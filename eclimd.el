@@ -81,20 +81,20 @@ Return the string used for `match-string' if a match is found, and nil if the pr
 
 The caller must use `save-match-data' to preserve the match data if necessary."
   (let ((old-filter (process-filter proc))
-	(old-sentinel (process-sentinel proc))
-	(output "")
-	(terminated-p))
+        (old-sentinel (process-sentinel proc))
+        (output "")
+        (terminated-p))
     (set-process-filter proc (lambda (proc string)
-			       (setf output (concat output string))
-			       ;; Chain to the old filter
-			       (if old-filter
-				   (funcall old-filter proc string))))
+                               (setf output (concat output string))
+                               ;; Chain to the old filter
+                               (if old-filter
+                                   (funcall old-filter proc string))))
     (set-process-sentinel proc (lambda (proc state)
-				 (unless (eq 'run
-					     (process-status proc))
-				   (setf terminated-p t))))
+                                 (unless (eq 'run
+                                             (process-status proc))
+                                   (setf terminated-p t))))
     (while (and (not terminated-p)
-		(not (string-match regexp output)))
+                (not (string-match regexp output)))
       (accept-process-output proc))
     (set-process-sentinel proc old-sentinel)
     (set-process-filter proc old-filter)
@@ -107,9 +107,9 @@ It returns the port it is listening on"
   (let ((eclimd-start-regexp "Eclim Server Started on\\(?: port\\|:\\) \\(?:\\(?:[0-9]+\\.\\)\\{3\\}[0-9]+:\\)?\\([0-9]+\\)"))
     (save-match-data
       (let ((output (eclimd--match-process-output eclimd-start-regexp eclimd-process)))
-	(when output
-	  (setq eclimd-port (match-string 1 output))
-	  (message (concat "eclimd serving at port " eclimd-port)))))
+        (when output
+          (setq eclimd-port (match-string 1 output))
+          (message (concat "eclimd serving at port " eclimd-port)))))
     eclimd-port))
 
 (defun start-eclimd (workspace-dir)
