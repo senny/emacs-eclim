@@ -1,0 +1,11 @@
+(require 'eclim)
+
+(ert-deftest regexp-match-filename-line-column-properly ()
+  (let* ((error-string "[ERROR] /home/lklich/Dokumenty/Projekty/LibertyGlobal/eclim-test-mvn-project/lib-a/src/main/java/com/acme/liba/LibraryA.java:[22,12] method codePointAt in class java.lang.String cannot be applied to given types;")
+         (matched (s-match (caar compilation-error-regexp-alist) error-string))
+         (file (cadr matched))
+         (line (caddr matched))
+         (column (cadddr matched)))
+    (should (string-equal file "/home/lklich/Dokumenty/Projekty/LibertyGlobal/eclim-test-mvn-project/lib-a/src/main/java/com/acme/liba/LibraryA.java"))
+    (should (string-equal line "22"))
+    (should (string-equal column "12"))))
