@@ -544,8 +544,27 @@ method."
     (compile (concat eclim-executable " -command java -p "  eclim--project-name
                      " -c " (eclim-package-and-class)))))
 
+(defun eclim--java-junit-file (project file offset encoding)
+     (concat eclim-executable
+             " -command java_junit -p " project
+             " -f " file
+             " -o " (number-to-string offset)
+             " -e " encoding))
+
+(defun eclim--java-junit-project (project endcoding)
+     (concat eclim-executable
+             " -command java_junit -p " project
+             " -e " encoding))
+
+(defun eclim--buffer-contains-substring (string)
+  (save-excursion
+    (save-match-data
+      (goto-char (point-min))
+      (search-forward string nil t))))
+
 (defun eclim-run-junit (project file offset encoding)
-  "Run the current JUnit class or method at point.
+  "Run the current JUnit tests for current project or
+current class or current method.
 
 This method hooks onto the running Eclipse process and is thus
 much faster than running mvn test -Dtest=TestClass#method."
@@ -555,12 +574,9 @@ much faster than running mvn test -Dtest=TestClass#method."
                      (eclim--current-encoding)))
   (if (not (string= major-mode "java-mode"))
       (message "Running JUnit tests only makes sense for Java buffers.")
-    (compile
-     (concat eclim-executable
-             " -command java_junit -p " project
-             " -f " file
-             " -o " (number-to-string offset)
-             " -e " encoding))))
+    (compile (if (eclim--buffer-contains-substring "@Test")
+                 (eclim--java-junit-file project file offset encoding)
+               (eclim--java-junit-project project encoding)))))
 
 (defun eclim-java-correct (line offset)
   (eclim/with-results correction-info ("java_correct" "-p" "-f" ("-l" line) ("-o" offset))
