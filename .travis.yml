@@ -12,3 +12,4 @@ install:
   - cd -
 script:
   - emacs -Q --batch -l tests/emacs-eclim-linter-init.el -f elisp-lint-files-batch *.el
+  - emacs -Q --batch -l ert -l tests/emacs-eclim-linter-init.el -f ert-run-tests-batch-and-exit
