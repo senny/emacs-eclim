@@ -28,6 +28,7 @@
 ;;* Eclim Java
 
 (require 'json)
+(require 'dash)
 
 (define-key eclim-mode-map (kbd "C-c C-e s") 'eclim-java-method-signature-at-point)
 (define-key eclim-mode-map (kbd "C-c C-e f d") 'eclim-java-find-declaration)
@@ -562,6 +563,12 @@ method."
       (goto-char (point-min))
       (search-forward string nil t))))
 
+(defun eclim--java-make-popup-item (correction)
+  (popup-make-item
+   (cdr (assoc 'description correction))
+   :value (cdr (assoc 'index correction))
+   :document (cdr (assoc 'preview correction))))
+
 (defun eclim-run-junit (project file offset encoding)
   "Run the current JUnit tests for current project or
 current class or current method.
@@ -582,25 +589,17 @@ much faster than running mvn test -Dtest=TestClass#method."
   (eclim/with-results correction-info ("java_correct" "-p" "-f" ("-l" line) ("-o" offset))
     (if (stringp correction-info)
         (message correction-info)
-      (let ((corrections (cdr (assoc 'corrections correction-info))))
-        (if (eq (length corrections) 0)
-            (message "No automatic corrections found. Sorry."))
-        (setq-local cmenu
-                    (mapcar (lambda (correction)
-                              (popup-make-item
-                               (cdr (assoc 'description correction))
-                               :value (cdr (assoc 'index correction))
-                               :document (cdr (assoc 'preview correction))))
-                            corrections))
-        (let ((choice (popup-menu* cmenu)))
-          (when choice
-            (eclim/with-results correction-info
-              ("java_correct"
-               ("-p" eclim--project-name)
-               "-f"
-               ("-l" line)
-               ("-o" offset)
-               ("-a" choice)))))))))
+      (-if-let* ((corrections (cdr (assoc 'corrections correction-info)))
+                 (cmenu (mapcar 'eclim--java-make-popup-item corrections))
+                 (choice (popup-menu* cmenu)))
+          (eclim/with-results correction-info
+            ("java_correct"
+             ("-p" eclim--project-name)
+             "-f"
+             ("-l" line)
+             ("-o" offset)
+             ("-a" choice)))
+        (message "No automatic corrections found. Sorry")))))
 
 (defun eclim-java-show-documentation-for-current-element ()
   "Displays the doc comments for the element at the pointers position."

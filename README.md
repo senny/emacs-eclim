@@ -140,6 +140,7 @@ variables you can tweak:
    until `eclimd` is ready.
 
 ## Dependencies
+* [dash.el](https://github.com/magnars/dash.el) for list manipulation functions
 * [s.el](https://github.com/magnars/s.el) for string manipulation functions
 * json.el (part of emacs as of version 23)
 * [popup.el](https://github.com/auto-complete/popup-el) for inplace popup menus
@@ -203,4 +204,3 @@ and hack away.
 [repo]:https://github.com/senny/emacs-eclim
 
 [badge-license]: https://img.shields.io/badge/license-GPL_3-green.svg
-
