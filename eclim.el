@@ -459,7 +459,7 @@ FILENAME is given, return that file's  project name instead."
 (define-minor-mode eclim-mode
   "An interface to the Eclipse IDE."
   nil
-  " Eclim"
+  (:eval (eclim-modeline-string))
   eclim-mode-map
   (if eclim-mode
       (progn
@@ -542,11 +542,8 @@ the use of eclim to java and ant files."
 (require 'eclim-maven)
 (require 'eclim-problems)
 
-(add-to-list 'minor-mode-alist
-             '(eclim-mode (:eval (eclim-modeline-string))))
-
 (defun eclim-modeline-string ()
   (when eclim-mode
-    (concat "Eclim " (eclim-problems-modeline-string))))
+    (concat " Eclim " (eclim-problems-modeline-string))))
 
 (provide 'eclim)
