@@ -73,7 +73,7 @@
     (post-completion (let ((ann (company-emacs-eclim--annotation arg)))
                        (when ann
                          (insert ann))
-                         (company-emacs-eclim-action arg ann)))))
+                       (company-emacs-eclim-action arg ann)))))
 
 (defun company-emacs-eclim-action (completion annotation)
   (let* ((end (point))
