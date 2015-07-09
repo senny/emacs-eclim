@@ -72,12 +72,13 @@
     (sorted t)
     (post-completion (let ((ann (company-emacs-eclim--annotation arg)))
                        (when ann
-                         (insert ann)
-                         (company-emacs-eclim-action ann))))))
+                         (insert ann))
+                       (company-emacs-eclim-action arg ann)))))
 
-(defun company-emacs-eclim-action (call)
+(defun company-emacs-eclim-action (completion annotation)
   (let* ((end (point))
-         (beg (- end (length call))))
+         (len (+ (length completion) (length annotation)))
+         (beg (- end len)))
     (eclim--completion-action beg end)))
 
 (provide 'company-emacs-eclim)
