@@ -115,6 +115,9 @@ following to your .emacs:
 (global-company-mode t)
 ```
 
+Emacs-eclim completions in company are case sensitive by default. To make completions
+case insensitive set `company-emacs-eclim-ignore-case` to `t`.
+
 ### Configuring eclimd module
 
 When `emacs-eclim` is configured correctly, you don't need to modify the
