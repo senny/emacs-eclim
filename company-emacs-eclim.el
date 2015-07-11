@@ -33,6 +33,12 @@
 (require 'eclim-java)
 (require 'company)
 
+(defcustom company-emacs-eclim-ignore-case t
+  "If t, case is ignored in completion matches."
+  :group 'eclim-company
+  :type '(choice (const :tag "Yes" t)
+                 (const :tag "No" nil)))
+
 (defun company-emacs-eclim-setup ()
   "Convenience function that adds company-emacs-eclim to the list
   of available company backends."
@@ -68,7 +74,7 @@
     (meta (eclim--completion-documentation
            (concat arg (company-emacs-eclim--annotation arg))))
     (no-cache (equal arg ""))
-    (ignore-case nil)
+    (ignore-case company-emacs-eclim-ignore-case)
     (sorted t)
     (post-completion (let ((ann (company-emacs-eclim--annotation arg)))
                        (when ann

@@ -1,5 +1,12 @@
 == In Git
 
+== 0.4
+
+=== New features
+ * company mode completion can be case insensitive
+
+== 0.3
+
 === New Features
  * organize imports
  * browsing with the class hierarchy
@@ -21,7 +28,7 @@
  * Running all JUnit tests project or in a class or just the test method at point
  * additional info in modeline about errors and warnings
  * added support for scala completion
- 
+
 === Bugfixes
  * removed extra parentheses around function
  * fixed a problem on startup when the eclimd server was not started
