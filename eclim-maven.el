@@ -49,6 +49,8 @@
   (let ((default-directory (eclim--project-dir)))
     (compile (concat "mvn -f " (eclim--maven-pom-path) " " command))))
 
+
+
 (defun eclim-maven-run (goal)
   "Execute a specific Maven goal in the context of the current
 project. The build output is displayed in the *compilation* buffer."

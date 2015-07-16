@@ -345,7 +345,7 @@ create and initialize a new buffer."
   (or (get-buffer "*eclim: problems*")
       (let ((buf (get-buffer-create "*eclim: problems*")))
         (save-excursion
-          ;; (setq eclim--problems-project (eclim--project-name))
+          ;; (setq eclim--problems-project (eclim-project-name))
           (setq eclim--problems-file buffer-file-name)
           (set-buffer buf)
           (eclim--problems-mode)
@@ -358,7 +358,7 @@ argument QUIET is non-nil, open the buffer in the background
 without switching to it."
   (let ((buf (get-buffer-create "*eclim: problems*")))
     (save-excursion
-      (setq eclim--problems-project (eclim--project-name))
+      (setq eclim--problems-project (eclim-project-name))
       (setq eclim--problems-file buffer-file-name)
       (set-buffer buf)
       (eclim--problems-mode)
@@ -370,7 +370,7 @@ without switching to it."
 (defun eclim-problems ()
   "Show current compilation problems in a separate window."
   (interactive)
-  (if (eclim--project-name)
+  (if (eclim-project-name)
       (eclim--problems-mode-init)
     (error "Could not figure out the current project. Is this an eclim managed buffer?")))
 
@@ -390,7 +390,7 @@ without switching to it."
 (defun eclim-problems-refocus ()
   (interactive)
   (when (eclim--project-dir)
-    (setq eclim--problems-project (eclim--project-name))
+    (setq eclim--problems-project (eclim-project-name))
     (setq eclim--problems-file buffer-file-name)
     (with-current-buffer eclim--problems-buffer-name
       (eclim-problems-buffer-refresh))))
@@ -429,7 +429,7 @@ refresh of the problems buffer."
   (when (and (not eclim--is-completing)
              (eclim--project-dir)
              eclim-autoupdate-problems)
-    (setq eclim--problems-project (eclim--project-name))
+    (setq eclim--problems-project (eclim-project-name))
     (setq eclim--problems-file buffer-file-name)
     (run-with-idle-timer eclim-problems-refresh-delay nil (lambda () (eclim-problems-buffer-refresh)))))
 

@@ -92,7 +92,7 @@
 
 (defun eclim--project-set-current ()
   (ignore-errors
-    (setq eclim--project-name (eclim--project-current-line))))
+    (setq eclim-project-name (eclim--project-current-line))))
 
 (defun eclim--project-buffer-refresh ()
   (eclim--project-clear-cache)
@@ -263,19 +263,22 @@
 
 (defun eclim-project-nature-add (nature)
   (interactive (list (eclim--project-nature-read)))
-  (message (eclim/project-nature-add eclim--project-name nature)))
+  (message (eclim/project-nature-add eclim-project-name nature)))
 
 (defun eclim-project-nature-remove (nature)
   (interactive (list (completing-read "Remove nature: "
                                       (append
-                                       (cdadr (aref (eclim/project-natures eclim--project-name) 0))
+                                       (cdadr (aref (eclim/project-natures eclim-project-name) 0))
                                        nil))))
-  (message (eclim/project-nature-remove eclim--project-name nature)))
+  (message (eclim/project-nature-remove eclim-project-name nature)))
 
 (defun eclim-project-natures ()
   (interactive)
   (message (with-output-to-string
-             (princ (cdadr (aref (eclim/project-natures eclim--project-name) 0))))))
+             (princ (cdadr (aref (eclim/project-natures eclim-project-name) 0))))))
+
+(defun eclim-project-dependencies (project)
+  (cdr (assoc 'depends (eclim/project-info project))))
 
 (defun eclim-project-mode-refresh ()
   (interactive)

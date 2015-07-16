@@ -129,7 +129,7 @@ in eclim when appropriate."
   (let ((pr nil)
         (fn nil))
     (ignore-errors
-      (and (setq pr (eclim--project-name filename))
+      (and (setq pr (eclim-project-name filename))
            (setq fn (file-relative-name filename (eclim--project-dir pr)))))
     ad-do-it
     (when (and pr fn)
@@ -211,7 +211,7 @@ has been found."
 
 (defun eclim-java-generate-getter-and-setter (project file offset encoding)
   "Generates getter and setter methods for the symbol at point."
-  (interactive (list (eclim--project-name)
+  (interactive (list (eclim-project-name)
                      (eclim--project-current-file)
                      (eclim--byte-offset)
                      (eclim--current-encoding)))
@@ -266,7 +266,7 @@ has been found."
       (message "Done"))))
 
 (defun eclim-java-call-hierarchy (project file encoding)
-  (interactive (list (eclim--project-name)
+  (interactive (list (eclim-project-name)
                      (eclim--project-current-file)
                      (eclim--current-encoding)))
   (let ((boundary "\\([<>()\\[\\.\s\t\n!=,;]\\|]\\)"))
@@ -299,7 +299,7 @@ has been found."
           do (eclim--java-insert-call-hierarchy-node project caller (1+ level)))))
 
 (defun eclim-java-hierarchy (project file offset encoding)
-  (interactive (list (eclim--project-name)
+  (interactive (list (eclim-project-name)
                      (eclim--project-current-file)
                      (eclim--byte-offset)
                      (eclim--current-encoding)))
@@ -542,7 +542,7 @@ method."
   (interactive)
   (if (not (string= major-mode "java-mode"))
       (message "Sorry cannot run current buffer.")
-    (compile (concat eclim-executable " -command java -p "  eclim--project-name
+    (compile (concat eclim-executable " -command java -p "  eclim-project-name
                      " -c " (eclim-package-and-class)))))
 
 (defun eclim--java-junit-file (project file offset encoding)
@@ -569,19 +569,25 @@ method."
    :value (cdr (assoc 'index correction))
    :document (cdr (assoc 'preview correction))))
 
+(defun eclim-java-junit-buffer? ()
+  (eclim--buffer-contains-substring "org.junit.Test"))
+
+(defun eclim-java-testng-buffer? ()
+  (eclim--buffer-contains-substring "org.testng.annotations.Test"))
+
 (defun eclim-run-junit (project file offset encoding)
   "Run the current JUnit tests for current project or
 current class or current method.
 
 This method hooks onto the running Eclipse process and is thus
 much faster than running mvn test -Dtest=TestClass#method."
-  (interactive (list (eclim--project-name)
+  (interactive (list (eclim-project-name)
                      (eclim--project-current-file)
                      (eclim--byte-offset)
                      (eclim--current-encoding)))
   (if (not (string= major-mode "java-mode"))
       (message "Running JUnit tests only makes sense for Java buffers.")
-    (compile (if (eclim--buffer-contains-substring "@Test")
+    (compile (if (eclim-java-junit-buffer?)
                  (eclim--java-junit-file project file offset encoding)
                (eclim--java-junit-project project encoding)))))
 
@@ -594,7 +600,7 @@ much faster than running mvn test -Dtest=TestClass#method."
                  (choice (popup-menu* cmenu)))
           (eclim/with-results correction-info
             ("java_correct"
-             ("-p" eclim--project-name)
+             ("-p" eclim-project-name)
              "-f"
              ("-l" line)
              ("-o" offset)
@@ -609,7 +615,7 @@ much faster than running mvn test -Dtest=TestClass#method."
         (let ((bounds (bounds-of-thing-at-point 'symbol))
               (window-config (current-window-configuration)))
           (eclim/with-results doc ("java_element_doc"
-                                   ("-p" (eclim--project-name))
+                                   ("-p" (eclim-project-name))
                                    "-f"
                                    ("-l" (- (cdr bounds) (car bounds)))
                                    ("-o" (save-excursion
