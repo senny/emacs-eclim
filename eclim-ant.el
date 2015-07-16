@@ -82,7 +82,7 @@ buildfile for the current project has changed and needs to be updated"
 (defun eclim-ant-validate (project file)
   "Run ant-xml validation against the file opened in the current
 buffer. The results are displayed in a dedicated compilation buffer."
-  (interactive (list (eclim--project-name) (buffer-file-name)))
+  (interactive (list (eclim-project-name) (buffer-file-name)))
   (pop-to-buffer (get-buffer-create "*eclim: build*"))
   (let ((buffer-read-only nil))
     (erase-buffer)
@@ -96,7 +96,7 @@ buffer. The results are displayed in a dedicated compilation buffer."
   "run a specified ant target in the scope of the current project. If
 the function is called interactively the users is presented with a
   list of all available ant targets."
-  (interactive (list (eclim--ant-read-target (eclim--project-name)
+  (interactive (list (eclim--ant-read-target (eclim-project-name)
                                              (eclim--ant-buildfile-name))))
   (let ((default-directory (eclim--ant-buildfile-path)))
     ;; TODO: use the right version of java to execute ant

@@ -105,8 +105,8 @@ in the current workspace."
   :type '(choice (const :tag "Off" nil)
                  (const :tag "On" t)))
 
-(defvar eclim--project-name nil)
-(make-variable-buffer-local 'eclim--project-name)
+(defvar eclim-project-name nil)
+(make-variable-buffer-local 'eclim-project-name)
 
 (defvar eclim--project-current-file nil)
 (make-variable-buffer-local 'eclim--project-current-file)
@@ -212,8 +212,8 @@ strings and will be called on completion."
             (set-process-sentinel proc sentinel)))))))
 
 (setq eclim--default-args
-      '(("-n" . (eclim--project-name))
-        ("-p" . (or (eclim--project-name) (error "Could not find eclipse project for %s" (buffer-name (current-buffer)))))
+      '(("-n" . (eclim-project-name))
+        ("-p" . (or (eclim-project-name) (error "Could not find eclipse project for %s" (buffer-name (current-buffer)))))
         ("-e" . (eclim--current-encoding))
         ("-f" . (eclim--project-current-file))
         ("-o" . (eclim--byte-offset))
@@ -252,7 +252,7 @@ lists are then appended together."
     (when sync (eclim/java-src-update))
     (when check
       (ignore-errors
-        (eclim--check-project (if (listp check) (eval (second check)) (eclim--project-name)))))
+        (eclim--check-project (if (listp check) (eval (second check)) (eclim-project-name)))))
     (let ((attrs-before (if sync (file-attributes (buffer-file-name)) nil)))
       (funcall executor (cons cmd expargs)
                (lambda ()
@@ -333,22 +333,22 @@ value is computed for that file's instead."
   (ignore-errors
     (let ((file (or filename buffer-file-name)))
       (and file
-           (eclim--project-name file)))))
+           (eclim-project-name file)))))
 
 (defun eclim--project-dir (&optional projectname)
   "Return this project's root directory. If the optional
 argument PROJECTNAME is given, return that project's root directory."
-  (assoc-default 'path (eclim/project-info (or projectname (eclim--project-name)))))
+  (assoc-default 'path (eclim/project-info (or projectname (eclim-project-name)))))
 
-(defun eclim--project-name (&optional filename)
+(defun eclim-project-name (&optional filename)
   "Returns this file's project name. If the optional argument
 FILENAME is given, return that file's  project name instead."
   (labels ((get-project-name (file)
                              (eclim/execute-command "project_by_resource" ("-f" file))))
     (if filename
         (get-project-name filename)
-      (or eclim--project-name
-          (and buffer-file-name (setq eclim--project-name (get-project-name buffer-file-name)))))))
+      (or eclim-project-name
+          (and buffer-file-name (setq eclim-project-name (get-project-name buffer-file-name)))))))
 
 (defun eclim--find-file (path-to-file)
   (if (not (string-match-p "!" path-to-file))
@@ -464,7 +464,7 @@ FILENAME is given, return that file's  project name instead."
   (if eclim-mode
       (progn
         (kill-local-variable 'eclim--project-dir)
-        (kill-local-variable 'eclim--project-name)
+        (kill-local-variable 'eclim-project-name)
         (kill-local-variable 'eclim--project-current-file)
         (add-hook 'after-save-hook 'eclim--problems-update-maybe nil 't)
         (add-hook 'after-save-hook 'eclim--after-save-hook nil 't))
