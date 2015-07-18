@@ -47,13 +47,40 @@
               (remove-if (lambda (b) (find b '(company-nxml company-eclim)))
                          company-backends))))
 
+(defun company-emacs-eclim--before-prefix-in-buffer (prefix)
+  "Search for the text before prefix that may be included as part of completions"
+  (ignore-errors
+    (save-excursion
+      (let ((end (progn
+                   (backward-char (length prefix))
+                   (point)))
+            (start (progn
+                     (while (save-excursion
+                              (backward-char)
+                              (eq ?. (char-after)))
+                       (backward-char)
+                       (beginning-of-thing 'symbol))
+                     (point))))
+        (buffer-substring-no-properties start end)))))
+
 (defun company-emacs-eclim--candidates (prefix)
-  (mapcar
-   (lambda (str)
-     (if (string-match "(" str)
-         (propertize (substring str 0 (match-beginning 0)) 'eclim-meta str)
-       str))
-   (eclim--completion-candidates)))
+  (let ((before-prefix-in-buffer (company-emacs-eclim--before-prefix-in-buffer prefix)))
+    (cl-labels
+        ((annotate (str)
+                   (if (string-match "(" str)
+                       (propertize
+                        (substring str 0 (match-beginning 0)) 'eclim-meta str)
+                     str))
+         (without-redundant-prefix (str)
+                                   (if (and before-prefix-in-buffer
+                                            (> (length before-prefix-in-buffer) 0)
+                                            (string-prefix-p before-prefix-in-buffer str))
+                                       (substring str (length before-prefix-in-buffer))
+                                     str)))
+      (mapcar
+       (lambda (candidate)
+         (annotate (without-redundant-prefix candidate)))
+       (eclim--completion-candidates)))))
 
 (defun company-emacs-eclim--annotation (candidate)
   (let ((str (get-text-property 0 'eclim-meta candidate)))
