@@ -43,6 +43,7 @@
 (define-key eclim-mode-map (kbd "C-c C-e f s") 'eclim-java-format)
 (define-key eclim-mode-map (kbd "C-c C-e g") 'eclim-java-generate-getter-and-setter)
 (define-key eclim-mode-map (kbd "C-c C-e t") 'eclim-run-junit)
+(define-key eclim-mode-map (kbd "C-c C-e j") 'eclim-java-occur-definitions)
 
 (defvar eclim-java-show-documentation-map
   (let ((map (make-keymap)))
@@ -568,6 +569,17 @@ method."
    (cdr (assoc 'description correction))
    :value (cdr (assoc 'index correction))
    :document (cdr (assoc 'preview correction))))
+
+(defun eclim-java-occur-definitions ()
+  "Show class and method definitions in a new buffer"
+  (interactive)
+  (let ((list-matching-lines-face nil))
+    (occur "^ *\\(private\\|public\\|protected\\) .*\\(,\\|{\\)"
+           ))
+  (let ((window (get-buffer-window "*Occur*")))
+    (if window
+        (select-window window)
+      (switch-to-buffer "*Occur*"))))
 
 (defun eclim-run-junit (project file offset encoding)
   "Run the current JUnit tests for current project or
