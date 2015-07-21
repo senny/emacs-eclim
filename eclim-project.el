@@ -375,9 +375,9 @@
         mode-name "eclim/project"
         mode-line-process ""
         truncate-lines t
-        line-move-visual nil
         buffer-read-only t
         default-directory (eclim/workspace-dir))
+  (setq-local line-move-visual nil)
   (put 'eclim-project-mode 'mode-class 'special)
   (hl-line-mode t)
   (use-local-map eclim-project-mode-map)
