@@ -49,6 +49,7 @@
     (define-key map (kbd "g") 'eclim-project-mode-refresh)
     (define-key map (kbd "R") 'eclim-project-rename)
     (define-key map (kbd "q") 'eclim-quit-window)
+    (define-key map (kbd "r") 'eclim-project-refresh)
     map))
 
 (defvar eclim-project-info-mode-map
@@ -300,6 +301,13 @@
   (when (not (listp projects)) (set 'projects (list projects)))
   (dolist (project projects)
     (eclim/project-close project))
+  (eclim--project-buffer-refresh))
+
+(defun eclim-project-refresh (projects)
+  (interactive (list (eclim--project-read)))
+  (when (not (listp projects)) (set 'projects (list projects)))
+  (dolist (project projects)
+    (eclim/project-refresh project))
   (eclim--project-buffer-refresh))
 
 (defun eclim-project-mark-current ()
