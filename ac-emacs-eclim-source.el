@@ -44,7 +44,7 @@
 
 (ac-define-source emacs-eclim
                   '((candidates . eclim--completion-candidates)
-                    (action . eclim--completion-action)
+                    (action . ac-emacs-eclim-action)
                     (prefix . eclim-completion-start)
                     (document . eclim--completion-documentation)
                     (cache)
