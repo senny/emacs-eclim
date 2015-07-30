@@ -4,8 +4,11 @@
 
 (require 'package)
 (add-to-list 'package-archives
-             '("melpa" . "http://melpa.milkbox.net/packages/") t)
+             '("melpa" . "http://melpa.org/packages/") t)
 (package-initialize)
+(package-refresh-contents)
+(defvar optional-dependencies '((company "0.8.12")))
+(package-install (caar optional-dependencies))
 
 (require 'cl)
 
