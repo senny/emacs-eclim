@@ -458,7 +458,6 @@ undo history."
 (defun eclim-java-import (type)
   "Adds an import statement for the given type, if one does not
 exist already."
-  (interactive)
   (save-excursion
     (beginning-of-buffer)
     (let ((revert-buffer-function 'eclim-soft-revert-imports))
