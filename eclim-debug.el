@@ -60,11 +60,11 @@
     (s-join ":" (-mapcat 'eclim--debug-project-sourcepath projects))))
 
 (defun eclim--debug-project-dir (project)
-  (cdr (assoc 'path (eclim/project-info project))))
+  (file-name-as-directory (cdr (assoc 'path (eclim/project-info project)))))
 
 (defun eclim--debug-project-sourcepath (project)
   (eclim--debug-read-sourcepath
-   (concat (file-name-as-directory (eclim--debug-project-dir project))
+   (concat (eclim--debug-project-dir project)
            ".classpath")))
 
 (defun eclim--debug-read-sourcepath (classpath-file)
