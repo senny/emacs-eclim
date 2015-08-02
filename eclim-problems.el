@@ -68,6 +68,7 @@
 (define-key eclim-mode-map (kbd "C-c C-e o") 'eclim-problems-open)
 
 (defvar eclim--problems-list nil)
+(defvar eclim--problems-refreshing nil) ;; Set to true while refreshing probs.
 
 (defvar eclim--problems-filter nil) ;; nil -> all problems, w -> warnings, e -> errors
 (defvar eclim--problems-filefilter nil) ;; should filter by file name
@@ -222,14 +223,14 @@ invoked in either the problems buffer or a source code buffer."
 it asynchronously."
   (let ((res (gensym)))
     `(when eclim--problems-project
-       (when (not (minibuffer-window-active-p (minibuffer-window)))
-         (message "refreshing... %s " (current-buffer)))
+       (setq eclim--problems-refreshing t)
        (eclim/with-results-async ,res ("problems" ("-p" eclim--problems-project) (when (string= "e" eclim--problems-filter) '("-e" "true")))
          (loop for problem across ,res
                do (let ((filecell (assq 'filename problem)))
                     (when filecell (setcdr filecell (file-truename (cdr filecell))))))
          (setq eclim--problems-list ,res)
          (let ((,problems ,res))
+           (setq eclim--problems-refreshing nil)
            ,@body)))))
 
 (defun eclim-problems-buffer-refresh ()
@@ -489,8 +490,9 @@ is convenient as it lets the user navigate between errors using
 (defun eclim-problems-modeline-string ()
   "Returns modeline string with additional info about
 problems for current file"
-  (concat (format " : %s/%s"
+  (concat (format ": %s/%s"
                   (eclim--count-current-errors)
-                  (eclim--count-current-warnings))))
+                  (eclim--count-current-warnings))
+          (when eclim--problems-refreshing "*")))
 
 (provide 'eclim-problems)
