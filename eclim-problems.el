@@ -449,27 +449,57 @@ is convenient as it lets the user navigate between errors using
 `next-error' (\\[next-error])."
   (interactive)
   (lexical-let ((filecol-size (eclim--problems-filecol-size))
-                (project-directory (concat (eclim--project-dir buffer-file-name) "/"))
-                (compil-buffer (get-buffer-create eclim--problems-compilation-buffer-name)))
+                (project-directory (concat (eclim--project-dir) "/"))
+                (compil-buffer (get-buffer-create eclim--problems-compilation-buffer-name))
+                (project-name (eclim-project-name))) ; To store it in buffer.
+
+    (with-current-buffer compil-buffer
+      (setq default-directory project-directory)
+      (setq mode-line-process
+            (concat ": " (propertize "refreshing"
+                                     'face 'compilation-mode-line-run))))
+    ;; Remember that the part below is asynchronous. This can be tricky.
     (eclim--with-problems-list problems
-      (with-current-buffer compil-buffer
-        (setq default-directory project-directory)
-        (setq buffer-read-only nil)
-        (erase-buffer)
-        (insert (concat "-*- mode: compilation; default-directory: "
-                        project-directory
-                        " -*-\n\n"))
-        (let ((errors 0) (warnings 0))
-          (loop for problem across (eclim--problems-filtered)
-                do (eclim--insert-problem-compilation problem filecol-size project-directory)
-                (cond ((assoc-default 'warning problem)
-                       (setq warnings (1+ warnings)))
-                      (t
-                       (setq errors (1+ errors)))))
-          (insert (format "\nCompilation results: %d errors and %d warnings."
-                          errors warnings)))
-        (compilation-mode))
-      (display-buffer compil-buffer 'other-window))))
+      (let (saved-user-pos)
+        (with-current-buffer compil-buffer
+          (buffer-disable-undo)
+          (setq buffer-read-only nil)
+          (setq saved-user-pos (point))
+          (erase-buffer)
+          (let ((errors 0) (warnings 0))
+            (loop for problem across (eclim--problems-filtered) do
+                  (eclim--insert-problem-compilation
+                   problem filecol-size project-directory)
+                (if (eq t (assoc-default 'warning problem)) ; :json-false, WTH
+                    (setq warnings (1+ warnings))
+                  (setq errors (1+ errors))))
+            (let ((msg (format
+                        "Compilation results: %d errors, %d warnings [%s].\n"
+                        errors warnings (current-time-string))))
+              (insert "\n" msg)
+              (goto-char (point-min))
+            (insert msg "\n"))
+            (compilation-mode)
+            ;; The above killed local variables, so recover our lexical-lets
+            (setq default-directory project-directory)
+            (setq eclim-project-name project-name)
+            ;; Remap the very dangerous "g" command :)  A make -k in some of
+            ;; my projects would throw Eclipse off-balance by cleaning .classes.
+            ;; May look funky, but it's safe.
+            (local-set-key "g" 'eclim-problems-compilation-buffer)
+
+            (setq mode-line-process
+                  (concat ": "
+                          (propertize (format "%d/%d" errors warnings)
+                                      'face (when (> errors 0)
+                                              'compilation-mode-line-fail))))))
+        ;; Sometimes, buffer was already current. Note outside with-current-buf.
+        (unless (eq compil-buffer (current-buffer))
+          (display-buffer compil-buffer 'other-window))
+        (with-selected-window (get-buffer-window compil-buffer t)
+          (when (< saved-user-pos (point-max))
+            (goto-char saved-user-pos)))))))
+
 
 (defun eclim--insert-problem-compilation (problem filecol-size project-directory)
   (let ((filename (first (split-string (assoc-default 'filename problem) project-directory t)))
