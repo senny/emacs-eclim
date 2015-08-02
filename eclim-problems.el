@@ -201,10 +201,19 @@
     (eclim--problem-goto-pos p)))
 
 (defun eclim-problems-correct ()
+  "Pops up a suggestion for the current correction. This can be
+invoked in either the problems buffer or a source code buffer."
   (interactive)
   (let ((p (eclim--problems-get-current-problem)))
-    (if (not (string-match "\\.\\(groovy\\|java\\)$" (cdr (assoc 'filename p))))
-        (error "Not a Java or Groovy file. Corrections are currently supported only for Java or Groovy")
+    (unless (string-match "\\.\\(groovy\\|java\\)$" (cdr (assoc 'filename p)))
+      (error "Not a Java or Groovy file. Corrections are currently supported only for Java or Groovy"))
+    (if (eq major-mode 'eclim-problems-mode)
+        (let ((p-buffer (find-file-other-window (assoc-default 'filename p))))
+          (with-selected-window (get-buffer-window p-buffer t)
+            ;; Intentionally DON'T save excursion. Often times we need edits.
+            (eclim--problem-goto-pos p)
+            (eclim-java-correct (cdr (assoc 'line p)) (eclim--byte-offset))))
+      ;; source code buffer
       (eclim-java-correct (cdr (assoc 'line p)) (eclim--byte-offset)))))
 
 (defmacro eclim--with-problems-list (problems &rest body)
