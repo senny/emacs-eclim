@@ -675,13 +675,14 @@ much faster than running mvn test -Dtest=TestClass#method."
         (replace-match text)
         (make-text-button (match-beginning 0)
                           (+ (match-beginning 0) (length text))
+                          'follow-link t
                           'action 'eclim-java-show-documentation-follow-link
                           'url href))))
 
   (when add-to-history
     (goto-char (point-max))
     (insert "\n\n")
-    (insert-text-button "back" 'action 'eclim--java-show-documentation-go-back))
+    (insert-text-button "back" 'follow-link t 'action 'eclim--java-show-documentation-go-back))
 
   (goto-char (point-min)))
 
