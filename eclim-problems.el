@@ -517,6 +517,40 @@ is convenient as it lets the user navigate between errors using
   (length
    (eclim--filter-problems "w" t (buffer-file-name (current-buffer)) eclim--problems-list)))
 
+(defun eclim-problems-next-same-file (&optional up)
+  "Moves to the next problem in the current file, with wraparound. If UP
+or prefix arg, moves to previous instead; see `eclim-problems-prev-same-file'."
+  (interactive "P")
+  ;; This seems pretty inefficient, but it's fast enough. Would be even
+  ;; more inefficient if we didn't assume problems were sorted.
+  (let ((problems-file
+         (eclim--filter-problems nil t (buffer-file-name (current-buffer))
+                                 eclim--problems-list))
+        (pass-line (line-number-at-pos))
+        (pass-col (+ (current-column) (if up 0 1)))
+        (first-passed nil) (last-not-passed nil))
+    (when (= 0 (length problems-file)) (error "No problems in this file"))
+    (loop for p across problems-file until first-passed do
+          (let ((line (assoc-default 'line p))
+                (col (assoc-default 'column p)))
+            (if (or (> line pass-line)
+                      (and (= line pass-line) (> col pass-col)))
+                (setq first-passed p)
+              (setq last-not-passed p))))
+    (eclim--problem-goto-pos
+     (or
+      (if up last-not-passed first-passed)
+      (when up (message "Moved past first error, continuing to last")
+            (elt problems-file (- (length problems-file) 1))) ; Ugh, vector
+      (progn (message "Moved past last error, continuing to first")
+             (elt problems-file 0))))))
+
+(defun eclim-problems-prev-same-file ()
+  "Moves to the previous problem in the same file, with wraparound."
+  (interactive)
+  (eclim-problems-next-same-file t))
+          
+
 (defun eclim-problems-modeline-string ()
   "Returns modeline string with additional info about
 problems for current file"
