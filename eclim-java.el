@@ -543,7 +543,7 @@ method."
              " -o " (number-to-string offset)
              " -e " encoding))
 
-(defun eclim--java-junit-project (project endcoding)
+(defun eclim--java-junit-project (project encoding)
      (concat eclim-executable
              " -command java_junit -p " project
              " -e " encoding))
