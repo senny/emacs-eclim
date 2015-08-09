@@ -161,6 +161,15 @@ buffer."
           (case major-mode
             ((java-mode javascript-mode js-mode ruby-mode groovy-mode php-mode c-mode c++-mode scala-mode)
              (progn
+               ;; Allow completion after open bracket. Eclipse/eclim do.
+               (when (or (eq ?\( (char-before))
+                         ;; Template? Technically it could be a less-than sign
+                         ;; but it's unlikely the user completes there and
+                         ;; no particular harm done.
+                         (and (eq ?\< (char-before))
+                              (memq major-mode
+                                    '(java-mode c++-mode goovy-mode))))
+                 (backward-char 1))
                (ignore-errors (beginning-of-thing 'symbol))
                ;; Completion candidates for annotations don't include '@'.
                (when (eq ?@ (char-after))
