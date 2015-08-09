@@ -31,9 +31,40 @@
 
 (require' eclim-project)
 (require 'eclim-java)
-(require 'eclim-debug)
+(require 's)
+(require 'dash)
 
 (define-key eclim-mode-map (kbd "C-c C-e u r") 'eclim-java-run-run)
+
+(defun eclim-java-run-sourcepath (project)
+  (let ((projects (-snoc (eclim-project-dependencies project) project)))
+    (s-join ":" (-mapcat 'eclim-java-run--project-sourcepath projects))))
+
+(defun eclim-java-run--project-dir (project)
+  (file-name-as-directory (cdr (assoc 'path (eclim/project-info project)))))
+
+(defun eclim-java-run--project-sourcepath (project)
+  (eclim-java-run--read-sourcepath
+   (concat (eclim-java-run--project-dir project)
+           ".classpath")))
+
+(defun eclim-java-run--read-sourcepath (classpath-file)
+  (let* ((root (car (xml-parse-file classpath-file)))
+         (classpathentries (xml-get-children root 'classpathentry))
+         (srcs (-filter 'eclim-java-run--src?? classpathentries))
+         (paths-relative (-map 'eclim-java-run--get-path srcs))
+         (paths-absolute (--map (concat (file-name-directory classpath-file) it) paths-relative)))
+    paths-absolute))
+
+(defun eclim-java-run--src?? (classpathentry)
+  (let* ((attrs (xml-node-attributes classpathentry))
+         (kind (cdr (assq 'kind attrs))))
+    (string-equal kind "src")))
+
+(defun eclim-java-run--get-path (classpathentry)
+  (let* ((attrs (xml-node-attributes classpathentry))
+         (path (cdr (assq 'path attrs))))
+    path))
 
 (defun eclim-java-run--get-string-from-file (file-path)
   (with-temp-buffer
@@ -41,7 +72,7 @@
     (buffer-string)))
 
 (defun eclim-java-run--load-configurations (project)
-  (let* ((configurations-path (concat (eclim--debug-project-dir project) ".eclim"))
+  (let* ((configurations-path (concat (eclim-java-run--project-dir project) ".eclim"))
          (configurations (read (eclim-java-run--get-string-from-file configurations-path))))
     configurations))
 
@@ -65,6 +96,7 @@
                 (funcall vm-args-fn config)
                 (eclim-java-run--get-value 'main-class config)
                 (eclim-java-run--get-value 'program-args config)))))
+
 
 (defun eclim-java-run--run (config classpath project-dir)
   (let* ((name (eclim-java-run--get-value 'name config))
@@ -90,7 +122,7 @@
   (interactive (list (eclim-java-run--ask-which-configuration)))
   (let* ((configurations (eclim-java-run--load-configurations eclim-project-name))
          (configuration (eclim-java-run--configuration configuration-name configurations))
-         (project-dir (eclim--debug-project-dir eclim-project-name))
+         (project-dir (eclim-java-run--project-dir eclim-project-name))
          (classpath (eclim/java-classpath eclim-project-name)))
     (eclim-java-run--run configuration
                          classpath
