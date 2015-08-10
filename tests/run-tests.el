@@ -1,4 +1,4 @@
-
+(require 'eclim)
 (require 'eclim-java-run)
 
 (ert-deftest command-for-java-configuration ()

@@ -29,8 +29,7 @@
 ;; eclim-java-run.el -- java run configurations for eclim
 ;;
 
-(require 'eclim)
-(require 'eclim-project)
+(require' eclim-project)
 (require 'eclim-java)
 (require 'eclim-debug)
 
