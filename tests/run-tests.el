@@ -33,7 +33,7 @@
                  (main-class . "com.acme.Project")
                  (program-args . "arg1")
                  (vm-args . "-Dvm-args1=42")))
-         (buffer (eclim-java-run--run conf "/opt/lib.jar" "/tmp/")))
+         (buffer (eclim-java-run--run-java conf "/opt/lib.jar" "/tmp/")))
     (with-current-buffer buffer
       (should (string-equal default-directory "/tmp/"))
       (should (string-equal (buffer-name) "*Run*")))))
