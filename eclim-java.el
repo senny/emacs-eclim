@@ -166,7 +166,7 @@ declaration has been found. TYPE may be either 'class',
   (save-excursion
     (if (re-search-backward
          (concat (or type "\\(class\\|interface\\|enum\\)") "\\s-+\\([^<{\s-]+\\)") nil t)
-        (match-string 2)
+        (match-string-no-properties 2)
       "")))
 
 (defun eclim--java-current-class-name ()

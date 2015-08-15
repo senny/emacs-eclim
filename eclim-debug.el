@@ -91,11 +91,19 @@
       (add-hook 'comint-output-filter-functions
                 (lambda (txt) (eclim--debug-attach-when-ready txt project port))))))
 
+(defun eclim-debug/jdb (command)
+  (let ((buffer (current-buffer)))
+    (toggle-maximize-buffer)
+    (switch-to-buffer-other-window buffer t)
+    (jdb command)
+    (switch-to-buffer-other-window buffer t)))
+
 (defun eclim-debug-junit ()
   (interactive)
   (let ((project (eclim-project-name))
         (classes (eclim-package-and-class)))
-    (jdb (eclim--debug-jdb-run-command project "org.junit.runner.JUnitCore" classes))))
+    (eclim-debug/jdb
+     (eclim--debug-jdb-run-command project "org.junit.runner.JUnitCore" classes))))
 
 (defun eclim-debug-maven-test ()
   (interactive)
@@ -107,7 +115,7 @@
 
 (defun eclim-debug-attach (port project)
   (interactive (list (read-number "Port: " 5005) (eclim-project-name)))
-  (jdb (eclim--debug-jdb-attach-command project port)))
+  (eclim-debug/jdb (eclim--debug-jdb-attach-command project port)))
 
 (defun eclim-debug-test ()
   (interactive)
