@@ -108,7 +108,6 @@
                                            (eclim-java-run--debug-vm-args classpath sourcepath))))
     (with-temp-buffer
       (setq default-directory project-dir)
-      (message command)
       (jdb command))))
 
 (defun eclim-java-run--run-java (config classpath project-dir)
