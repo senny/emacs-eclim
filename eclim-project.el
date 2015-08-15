@@ -90,10 +90,6 @@
     (eclim--completing-read "Project: "
                             (mapcar (lambda (p) (assoc-default 'name p)) (eclim/project-list)))))
 
-(defun eclim--project-set-current ()
-  (ignore-errors
-    (setq eclim-project-name (eclim--project-current-line))))
-
 (defun eclim--project-buffer-refresh ()
   (eclim--project-clear-cache)
   (when (eq major-mode 'eclim-project-mode)
@@ -263,19 +259,19 @@
 
 (defun eclim-project-nature-add (nature)
   (interactive (list (eclim--project-nature-read)))
-  (message (eclim/project-nature-add eclim-project-name nature)))
+  (message (eclim/project-nature-add (eclim--project-current-line) nature)))
 
 (defun eclim-project-nature-remove (nature)
   (interactive (list (completing-read "Remove nature: "
                                       (append
-                                       (cdadr (aref (eclim/project-natures eclim-project-name) 0))
+                                       (cdadr (aref (eclim/project-natures (eclim--project-current-line)) 0))
                                        nil))))
-  (message (eclim/project-nature-remove eclim-project-name nature)))
+  (message (eclim/project-nature-remove (eclim--project-current-line) nature)))
 
 (defun eclim-project-natures ()
   (interactive)
   (message (with-output-to-string
-             (princ (cdadr (aref (eclim/project-natures eclim-project-name) 0))))))
+             (princ (cdadr (aref (eclim/project-natures (eclim--project-current-line)) 0))))))
 
 (defun eclim-project-dependencies (project)
   (cdr (assoc 'depends (eclim/project-info project))))
@@ -394,7 +390,6 @@
   (use-local-map eclim-project-mode-map)
   (cd "~") ;; setting a defualt directoy avoids some problems with tramp
   (eclim--project-buffer-refresh)
-  (add-hook 'post-command-hook 'eclim--project-set-current nil t)
   (beginning-of-buffer)
   (run-mode-hooks 'eclim-project-mode-hook))
 
