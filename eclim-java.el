@@ -603,7 +603,10 @@ much faster than running mvn test -Dtest=TestClass#method."
              "-f"
              ("-l" line)
              ("-o" offset)
-             ("-a" choice)))
+             ("-a" choice))
+            ;; Problem updates can be distracting, but here the user was
+            ;; actively trying to fix one.
+            (eclim--problems-update-maybe))
         (message "No automatic corrections found. Sorry")))))
 
 (defun eclim-java-show-documentation-for-current-element ()

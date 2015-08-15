@@ -544,6 +544,6 @@ the use of eclim to java and ant files."
 
 (defun eclim-modeline-string ()
   (when eclim-mode
-    (concat " Eclim " (eclim-problems-modeline-string))))
+    (concat " Eclim" (eclim-problems-modeline-string))))
 
 (provide 'eclim)
