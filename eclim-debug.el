@@ -34,6 +34,7 @@
 (require 'eclim-java)
 (require 'eclim-maven)
 (require 'eclim-ant)
+(require 'eclim-java-run)
 (require 'gud)
 (require 'dash)
 (require 's)
@@ -41,49 +42,20 @@
 (define-key eclim-mode-map (kbd "C-c C-e p t") 'eclim-debug-test)
 (define-key eclim-mode-map (kbd "C-c C-e p a") 'eclim-debug-attach)
 
+(defun eclim--debug-jdb-run-command (project main-class args)
+  (let ((config `((name . ,(concat "*Debug - " main-class "*"))
+                  (debug . t)
+                  (main-class . ,main-class)
+                  (program-args . ,args)
+                  (vm-args . ,(concat "-sourcepath" (eclim-java-run-sourcepath project)))))
+        (classpath (eclim/java-classpath project)))
+    (eclim-java-run--command config (eclim-java-run--java-vm-args classpath))))
+
 (defun eclim--debug-jdb-attach-command (project port)
-  (let ((sourcepath (eclim--debug-sourcepath project)))
+  (let ((sourcepath (eclim-java-run-sourcepath project)))
     (format "jdb -attach %s -sourcepath%s "
             port
             sourcepath)))
-
-(defun eclim--debug-jdb-run-command (project args)
-  (let ((sourcepath (eclim--debug-sourcepath project))
-        (classpath (eclim/java-classpath project)))
-    (concat (format "jdb -sourcepath%s -classpath%s "
-                    sourcepath
-                    classpath)
-            (s-join " " args))))
-
-(defun eclim--debug-sourcepath (project)
-  (let ((projects (-snoc (eclim-project-dependencies project) project)))
-    (s-join ":" (-mapcat 'eclim--debug-project-sourcepath projects))))
-
-(defun eclim--debug-project-dir (project)
-  (cdr (assoc 'path (eclim/project-info project))))
-
-(defun eclim--debug-project-sourcepath (project)
-  (eclim--debug-read-sourcepath
-   (concat (file-name-as-directory (eclim--debug-project-dir project))
-           ".classpath")))
-
-(defun eclim--debug-read-sourcepath (classpath-file)
-  (let* ((root (car (xml-parse-file classpath-file)))
-         (classpathentries (xml-get-children root 'classpathentry))
-         (srcs (-filter 'eclim--debug-kind-src? classpathentries))
-         (paths-relative (-map 'eclim--debug-get-path srcs))
-         (paths-absolute (--map (concat (file-name-directory classpath-file) it) paths-relative)))
-    paths-absolute))
-
-(defun eclim--debug-kind-src? (classpathentry)
-  (let* ((attrs (xml-node-attributes classpathentry))
-         (kind (cdr (assq 'kind attrs))))
-    (string-equal kind "src")))
-
-(defun eclim--debug-get-path (classpathentry)
-  (let* ((attrs (xml-node-attributes classpathentry))
-         (path (cdr (assq 'path attrs))))
-    path))
 
 (defun eclim--debug-attach-when-ready (txt project port)
   (when (s-contains? (concat "at address: " (number-to-string port)) txt)
@@ -107,7 +79,7 @@
   (eclim--debug-file-exists-in-project-root? "build.xml"))
 
 (defun eclim--debug-file-exists-in-project-root? (filename)
-  (let* ((project-dir (eclim--debug-project-dir eclim-project-name))
+  (let* ((project-dir (eclim-java-run--project-dir eclim-project-name))
          (file (concat project-dir filename)))
     (file-exists-p file)))
 
@@ -122,9 +94,8 @@
 (defun eclim-debug-junit ()
   (interactive)
   (let ((project eclim-project-name)
-        (classes (list "org.junit.runner.JUnitCore"
-                       (eclim-package-and-class))))
-    (jdb (eclim--debug-jdb-run-command project classes))))
+        (classes (eclim-package-and-class)))
+    (jdb (eclim--debug-jdb-run-command project "org.junit.runner.JUnitCore" classes))))
 
 (defun eclim-debug-maven-test ()
   (interactive)

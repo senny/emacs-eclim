@@ -303,8 +303,7 @@ has been found."
                      (eclim--project-current-file)
                      (eclim--byte-offset)
                      (eclim--current-encoding)))
-  (let ((top-node (eclim--java-insert-file-path-for-hierarchy-nodes
-                   (eclim/java-hierarchy project file offset encoding))))
+  (let ((top-node (eclim/java-hierarchy project file offset encoding)))
     (pop-to-buffer "*eclim: hierarchy*" t)
     (special-mode)
     (let ((buffer-read-only nil))
@@ -314,22 +313,15 @@ has been found."
        top-node
        0))))
 
-(defun eclim--java-insert-file-path-for-hierarchy-nodes (node)
-                                        ;Can't use *-find-type here because it will pop a buffer
-                                        ;that isn't part of the project which then breaks future
-                                        ;*-find-type calls and isn't what we want here anyway.
+(defun eclim--java-insert-file-path-for-hierarchy-node (node)
   (eclim/with-results hits ("java_search" ("-p" (cdr (assoc 'qualified node))) ("-t" "type") ("-x" "declarations") ("-s" "workspace"))
-    (add-to-list 'node `(file-path . ,(assoc-default 'message (elt hits 0))))
-    (let ((children (cdr (assoc 'children node))))
-      (loop for child across children do
-            (eclim--java-insert-file-path-for-hierarchy-nodes child)))
-    node))
+    (assoc-default 'filename (elt hits 0))))
 
 (defun eclim--java-insert-hierarchy-node (project node level)
   (let ((declaration (cdr (assoc 'name node)))
         (qualified-name (cdr (assoc 'qualified node))))
     (insert (format (concat "%-"(number-to-string (* level 2)) "s=> ") ""))
-    (lexical-let ((file-path (cdr (assoc 'file-path node))))
+    (lexical-let ((file-path (eclim--java-insert-file-path-for-hierarchy-node node)))
       (if file-path
           (insert-text-button declaration
                               'follow-link t
@@ -551,7 +543,7 @@ method."
              " -o " (number-to-string offset)
              " -e " encoding))
 
-(defun eclim--java-junit-project (project endcoding)
+(defun eclim--java-junit-project (project encoding)
      (concat eclim-executable
              " -command java_junit -p " project
              " -e " encoding))
