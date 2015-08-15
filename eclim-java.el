@@ -533,7 +533,7 @@ method."
   (interactive)
   (if (not (string= major-mode "java-mode"))
       (message "Sorry cannot run current buffer.")
-    (compile (concat eclim-executable " -command java -p "  eclim-project-name
+    (compile (concat eclim-executable " -command java -p "  (eclim-project-name)
                      " -c " (eclim-package-and-class)))))
 
 (defun eclim--java-junit-file (project file offset encoding)
@@ -591,7 +591,7 @@ much faster than running mvn test -Dtest=TestClass#method."
                  (choice (popup-menu* cmenu)))
           (eclim/with-results correction-info
             ("java_correct"
-             ("-p" eclim-project-name)
+             ("-p" (eclim-project-name))
              "-f"
              ("-l" line)
              ("-o" offset)
