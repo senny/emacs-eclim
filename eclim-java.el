@@ -188,19 +188,19 @@ has been found."
 (defun eclim--java-refactor (result)
   "Processes the resulst of a refactor command. RESULT is the
   results of invoking eclim/execute-command."
-  (if (stringp res) (error res))
-  (loop for (from to) in (mapcar (lambda (x) (list (assoc-default 'from x) (assoc-default 'to x))) res)
-        do (when (and from to)
-             (kill-buffer (find-buffer-visiting from))
-             (find-file to)))
-  (save-excursion
-    (loop for file in (mapcar (lambda (x) (assoc-default 'file x)) res)
-          do (when file
-               (let ((buf (get-file-buffer (file-name-nondirectory file))))
-                 (when buf
-                   (switch-to-buffer buf)
-                   (revert-buffer t t t))))))
-  (message "Done"))
+  (if (stringp res) (error "%s" res))
+      (loop for (from to) in (mapcar (lambda (x) (list (assoc-default 'from x) (assoc-default 'to x))) res)
+            do (when (and from to)
+                 (kill-buffer (find-buffer-visiting from))
+                 (find-file to)))
+      (save-excursion
+        (loop for file in (mapcar (lambda (x) (assoc-default 'file x)) res)
+              do (when file
+                   (let ((buf (get-file-buffer (file-name-nondirectory file))))
+                     (when buf
+                       (switch-to-buffer buf)
+                       (revert-buffer t t t))))))
+      (message "Done"))))
 
 (defun eclim/java-classpath (project)
   (eclim--check-project project)
@@ -496,57 +496,135 @@ sorts import statements. "
           (eclim-java-import-organize
            (mapcar (lambda (imports) (eclim--completing-read "Import: " (append imports '()))) res)))))))
 
-(defun format-type (type)
-  (cond ((null type) nil)
-        ((listp (first type))
-         (append (list "<") (rest (mapcan (lambda (type) (append (list ", ") (format-type type))) (first type))) (list ">")
-                 (format-type (rest type))))
-        (t (cons (let ((type-name (symbol-name (first type))))
-                   (when (string-match "\\(.*\\.\\)?\\(.*\\)" type-name)
-                     (match-string 2 type-name)))
-                 (format-type (rest type))))))
+
+(defun eclim--signature-has-keyword (sig java-keyword)
+  "Returns true if a method signature SIG has the keyword JAVA-KEYWORD."
+  ;; \_< is beginning of identifier E.g. don't match do_abstract".
+  (string-match-p (format "\\_<%s\\_>" java-keyword) sig))
+
+
+(defun eclim--colorize-signature (sig)
+  "Minimal colorization for a method signature that we offer for completion,
+so the essential bits stand out from the block of text that ido presents.
+Keep this minimal: more highlighting could easily make things worse not better."
+  (save-match-data
+    (mapc #'(lambda(re-g-f)             ;; expecting single match per RE
+              (when (string-match (elt re-g-f 0) sig)
+                (setq sig (replace-match
+                           (propertize (match-string (elt re-g-f 1) sig)
+                                       'face (elt re-g-f 2))
+                           nil nil sig (elt re-g-f 1)))))
+          '(("\\_<\\(class\\|interface\\)\\s +\\([[:alnum:]_]+\\_>\\)"
+             2 font-lock-type-face)
+            ("\\_<\\([[:alnum:]_]+\\)(" 1 font-lock-function-name-face)
+            ("all [[:digit:]]+ \\w+ methods" 0 font-lock-function-name-face))))
+  sig)
+
 
 (defun eclim-java-implement (&optional name)
-  "Lets the user select from a list of methods to
-implemnt/override, then inserts a skeleton for the chosen
-method."
+  "Implement or override methods from parents of the class, prompting the
+user to select with a completing read (even if one, as confirmation). If
+NAME was specified programmatically, filters for that name (strict,
+although only on method name not arguments) and if only one choice
+implement it without prompting. The actual change is done by Eclipse
+and will be close to point although not necessarily at it (e.g. if in a
+sub block)."
   (interactive)
-  (eclim/with-results response ("java_impl" "-p" "-f" "-o")
-    (cl-flet ((join (glue items)
-                    (cond ((null items) "")
-                          ((= 1 (length items)) (format "%s" (first items)))
-                          (t (reduce (lambda (a b) (format "%s%s%s" a glue b)) items))))
-              (format-type (type)
-                           (cond ((null type) nil)
-                                 ((listp (first type))
-                                  (append (list "<") (rest (mapcan (lambda (type) (append (list ", ") (format-type type))) (first type))) (list ">")
-                                          (format-type (rest type))))
-                                 (t (cons (let ((type-name (symbol-name (first type))))
-                                            (when (string-match "\\(.*\\.\\)?\\(.*\\)" type-name)
-                                              (let ((package (match-string 1 type-name))
-                                                    (class (match-string 2 type-name)))
-                                                (eclim-java-import (concat package class))
-                                                class)))
-                                          (format-type (rest type)))))))
-      (let* ((methods (remove-if-not (lambda (m) (or (null name)
-                                                     (string-match name m)))
-                                     (mapcar (lambda (x) (replace-regexp-in-string "[ \n\t]+" " " x))
-                                             (apply 'append
-                                                    (mapcar (lambda (x) (append (assoc-default 'methods x) nil))
-                                                            (assoc-default 'superTypes response))))))
-             (method (if (= 1 (length methods)) (first methods)
-                       (eclim--completing-read "Signature: " methods)))
-             (sig (eclim--java-parse-method-signature method))
-             (ret (assoc-default :return sig)))
-        (yas/expand-snippet (format "@Override\n%s %s(%s) {$0}"
-                                    (apply #'concat
-                                           (join " " (remove-if-not (lambda (m) (find m '(public protected private void))) (subseq ret 0 (1- (length ret)))))
-                                           " "
-                                           (format-type (remove-if (lambda (m) (find m '(abstract public protected private ))) ret)))
-                                    (assoc-default :name sig)
-                                    (join ", " (loop for arg in (remove-if #'null (assoc-default :arglist sig))
-                                                     for i from 0
-                                                     collect (format "%s ${arg%s}" (apply #'concat (format-type (assoc-default :type arg))) i)))))))))
+  (eclim/with-results list-response ("java_impl" "-p" "-f" "-o")
+    (let* ((supertypes (assoc-default 'superTypes list-response))
+           ;; "Choices" are lists of user-friendly method names. We want to
+           ;; present interfaces/abstract first, otherwise Object can barge in.
+           (choices nil) (choices-opt nil) (choices-last nil)
+           ;; Maps a choice to a (supertype method1 method2...), needed
+           ;; when we request eclim to implement that method.
+           (choice-data (make-hash-table :test 'equal)))
+      (loop
+       for super-entry across supertypes do
+       (let* ((package (assoc-default 'packageName super-entry))
+              (super-sig (assoc-default 'signature super-entry))
+              ;; Erase type arguments. This looks like "class List<String>".
+              (friendly-super (replace-regexp-in-string "<[^<]*>" "" super-sig))
+              (full-super (concat package "."
+                                  (replace-regexp-in-string "^\\w+ " ""
+                                                            friendly-super)))
+              (is-interface (eclim--signature-has-keyword
+                             super-sig "interface"))
+              (methods (assoc-default 'methods super-entry))
+              (required-methods nil))   ;; Eclim names here
+         (loop
+          for method across methods
+          ;; Skip if specified name doesn't match.
+          if (or (null name)
+                 (string-match-p (format "\\_<%s(" (regexp-quote name)) method))
+          do
+          ;; This regexp stuff is how vim (and thus eclim) does it. Nothing
+          ;; fancy. If it breaks, Google eclim/java/impl.vim for changes.
+          (let ((name-for-eclim
+                 ;; Remove keywords and return type. \_< begins identifier.
+                 (replace-regexp-in-string "^\\s *[^(]*\\(\\_<[[:alnum:]_]+(\\)"
+                                           "\\1"
+                  ;; Remove any and all type parameters.
+                  (replace-regexp-in-string "<[^<]*>" "" method)))
+                ;; For the user, we have very different requirements. I like
+                ;; knowing public and abstract, and the return type. I hate
+                ;; packages -- I'm already implementing this class so I know.
+                (friendly-name
+                 ;; Packages are non-trivial to find (think Map.Entry) but
+                 ;; if we stop at the first capitalized portion we're okay.
+                 (replace-regexp-in-string "\\_<[[:lower:]][[:alnum:]_]+\\."
+                                           "" method))
+                (is-required (or is-interface (eclim--signature-has-keyword
+                                               method "abstract"))))
+            (let ((choice (format "%s [%s]" friendly-name friendly-super))
+                  (data (list full-super name-for-eclim)))
+              ;; This is probably overkill but what if our package erasing
+              ;; resulted in duplicates? Use full name then. As in, really full.
+              (when (gethash choice choice-data)
+                (setq choice (format "%s [%s]" name-for-eclim full-super)))
+              (cond (is-required (push choice choices))
+                    ((member full-super '("java.lang.Object")) ; others like it?
+                     (push choice choices-last))
+                    (t (push choice choices-opt)))
+              (puthash choice (list full-super name-for-eclim) choice-data)
+              (when is-required (push name-for-eclim required-methods)))))
+         ;; Since we don't allow multiple selection like Eclipse / vim, let's
+         ;; provide for the cases that matter. Note that full non-abstract
+         ;; overrides are typically a use case for *delegates*.
+         (when (> (length required-methods) 1) ;; 1 method already there
+           (let ((choice
+                  (format "<all %d %s methods from %s>"
+                          (length required-methods)
+                          (cond (is-interface "missing") (name) (t "abstract"))
+                          friendly-super))
+                 (data (cons full-super (reverse required-methods))))
+             (push choice choices) ;; I'll not worry about conflict here.
+             (puthash choice data choice-data)))))
+      ;; Keep inital order, except for our tweaks.
+      (setq choices (append (nreverse choices) (reverse choices-opt)
+                            (reverse choices-last)))
+      (unless choices
+        (if name (error "No such unimplemented method: %s" name) ;most likely
+          (error "No candidates to implement"))) ;; Rare, given Object ancestor.
+
+      ;; Ask user even if only one choice, for confirmation. Otherwise it's
+      ;; possible to not even notice the change from a bad key combo. Unless
+      ;; we were called programmatically a for specific method.
+      (let ((choice
+             (if (and name (eq 1 (length choices)))
+                 (first choices)
+               (funcall eclim-interactive-completion-function
+                        "Implement: "
+                        (mapcar #'eclim--colorize-signature choices)
+                        nil t))))    ; require match
+        (setq choice (substring-no-properties choice)) ; uncolorize
+        (let* ((eclim-data (gethash choice choice-data))
+               (super (car eclim-data)) (methods (cdr eclim-data))
+               (methods-str (json-encode methods)))
+          (eclim/with-results impl-result ("java_impl" "-p" "-f" "-o"
+                                           ("-s" super) ("-m" methods-str))
+            ;; eclim should give us a smaller list if it did something. But
+            ;; it's probably not worth an error in case this changes.
+            (revert-buffer t t t)))))))
 
 (defun eclim-package-and-class ()
   (let ((package-name (eclim--java-current-package))
