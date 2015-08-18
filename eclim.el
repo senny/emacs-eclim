@@ -105,11 +105,9 @@ in the current workspace."
   :type '(choice (const :tag "Off" nil)
                  (const :tag "On" t)))
 
-(defvar eclim-project-name nil)
-(make-variable-buffer-local 'eclim-project-name)
+(defvar-local eclim--project-name nil)
 
-(defvar eclim--project-current-file nil)
-(make-variable-buffer-local 'eclim--project-current-file)
+(defvar-local eclim--project-current-file nil)
 
 (defvar eclim--project-natures-cache nil)
 (defvar eclim--projects-cache nil)
@@ -347,8 +345,8 @@ FILENAME is given, return that file's  project name instead."
                              (eclim/execute-command "project_by_resource" ("-f" file))))
     (if filename
         (get-project-name filename)
-      (or eclim-project-name
-          (and buffer-file-name (setq eclim-project-name (get-project-name buffer-file-name)))))))
+      (or eclim--project-name
+          (and buffer-file-name (setq eclim--project-name (get-project-name buffer-file-name)))))))
 
 (defun eclim--find-file (path-to-file)
   (if (not (string-match-p "!" path-to-file))

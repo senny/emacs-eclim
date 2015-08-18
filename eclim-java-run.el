@@ -89,6 +89,12 @@
             classpath " "
             (eclim-java-run--get-value 'vm-args config))))
 
+(defun eclim-java-run--debug-vm-args (classpath sourcepath)
+  (lambda (config)
+    (concat "-sourcepath"
+            sourcepath " "
+            (funcall (eclim-java-run--java-vm-args classpath) config))))
+
 (defun eclim-java-run--command (config vm-args-fn)
   (s-join " " (-flatten
                (list
@@ -97,8 +103,14 @@
                 (eclim-java-run--get-value 'main-class config)
                 (eclim-java-run--get-value 'program-args config)))))
 
+(defun eclim-java-run--run-jdb (config classpath sourcepath project-dir)
+  (let* ((command (eclim-java-run--command config
+                                           (eclim-java-run--debug-vm-args classpath sourcepath))))
+    (with-temp-buffer
+      (setq default-directory project-dir)
+      (eclim-debug/jdb command))))
 
-(defun eclim-java-run--run (config classpath project-dir)
+(defun eclim-java-run--run-java (config classpath project-dir)
   (let* ((name (eclim-java-run--get-value 'name config))
          (command (eclim-java-run--command config (eclim-java-run--java-vm-args classpath)))
          (new-buffer-name (concat "*" name "*")))
@@ -115,18 +127,24 @@
 (defun eclim-java-run--ask-which-configuration ()
   (completing-read "Which configuration do you want to run?"
                    (--map (cdr (assoc 'name it))
-                          (eclim-java-run--load-configurations eclim-project-name))
+                          (eclim-java-run--load-configurations (eclim-project-name)))
                    nil t))
 
 (defun eclim-java-run-run (configuration-name)
   (interactive (list (eclim-java-run--ask-which-configuration)))
-  (let* ((configurations (eclim-java-run--load-configurations eclim-project-name))
+  (let* ((configurations (eclim-java-run--load-configurations (eclim-project-name)))
          (configuration (eclim-java-run--configuration configuration-name configurations))
-         (project-dir (eclim-java-run--project-dir eclim-project-name))
-         (classpath (eclim/java-classpath eclim-project-name)))
-    (eclim-java-run--run configuration
-                         classpath
-                         project-dir)))
+         (project-dir (eclim-java-run--project-dir (eclim-project-name)))
+         (classpath (eclim/java-classpath (eclim-project-name)))
+         (debug? (eclim-java-run--jdb? configuration)))
+    (if debug?
+        (eclim-java-run--run-jdb configuration
+                                 classpath
+                                 (eclim-java-run-sourcepath (eclim-project-name))
+                                 project-dir)
+      (eclim-java-run--run-java configuration
+                                classpath
+                                project-dir))))
 
 (provide 'eclim-java-run)
 ;;; eclim-java-run.el ends here

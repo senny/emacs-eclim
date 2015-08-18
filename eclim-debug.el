@@ -79,23 +79,31 @@
   (eclim--debug-file-exists-in-project-root? "build.xml"))
 
 (defun eclim--debug-file-exists-in-project-root? (filename)
-  (let* ((project-dir (eclim-java-run--project-dir eclim-project-name))
+  (let* ((project-dir (eclim-java-run--project-dir (eclim-project-name)))
          (file (concat project-dir filename)))
     (file-exists-p file)))
 
 (defun eclim--debug-run-process-and-attach (command port)
-  (let ((project eclim-project-name))
+  (let ((project (eclim-project-name)))
     (with-current-buffer (compile command t)
       (setq-local comint-prompt-read-only t)
       (make-local-variable 'comint-output-filter-functions)
       (add-hook 'comint-output-filter-functions
                 (lambda (txt) (eclim--debug-attach-when-ready txt project port))))))
 
+(defun eclim-debug/jdb (command)
+  (let ((buffer (current-buffer)))
+    (toggle-maximize-buffer)
+    (switch-to-buffer-other-window buffer t)
+    (jdb command)
+    (switch-to-buffer-other-window buffer t)))
+
 (defun eclim-debug-junit ()
   (interactive)
-  (let ((project eclim-project-name)
+  (let ((project (eclim-project-name))
         (classes (eclim-package-and-class)))
-    (jdb (eclim--debug-jdb-run-command project "org.junit.runner.JUnitCore" classes))))
+    (eclim-debug/jdb
+     (eclim--debug-jdb-run-command project "org.junit.runner.JUnitCore" classes))))
 
 (defun eclim-debug-maven-test ()
   (interactive)
@@ -106,8 +114,8 @@
   (eclim--debug-run-process-and-attach (eclim--debug-ant-run) 5005))
 
 (defun eclim-debug-attach (port project)
-  (interactive (list (read-number "Port: " 5005) eclim-project-name))
-  (jdb (eclim--debug-jdb-attach-command project port)))
+  (interactive (list (read-number "Port: " 5005) (eclim-project-name)))
+  (eclim-debug/jdb (eclim--debug-jdb-attach-command project port)))
 
 (defun eclim-debug-test ()
   (interactive)
