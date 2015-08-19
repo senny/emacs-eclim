@@ -174,21 +174,6 @@ declaration has been found. TYPE may be either 'class',
 has been found."
   (eclim--java-current-type-name "\\(class\\)"))
 
-(defun eclim/java-classpath (project)
-  (eclim--check-project project)
-  (eclim--call-process "java_classpath" "-p" project))
-
-(defun eclim/java-classpath-variables ()
-  ;; TODO: fix trailing whitespaces
-  (mapcar (lambda (line)
-            (split-string line "-")) (eclim--call-process "java_classpath_variables")))
-
-(defun eclim/java-classpath-variable-create (name path)
-  (eclim--call-process "java_classpath_variable_create" "-n" name "-p" path))
-
-(defun eclim/java-classpath-variable-delete (name)
-  (eclim--call-process "java_classpath_variable_create" "-n" name))
-
 (defun eclim-java-doc-comment ()
   "Inserts or updates a javadoc comment for the element at point."
   (interactive)

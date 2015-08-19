@@ -541,6 +541,7 @@ the use of eclim to java and ant files."
 (require 'eclim-problems)
 (require 'eclim-debug)
 (require 'eclim-java-run)
+(require 'eclim-classpath)
 
 (defun eclim-modeline-string ()
   (when eclim-mode
