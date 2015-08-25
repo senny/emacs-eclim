@@ -33,6 +33,17 @@
   :type '(choice (const :tag "Off" nil)
                  (const :tag "On" t)))
 
+(defcustom eclim-problems-suppress-highlights nil
+  "When set, error and warning highlights are disabled in source files,
+although counts are printed and they remain navigable. This is
+designed to be made buffer-local (by user, not eclim) most of the
+time, but it also works globally."
+  :group 'eclim-problems
+  :type '(choice (const :tag "Allow" nil)
+                  (const :tag "Suppress" t)
+                  (sexp :tag "Suppress when"
+                        :value (lambda() 'for-example buffer-read-only))))
+
 (defface eclim-problems-highlight-error-face
   '((t (:underline "red")))
   "Face used for highlighting errors in code"
@@ -152,17 +163,27 @@
         (overlay-put highlight 'category 'eclim-problem)
         (overlay-put highlight 'kbd-help (assoc-default 'message problem))))))
 
-(defun eclim--problems-clear-highlights ()
+
+(defun eclim-problems-clear-highlights ()
+  "Clears all eclim problem highlights in the current buffer. This is temporary
+until the next refresh."
+  (interactive)
   (remove-overlays nil nil 'category 'eclim-problem))
 
+
 (defun eclim-problems-highlight ()
+  "Inserts the currently active problem highlights in the current buffer,
+if `eclim-problems-suppress-highlights' allows it."
   (interactive)
   (when (eclim--accepted-p (buffer-file-name))
     (save-restriction
       (widen)
-      (eclim--problems-clear-highlights)
-      (loop for problem across (remove-if-not (lambda (p) (string= (assoc-default 'filename p) (buffer-file-name))) eclim--problems-list)
-            do (eclim--problems-insert-highlight problem)))))
+      (eclim-problems-clear-highlights)
+      (unless (if (functionp eclim-problems-suppress-highlights)
+                  (funcall eclim-problems-suppress-highlights)
+                eclim-problems-suppress-highlights)
+        (loop for problem across (remove-if-not (lambda (p) (string= (assoc-default 'filename p) (buffer-file-name))) eclim--problems-list)
+              do (eclim--problems-insert-highlight problem))))))
 
 (defadvice find-file (after eclim-problems-highlight-on-find-file activate)
   (eclim-problems-highlight))
