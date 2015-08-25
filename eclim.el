@@ -435,6 +435,26 @@ FILENAME is given, return that file's  project name instead."
                                                 hits))
                                  t)))
 
+(defun eclim-find-file-path-strict (filename &optional project directory)
+  "Locates a file (basename) in Eclipse. If PROJECT is a string,
+searches only that project; if nil, the project of the current
+file. If t, searches all Eclipse projects. If DIRECTORY is
+specified, returns only files that are under that
+directory. Returns a list of matching absolute paths; possibly
+empty. This can be used to help resolve exception stack traces,
+for example."
+  (let* ((results (apply #'eclim--call-process "locate_file"
+                        "-p" (regexp-quote filename)
+                         (if (eq project t)
+                             (list "-s" "workspace")
+                           (list "-s" "project" "-n"
+                                 (or project (eclim-project-name))))))
+         (paths (mapcar #'(lambda(hit) (assoc-default 'path hit)) results)))
+    (if directory
+        (remove-if-not #'(lambda (f) (file-in-directory-p f directory)) paths)
+      paths)))
+
+
 ;;;###autoload
 (defun eclim/workspace-dir ()
   (eclim--call-process "workspace_dir"))
@@ -474,7 +494,7 @@ FILENAME is given, return that file's  project name instead."
   "List of regular expressions that are matched against filenames
 to decide if eclim should be automatically started on a
 particular file. By default all files part of a project managed
-by eclim can be accepted (see `eclim--accepted-filename' for more
+by eclim can be accepted (see `eclim--accepted-filename-p' for more
 information). It is nevertheless possible to restrict eclim to
 some files by changing this variable. For example, a value
 of (\"\\\\.java\\\\'\" \"build\\\\.xml\\\\'\") can be used to restrict

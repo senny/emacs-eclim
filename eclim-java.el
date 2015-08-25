@@ -142,9 +142,9 @@ in eclim when appropriate."
             (replace-regexp-in-string
              "[<>(),?]"
              (lambda (m) (assoc-default m '(("<" . "((") (">" . "))")
-                                            ("(" . "((") (")" ."))")
-                                            ("," . ")(")
-                                            ("?" . "\\\\?"))))
+                                       ("(" . "((") (")" ."))")
+                                       ("," . ")(")
+                                       ("?" . "\\\\?"))))
              str)))))
 
 (defun eclim--java-parse-method-signature (signature)
@@ -189,18 +189,18 @@ has been found."
   "Processes the resulst of a refactor command. RESULT is the
   results of invoking eclim/execute-command."
   (if (stringp res) (error "%s" res))
-      (loop for (from to) in (mapcar (lambda (x) (list (assoc-default 'from x) (assoc-default 'to x))) res)
-            do (when (and from to)
-                 (kill-buffer (find-buffer-visiting from))
-                 (find-file to)))
-      (save-excursion
-        (loop for file in (mapcar (lambda (x) (assoc-default 'file x)) res)
-              do (when file
-                   (let ((buf (get-file-buffer (file-name-nondirectory file))))
-                     (when buf
-                       (switch-to-buffer buf)
-                       (revert-buffer t t t))))))
-      (message "Done"))))
+  (loop for (from to) in (mapcar (lambda (x) (list (assoc-default 'from x) (assoc-default 'to x))) res)
+        do (when (and from to)
+             (kill-buffer (find-buffer-visiting from))
+             (find-file to)))
+  (save-excursion
+    (loop for file in (mapcar (lambda (x) (assoc-default 'file x)) res)
+          do (when file
+               (let ((buf (get-file-buffer (file-name-nondirectory file))))
+                 (when buf
+                   (switch-to-buffer buf)
+                   (revert-buffer t t t))))))
+  (message "Done"))
 
 (defun eclim/java-classpath (project)
   (eclim--check-project project)
@@ -563,8 +563,8 @@ sub block)."
                  ;; Remove keywords and return type. \_< begins identifier.
                  (replace-regexp-in-string "^\\s *[^(]*\\(\\_<[[:alnum:]_]+(\\)"
                                            "\\1"
-                  ;; Remove any and all type parameters.
-                  (replace-regexp-in-string "<[^<]*>" "" method)))
+                                           ;; Remove any and all type parameters.
+                                           (replace-regexp-in-string "<[^<]*>" "" method)))
                 ;; For the user, we have very different requirements. I like
                 ;; knowing public and abstract, and the return type. I hate
                 ;; packages -- I'm already implementing this class so I know.
@@ -641,16 +641,16 @@ sub block)."
                      " -c " (eclim-package-and-class)))))
 
 (defun eclim--java-junit-file (project file offset encoding)
-     (concat eclim-executable
-             " -command java_junit -p " project
-             " -f " file
-             " -o " (number-to-string offset)
-             " -e " encoding))
+  (concat eclim-executable
+          " -command java_junit -p " project
+          " -f " file
+          " -o " (number-to-string offset)
+          " -e " encoding))
 
 (defun eclim--java-junit-project (project encoding)
-     (concat eclim-executable
-             " -command java_junit -p " project
-             " -e " encoding))
+  (concat eclim-executable
+          " -command java_junit -p " project
+          " -e " encoding))
 
 (defun eclim--buffer-contains-substring (string)
   (save-excursion
