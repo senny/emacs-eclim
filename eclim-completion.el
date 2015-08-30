@@ -142,15 +142,24 @@ buffer."
 
 (defun eclim--completion-yasnippet-convert (completion)
   "Convert a completion string to a yasnippet template"
-  (apply #' concat
-            (loop for c across (replace-regexp-in-string ", " "," completion)
-                  collect (case c
-                            (40 "(${")
-                            (60 "<${")
-                            (44 "}, ${")
-                            (41 "})")
-                            (62 "}>")
-                            (t (char-to-string c))))))
+  (let ((level 0))
+    (replace-regexp-in-string
+     ;; ORs: 1) avoid empty case; 2) eat spaces sometimes; 3) not when closing.
+     "()\\|[(<,] *\\|[)>]"
+     #'(lambda (m)
+         (let ((c (string-to-char m)) (repl m))
+           (unless (string= m "()")
+             (when (memq c '(?\( ?<)) (incf level))
+             (when (<= level 1) (setq repl (case c
+                                             (?\( "(${")
+                                             (?< "<${")
+                                             (?, "}, ${")
+                                             (?\) "})")
+                                             (?> "}>")
+                                             (t (error "RE/case mismatch")))))
+             (when (memq c '(?\) ?>)) (decf level)))
+           repl))
+     completion)))
 
 (defvar eclim--completion-start)
 
