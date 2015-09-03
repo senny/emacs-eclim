@@ -529,10 +529,12 @@ the use of eclim to java and ant files."
 ;;;###autoload
 (define-globalized-minor-mode global-eclim-mode eclim-mode
   (lambda ()
-    (if (and buffer-file-name
-             (eclim--accepted-p buffer-file-name)
-             (eclim--project-dir))
-        (eclim-mode 1))))
+    ;; Errors here can REALLY MESS UP AN EMACS SESSION. Can't emphasize enough.
+    (ignore-errors
+      (if (and buffer-file-name
+               (eclim--accepted-p buffer-file-name)
+               (eclim--project-dir))
+          (eclim-mode 1)))))
 
 (require 'eclim-project)
 (require 'eclim-java)
