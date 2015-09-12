@@ -221,12 +221,13 @@ buffer."
         (backward-char)))))
 
 (defun eclim--completion-action (beg end)
-  (case major-mode
-    ('java-mode (eclim--completion-action-java beg end))
-    ('groovy-mode (eclim--completion-action-java beg end))
-    ((c-mode c++-mode) (eclim--completion-action-java beg end))
-    ('nxml-mode (eclim--completion-action-xml beg end))
-    (t (eclim--completion-action-default))))
+  (let ((eclim--is-completing t)) ;; an import should not refresh problems
+    (case major-mode
+      ('java-mode (eclim--completion-action-java beg end))
+      ('groovy-mode (eclim--completion-action-java beg end))
+      ((c-mode c++-mode) (eclim--completion-action-java beg end))
+      ('nxml-mode (eclim--completion-action-xml beg end))
+      (t (eclim--completion-action-default)))))
 
 (defun eclim--render-doc (str)
   "Performs rudimentary rendering of HTML elements in
