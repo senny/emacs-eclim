@@ -474,27 +474,29 @@ undo history."
                              (delete-blank-lines)
                              (insert "\n\n\n")
                              (forward-line -2)))))
-    (save-excursion
-      (clear-visited-file-modtime)
-      (cut-imports)
-      (widen)
-      (insert
-       (let ((fname (buffer-file-name)))
-         (with-temp-buffer
-           (insert-file-contents fname)
-           (cut-imports))))
-      (not-modified)
-      (set-visited-file-modtime))))
+    (let* ((fname (buffer-file-name))
+           (new-imports (with-temp-buffer
+                          (insert-file-contents fname)
+                          (cut-imports))))
+      (save-excursion
+        (clear-visited-file-modtime)
+        (cut-imports)
+        (widen)
+        (insert new-imports)
+        (not-modified)
+        (set-visited-file-modtime)))))
 
 (defun eclim-java-import (type)
   "Adds an import statement for the given type, if one does not
 exist already."
-  (save-excursion
-    (goto-char (point-min))
+  (unless (save-excursion
+            (goto-char (point-min))
+            (beginning-of-buffer)
+            (re-search-forward (format "^import %s;" type) nil t))
     (let ((revert-buffer-function 'eclim-soft-revert-imports))
-      (when (not (re-search-forward (format "^import %s;" type) nil t))
-        (eclim/execute-command "java_import" "-p" "-f" "-o" "-e" ("-t" type))
-        (eclim--problems-update-maybe)))))
+      (eclim/execute-command "java_import" "-p" "-f" "-o" "-e" ("-t" type))
+      (eclim--problems-update-maybe)
+      (message "Imported %s" type))))
 
 (defun eclim-java-import-organize (&optional types)
   "Checks the current file for missing imports, removes unused imports and
