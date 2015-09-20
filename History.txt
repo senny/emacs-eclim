@@ -1,5 +1,9 @@
 == In Git
 
+=== Bugfixes
+ *  fixed a problem when using the sub-/string "package" before an
+ optional java package is stated
+
 == 0.4
 
 === New features
