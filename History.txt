@@ -4,6 +4,8 @@
 
 === New features
  * company mode completion can be case insensitive
+ * added eclim-run-configuartion which runs a run configuration in the
+   compilation buffer.
 
 == 0.3
 
