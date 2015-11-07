@@ -4,6 +4,7 @@
 
 === New features
  * company mode completion can be case insensitive
+ * start eclimd with a given .eclimrc file
 
 == 0.3
 

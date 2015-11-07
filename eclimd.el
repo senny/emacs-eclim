@@ -131,6 +131,22 @@ It returns the port it is listening on"
         (when eclimd-wait-for-process
           (wait-eclimd-start))))))
 
+(defun start-eclimd-rc (eclimd-rc-file)
+  (interactive (list (read-file-name "Eclimdrc file: " "~/" nil t)))
+  (let ((eclimd-prog (eclimd--executable-path)))
+    (if (not eclimd-prog)
+        (message "Cannot start eclimd: check eclimd-executable variable.")
+      (if (eclimd--running-p)
+          (message "Cannot start eclimd: eclimd is already running.")
+        (message (concat "Starting eclimd with rc file: " eclimd-rc-file "..."))
+        (setq eclimd-process-buffer
+              (make-comint eclimd-process-buffer-name
+                           eclimd-prog
+                           eclimd-rc-file))
+        (setq eclimd-process (get-buffer-process eclimd-process-buffer))
+        (when eclimd-wait-for-process
+          (wait-eclimd-start))))))
+
 (defun stop-eclimd ()
   (interactive)
   (when eclimd-process
