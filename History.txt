@@ -4,6 +4,8 @@
 
 === New features
  * company mode completion can be case insensitive
+ * added eclim-java-generate-getter which generates a getter method
+ for the symbol at point.
 
 == 0.3
 
