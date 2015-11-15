@@ -226,11 +226,11 @@ has been found."
 (defun eclim-run-java-doc ()
   "Run Javadoc on current or all projects."
   (interactive)
-  (let ((project-list (mapcar 'third (eclim/project-list))))
+  (let ((proj-list (eclim/project-list)))
     (if (y-or-n-p "Run Javadoc for all projects?")
-        (dolist (project project-list)
-          (eclim/execute-command "javadoc" ("-p" project)))
-      (eclim/execute-command "javadoc" "-p"))
+        (dotimes (i (length proj-list))
+            (eclim--call-process-no-parse "javadoc" "-p" (rest (assq 'name (elt proj-list i)))))
+      (eclim--call-process-no-parse "javadoc" "-p"))
     (message "Javadoc creation finished.")))
 
 (defun eclim-java-format ()

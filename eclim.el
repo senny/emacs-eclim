@@ -177,13 +177,17 @@ where <encoding> is the corresponding java name for this encoding." e e)))
               (error (match-string 1 result)))
              (t (error result)))))))
 
+(defun eclim--call-process-no-parse (&rest args)
+  "Calls eclim with the supplied arguments but does not attempt to parse the result. "
+  (let ((cmd (eclim--make-command args)))
+    (when eclim-print-debug-messages (message "Executing: %s" cmd))
+    (shell-command-to-string cmd)))
+
 (defun eclim--call-process (&rest args)
   "Calls eclim with the supplied arguments. Consider using
 `eclim/execute-command' instead, as it has argument expansion,
 error checking, and some other niceties.."
-  (let ((cmd (eclim--make-command args)))
-    (when eclim-print-debug-messages (message "Executing: %s" cmd))
-    (eclim--parse-result (shell-command-to-string cmd))))
+  (eclim--parse-result (apply 'eclim--call-process-no-parse args)))
 
 (defvar eclim--currently-running-async-calls nil)
 
