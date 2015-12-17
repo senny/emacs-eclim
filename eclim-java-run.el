@@ -149,16 +149,13 @@
 (defun eclim-run-configuartion (configuration-name)
       "Runs the configuration given in CONFIGURATION-NAME in the compilation buffer."
       (interactive (list (eclim-java-run--ask-which-configuration)))
-      (let* ((current-directory default-directory)
-             (configurations (eclim-java-run--load-configurations (eclim-project-name)))
+      (let* ((configurations (eclim-java-run--load-configurations (eclim-project-name)))
              (configuration (eclim-java-run--configuration configuration-name configurations))
              (project-dir (eclim-java-run--project-dir (eclim-project-name)))
              (classpath (eclim/java-classpath (eclim-project-name)))
+             (default-directory project-dir)
              (command (eclim-java-run--command configuration (eclim-java-run--java-vm-args classpath))))
-        (setq default-directory project-dir)
-        (compile command)
-        (setq default-directory current-directory)
-        ))
+        (compile command)))
 
 (provide 'eclim-java-run)
 ;;; eclim-java-run.el ends here
