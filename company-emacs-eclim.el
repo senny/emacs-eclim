@@ -41,6 +41,7 @@
   :type '(choice (const :tag "Yes" t)
                  (const :tag "No" nil)))
 
+;;;###autoload
 (defun company-emacs-eclim-setup ()
   "Convenience function that adds company-emacs-eclim to the list
   of available company backends."
@@ -93,6 +94,7 @@
     (when (and str (string-match "(" str))
       (substring str (match-beginning 0)))))
 
+;;;###autoload
 (defun company-emacs-eclim (command &optional arg &rest ignored)
   "`company-mode' back-end for Eclim completion"
   (interactive (list 'interactive))
