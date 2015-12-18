@@ -34,6 +34,7 @@
 (require 'eclim-completion)
 (require 'eclim-java)
 (require 'company)
+(require 'cl-lib)
 
 (defcustom company-emacs-eclim-ignore-case t
   "If t, case is ignored in completion matches."
@@ -47,8 +48,8 @@
   of available company backends."
   (setq company-backends
         (cons 'company-emacs-eclim
-              (remove-if (lambda (b) (find b '(company-nxml company-eclim)))
-                         company-backends))))
+              (cl-remove-if (lambda (b) (cl-find b '(company-nxml company-eclim)))
+                            company-backends))))
 
 (defun company-emacs-eclim--before-prefix-in-buffer (prefix)
   "Search for the text before prefix that may be included as part of completions"
@@ -86,8 +87,8 @@
        ;; Company says backend is responsible for filtering prefix case.
        (if company-emacs-eclim-ignore-case
            (eclim--completion-candidates)
-         (remove-if-not #'(lambda(str) (string-prefix-p prefix str))
-                        (eclim--completion-candidates)))))))
+         (cl-remove-if-not #'(lambda(str) (string-prefix-p prefix str))
+                           (eclim--completion-candidates)))))))
 
 (defun company-emacs-eclim--annotation (candidate)
   (let ((str (get-text-property 0 'eclim-meta candidate)))
@@ -98,7 +99,7 @@
 (defun company-emacs-eclim (command &optional arg &rest ignored)
   "`company-mode' back-end for Eclim completion"
   (interactive (list 'interactive))
-  (case command
+  (cl-case command
     (interactive (company-begin-backend 'company-emacs-eclim))
     (prefix (let ((start (and eclim-mode
                               (eclim--accepted-p (buffer-file-name))
