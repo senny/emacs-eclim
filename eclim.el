@@ -209,13 +209,13 @@ strings and will be called on completion."
                               (kill-buffer buf)))))
             (set-process-sentinel proc sentinel)))))))
 
-(setq eclim--default-args
-      '(("-n" . (eclim-project-name))
-        ("-p" . (or (eclim-project-name) (error "Could not find eclipse project for %s" (buffer-name (current-buffer)))))
-        ("-e" . (eclim--current-encoding))
-        ("-f" . (eclim--project-current-file))
-        ("-o" . (eclim--byte-offset))
-        ("-s" . "project")))
+(defvar eclim--default-args
+  '(("-n" . (eclim-project-name))
+    ("-p" . (or (eclim-project-name) (error "Could not find eclipse project for %s" (buffer-name (current-buffer)))))
+    ("-e" . (eclim--current-encoding))
+    ("-f" . (eclim--project-current-file))
+    ("-o" . (eclim--byte-offset))
+    ("-s" . "project")))
 
 (defun eclim--args-contains (args flags)
   "Check if an (unexpanded) ARGS list contains any of the

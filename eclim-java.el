@@ -104,6 +104,7 @@ Java documentation under Android docs, so don't forget to set
                                       "references"))
 
 (defvar eclim--is-completing nil)
+(defvar eclim-java-show-documentation-history nil)
 
 (defun eclim/groovy-src-update (&optional save-others)
   "If `eclim-auto-save' is non-nil, save the current java
