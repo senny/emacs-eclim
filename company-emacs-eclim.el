@@ -1,4 +1,4 @@
-;; company-emacs-eclim.el --- an interface to the Eclipse IDE.
+;;; company-emacs-eclim.el --- an interface to the Eclipse IDE.
 ;;
 ;; Copyright (C) 2009-2012   Fredrik Appelberg
 ;; Copyright (C) 2013-2014   Dmitry Gutov
@@ -16,7 +16,7 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;
-;;; Description
+;;; Commentary:
 ;;
 ;; company-emacs-eclim.el -- company-mode backend that replaces company-eclim
 ;;
@@ -26,12 +26,15 @@
 ;;
 ;; Minimum company-mode version required: 0.7.
 
+;;; Code:
+
 ;;* Eclim Company
 
 (require 'eclim)
 (require 'eclim-completion)
 (require 'eclim-java)
 (require 'company)
+(require 'cl-lib)
 
 (defcustom company-emacs-eclim-ignore-case t
   "If t, case is ignored in completion matches."
@@ -39,13 +42,14 @@
   :type '(choice (const :tag "Yes" t)
                  (const :tag "No" nil)))
 
+;;;###autoload
 (defun company-emacs-eclim-setup ()
   "Convenience function that adds company-emacs-eclim to the list
   of available company backends."
   (setq company-backends
         (cons 'company-emacs-eclim
-              (remove-if (lambda (b) (find b '(company-nxml company-eclim)))
-                         company-backends))))
+              (cl-remove-if (lambda (b) (cl-find b '(company-nxml company-eclim)))
+                            company-backends))))
 
 (defun company-emacs-eclim--before-prefix-in-buffer (prefix)
   "Search for the text before prefix that may be included as part of completions"
@@ -83,18 +87,19 @@
        ;; Company says backend is responsible for filtering prefix case.
        (if company-emacs-eclim-ignore-case
            (eclim--completion-candidates)
-         (remove-if-not #'(lambda(str) (string-prefix-p prefix str))
-                        (eclim--completion-candidates)))))))
+         (cl-remove-if-not #'(lambda(str) (string-prefix-p prefix str))
+                           (eclim--completion-candidates)))))))
 
 (defun company-emacs-eclim--annotation (candidate)
   (let ((str (get-text-property 0 'eclim-meta candidate)))
     (when (and str (string-match "(" str))
       (substring str (match-beginning 0)))))
 
+;;;###autoload
 (defun company-emacs-eclim (command &optional arg &rest ignored)
   "`company-mode' back-end for Eclim completion"
   (interactive (list 'interactive))
-  (case command
+  (cl-case command
     (interactive (company-begin-backend 'company-emacs-eclim))
     (prefix (let ((start (and eclim-mode
                               (eclim--accepted-p (buffer-file-name))
@@ -119,3 +124,4 @@
     (eclim--completion-action beg end)))
 
 (provide 'company-emacs-eclim)
+;;; company-emacs-eclim.el ends here
