@@ -267,7 +267,7 @@ it asynchronously."
                    (length (remove-if-not (lambda (p) (eq t (assoc-default 'warning p))) problems)))))))
 
 (defun eclim--problems-cleanup-filename (filename)
-  (let ((x (file-name-nondirectory (assoc-default 'filename problem))))
+  (let ((x (file-name-nondirectory filename)))
     (if eclim-problems-show-file-extension x (file-name-sans-extension x))))
 
 (defun eclim--problems-filecol-size ()
@@ -503,7 +503,7 @@ is convenient as it lets the user navigate between errors using
             (compilation-mode)
             ;; The above killed local variables, so recover our lexical-lets
             (setq default-directory project-directory)
-            (setq eclim-project-name project-name)
+            (setq eclim--project-name project-name)
             ;; Remap the very dangerous "g" command :)  A make -k in some of
             ;; my projects would throw Eclipse off-balance by cleaning .classes.
             ;; May look funky, but it's safe.
