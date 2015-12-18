@@ -188,13 +188,13 @@ has been found."
 (defun eclim--java-refactor (result)
   "Processes the resulst of a refactor command. RESULT is the
   results of invoking eclim/execute-command."
-  (if (stringp res) (error "%s" res))
-  (loop for (from to) in (mapcar (lambda (x) (list (assoc-default 'from x) (assoc-default 'to x))) res)
+  (if (stringp result) (error "%s" result))
+  (loop for (from to) in (mapcar (lambda (x) (list (assoc-default 'from x) (assoc-default 'to x))) result)
         do (when (and from to)
              (kill-buffer (find-buffer-visiting from))
              (find-file to)))
   (save-excursion
-    (loop for file in (mapcar (lambda (x) (assoc-default 'file x)) res)
+    (loop for file in (mapcar (lambda (x) (assoc-default 'file x)) result)
           do (when file
                (let ((buf (get-file-buffer (file-name-nondirectory file))))
                  (when buf
