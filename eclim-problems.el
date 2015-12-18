@@ -503,7 +503,7 @@ is convenient as it lets the user navigate between errors using
             (compilation-mode)
             ;; The above killed local variables, so recover our lexical-lets
             (setq default-directory project-directory)
-            (setq eclim-project-name project-name)
+            (setq eclim--project-name project-name)
             ;; Remap the very dangerous "g" command :)  A make -k in some of
             ;; my projects would throw Eclipse off-balance by cleaning .classes.
             ;; May look funky, but it's safe.
