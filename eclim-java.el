@@ -254,6 +254,14 @@ has been found."
                      (eclim--current-encoding)))
   (eclim--java-generate-bean-properties project file offset encoding "getter"))
 
+(defun eclim-java-generate-setter (project file offset encoding)
+  "Generates a setter method for the symbol at point."
+  (interactive (list (eclim-project-name)
+                     (eclim--project-current-file)
+                     (eclim--byte-offset)
+                     (eclim--current-encoding)))
+  (eclim--java-generate-bean-properties project file offset encoding "setter"))
+
 (defun eclim-java-constructor ()
   (interactive)
   (eclim/execute-command "java_constructor" "-p" "-f" "-o"))
