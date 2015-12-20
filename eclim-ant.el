@@ -89,7 +89,7 @@ buffer. The results are displayed in a dedicated compilation buffer."
     (dolist (line (eclim/ant-validate project file))
       (insert (eclim--convert-find-result-to-string line))
       (newline)))
-  (beginning-of-buffer)
+  (goto-char (point-min))
   (compilation-mode))
 
 (defun eclim-ant-run (target)

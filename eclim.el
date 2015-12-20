@@ -143,14 +143,15 @@ operation, and the rest are flags/values to be passed on to
 eclimd."
   (when (not eclim-executable)
     (error "Eclim installation not found. Please set eclim-executable."))
-  (reduce (lambda (a b) (format "%s %s" a b))
+  (cl-reduce (lambda (a b) (format "%s %s" a b))
           (append (list eclim-executable "-command" (first args))
                   (loop for a = (rest args) then (rest (rest a))
                         for arg = (first a)
                         for val = (second a)
                         while arg append (if val (list arg (shell-quote-argument val)) (list arg))))))
 
-(defun eclim--parse-result (result)
+(defun ecl
+    im--parse-result (result)
   "Parses the result of an eclim operation, raising an error if
 the result is not valid JSON."
   (if (string-match (rx string-start (zero-or-more (any " " "\n" "\t")) string-end) result)
@@ -193,7 +194,7 @@ asynchronously. CALLBACK is a function that accepts a list of
 strings and will be called on completion."
   (lexical-let ((handler callback)
                 (cmd (eclim--make-command args)))
-    (when (not (find cmd eclim--currently-running-async-calls :test #'string=))
+    (when (not (cl-find cmd eclim--currently-running-async-calls :test #'string=))
       (lexical-let ((buf (get-buffer-create (generate-new-buffer-name "*eclim-async*"))))
         (when eclim-print-debug-messages
           (message "Executing: %s" cmd)
@@ -203,7 +204,7 @@ strings and will be called on completion."
           (let ((sentinel (lambda (process signal)
                             (unwind-protect
                                 (save-excursion
-                                  (setq eclim--currently-running-async-calls (remove-if (lambda (x) (string= cmd x)) eclim--currently-running-async-calls))
+                                  (setq eclim--currently-running-async-calls (cl-remove-if (lambda (x) (string= cmd x)) eclim--currently-running-async-calls))
                                   (set-buffer (process-buffer process))
                                   (funcall handler (eclim--parse-result (buffer-substring 1 (point-max)))))
                               (kill-buffer buf)))))
@@ -221,7 +222,7 @@ strings and will be called on completion."
   "Check if an (unexpanded) ARGS list contains any of the
 specified FLAGS."
   (loop for f in flags
-        return (find f args :test #'string= :key (lambda (a) (if (listp a) (car a) a)))))
+        return (cl-find f args :test #'string= :key (lambda (a) (if (listp a) (car a) a)))))
 
 (defun eclim--expand-args (args)
   "Takes a list of command-line arguments with which to call the
@@ -341,7 +342,7 @@ argument PROJECTNAME is given, return that project's root directory."
 (defun eclim-project-name (&optional filename)
   "Returns this file's project name. If the optional argument
 FILENAME is given, return that file's  project name instead."
-  (labels ((get-project-name (file)
+  (cl-labels ((get-project-name (file)
                              (eclim/execute-command "project_by_resource" ("-f" file))))
     (if filename
         (get-project-name filename)
@@ -356,7 +357,7 @@ FILENAME is given, return that file's  project name instead."
            (archive-name (replace-regexp-in-string eclim--compressed-urls-regexp "" (first parts)))
            (file-name (second parts)))
       (find-file-other-window archive-name)
-      (beginning-of-buffer)
+      (goto-char (point-min))
       (re-search-forward (replace-regexp-in-string
                           eclim--compressed-file-path-removal-regexp ""
                           (regexp-quote (replace-regexp-in-string
@@ -364,11 +365,11 @@ FILENAME is given, return that file's  project name instead."
                                          "/" file-name))))
       (let ((old-buffer (current-buffer)))
         (archive-extract)
-        (beginning-of-buffer)
+        (goto-char (point-min))
         (kill-buffer old-buffer)))))
 
 (defun eclim--find-display-results (pattern results &optional open-single-file)
-  (let ((results (remove-if (lambda (result) (string-match (rx bol (or "jar" "zip") ":") (assoc-default 'filename result))) results)))
+  (let ((results (cl-remove-if (lambda (result) (string-match (rx bol (or "jar" "zip") ":") (assoc-default 'filename result))) results)))
     (if (and (= 1 (length results)) open-single-file) (eclim--visit-declaration (elt results 0))
       (pop-to-buffer (get-buffer-create "*eclim: find"))
       (let ((buffer-read-only nil))
@@ -395,7 +396,8 @@ FILENAME is given, return that file's  project name instead."
 (defun eclim--visit-declaration (line)
   (ring-insert find-tag-marker-ring (point-marker))
   (eclim--find-file (assoc-default 'filename line))
-  (goto-line (assoc-default 'line line))
+  (goto-char (point-min))
+  (forward-line (1- (assoc-default 'line line)))
   (move-to-column (1- (assoc-default 'column line))))
 
 (defun eclim--string-strip (content)
@@ -451,7 +453,7 @@ for example."
                                  (or project (eclim-project-name))))))
          (paths (mapcar #'(lambda(hit) (assoc-default 'path hit)) results)))
     (if directory
-        (remove-if-not #'(lambda (f) (file-in-directory-p f directory)) paths)
+        (cl-remove-if-not #'(lambda (f) (file-in-directory-p f directory)) paths)
       paths)))
 
 
@@ -505,7 +507,7 @@ the use of eclim to java and ant files."
 (defun eclim--accepted-filename-p (filename)
   "Return t if and only one of the regular expressions in
 `eclim-accepted-file-regexps' matches FILENAME."
-  (if (member-if
+  (if (cl-member-if
        (lambda (regexp) (string-match regexp filename))
        eclim-accepted-file-regexps)
       t))

@@ -33,5 +33,5 @@
   (with-temp-buffer
     (insert (cdr (assoc 'content arg)))
     (goto-char (point-max))
-    (flet ((eclim--completion-candidates () (cdr (assoc 'mocked-response arg))))
+    (cl-flet ((eclim--completion-candidates () (cdr (assoc 'mocked-response arg))))
       (company-emacs-eclim--candidates (cdr (assoc 'prefix arg))))))

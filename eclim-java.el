@@ -454,12 +454,12 @@ imports section of a java source file. This will preserve the
 undo history."
   (interactive)
   (cl-flet ((cut-imports ()
-                         (beginning-of-buffer)
+                         (goto-char (point-min))
                          (if (re-search-forward "^import" nil t)
                              (progn
                                (beginning-of-line)
                                (let ((beg (point)))
-                                 (end-of-buffer)
+                                 (goto-char (point-max))
                                  (re-search-backward "^import")
                                  (end-of-line)
                                  (let ((imports (buffer-substring-no-properties beg (point))))
@@ -486,7 +486,7 @@ undo history."
   "Adds an import statement for the given type, if one does not
 exist already."
   (save-excursion
-    (beginning-of-buffer)
+    (goto-char (point-min))
     (let ((revert-buffer-function 'eclim-soft-revert-imports))
       (when (not (re-search-forward (format "^import %s;" type) nil t))
         (eclim/execute-command "java_import" "-p" "-f" "-o" "-e" ("-t" type))
@@ -789,16 +789,16 @@ much faster than running mvn test -Dtest=TestClass#method."
           (let* ((doc-root-vars '(eclim-java-documentation-root
                                   eclim-java-android-documentation-root))
                  (path (replace-regexp-in-string "^[./]+" "" url))
-                 (fullpath (some (lambda (var)
-                                   (let ((fullpath (concat (symbol-value var)
-                                                           "/"
-                                                           path)))
-                                     (if (file-exists-p (replace-regexp-in-string
-                                                         "#.+"
-                                                         ""
-                                                         fullpath))
+                 (fullpath (cl-some (lambda (var)
+                                      (let ((fullpath (concat (symbol-value var)
+                                                              "/"
+                                                              path)))
+                                        (if (file-exists-p (replace-regexp-in-string
+                                                            "#.+"
+                                                            ""
+                                                            fullpath))
                                          fullpath)))
-                                 doc-root-vars)))
+                                    doc-root-vars)))
             (if fullpath
                 (browse-url (concat "file://" fullpath))
 
