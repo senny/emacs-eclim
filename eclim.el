@@ -150,8 +150,7 @@ eclimd."
                         for val = (second a)
                         while arg append (if val (list arg (shell-quote-argument val)) (list arg))))))
 
-(defun ecl
-    im--parse-result (result)
+(defun eclim--parse-result (result)
   "Parses the result of an eclim operation, raising an error if
 the result is not valid JSON."
   (if (string-match (rx string-start (zero-or-more (any " " "\n" "\t")) string-end) result)
