@@ -30,8 +30,9 @@
     (should (equal (get-text-property 0 'eclim-meta (first candidates)) "getterWithParams(int x, int y, int z) : int - LibraryA"))))
 
 (defun emacs-eclim--candidates-for-temp-buffer (arg)
+  (message "arg: %s" arg)
   (with-temp-buffer
     (insert (cdr (assoc 'content arg)))
     (goto-char (point-max))
-    (cl-flet ((eclim--completion-candidates () (cdr (assoc 'mocked-response arg))))
+    (flet ((eclim--completion-candidates () (cdr (assoc 'mocked-response arg))))
       (company-emacs-eclim--candidates (cdr (assoc 'prefix arg))))))
