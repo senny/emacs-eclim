@@ -538,8 +538,8 @@ method."
 
 (defun eclim--java-junit-file (project file offset encoding)
      (concat eclim-executable
-             " -command java_junit -p " project
-             " -f " file
+             " -command java_junit -p \"" project "\""
+             " -f \"" file "\""
              " -o " (number-to-string offset)
              " -e " encoding))
 
