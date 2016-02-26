@@ -378,7 +378,7 @@ FILENAME is given, return that file's  project name instead."
                for file = (cdr (assoc 'filename result))
                if (string-match (rx bol (or "jar" "zip") ":") file)
                  do (setf (cdr (assoc 'filename result)) (eclim-java-archive-file file))
-               collect result)))
+               finally (return results))))
     (if (and (= 1 (length results)) open-single-file) (eclim--visit-declaration (elt results 0))
       (pop-to-buffer (get-buffer-create "*eclim: find"))
       (let ((buffer-read-only nil))
