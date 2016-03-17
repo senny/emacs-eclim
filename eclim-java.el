@@ -742,6 +742,41 @@ much faster than running mvn test -Dtest=TestClass#method."
             (eclim--problems-update-maybe))
         (message "No automatic corrections found. Sorry")))))
 
+(defun eclim-java-browse-documentation-at-point (&optional arg)
+  "Browse the documentation of the element at point.
+With the prefix ARG, ask for pattern. Pattern is a shell glob
+pattern, not a regexp. Rely on `browse-url' to open user defined
+browser."
+  (interactive "P")
+  (let ((symbol (if arg
+                    (read-string "Glob Pattern: ")
+                  (symbol-at-point)))
+        (proj-name (or (eclim-project-name)
+                       (error "Not in Eclim project"))))
+    (if symbol
+        (let* ((urls (if arg
+                         (eclim/execute-command "java_docsearch"
+                                                ("-n" proj-name)
+                                                "-f"
+                                                ("-p" symbol))
+                       (let ((bounds (bounds-of-thing-at-point 'symbol)))
+                         (eclim/execute-command "java_docsearch"
+                                                ("-n" proj-name)
+                                                "-f"
+                                                ("-l" (- (cdr bounds) (car bounds)))
+                                                ("-o" (save-excursion
+                                                        (goto-char (car bounds))
+                                                        (eclim--byte-offset)))))))
+               ;; convert from vector to list
+               (urls (append urls nil)))
+          (if urls
+              (let ((url (if (> (length urls) 1)
+                             (eclim--completing-read "Browse: " (append urls nil))
+                           (car urls))))
+                (browse-url url))
+            (message "No documentation for '%s' found" symbol)))
+      (message "No element at point"))))
+
 (defun eclim-java-show-documentation-for-current-element ()
   "Displays the doc comments for the element at the pointers position."
   (interactive)
@@ -803,7 +838,6 @@ much faster than running mvn test -Dtest=TestClass#method."
     (insert-text-button "back" 'follow-link t 'action 'eclim--java-show-documentation-go-back))
 
   (goto-char (point-min)))
-
 
 (defun eclim-java-show-documentation-follow-link (link)
   (interactive)
