@@ -105,6 +105,10 @@ Java documentation under Android docs, so don't forget to set
 
 (defvar eclim--is-completing nil)
 (defvar eclim-java-show-documentation-history nil)
+(defvar eclim--run-class-history nil)
+(defvar-local eclim--run-class-commands nil
+  "Alist of previously ran commands in current buffer.
+See `eclim-run-class'.")
 
 (defun eclim/groovy-src-update (&optional save-others)
   "If `eclim-auto-save' is non-nil, save the current java
@@ -641,13 +645,37 @@ sub block)."
     (if package-name (concat package-name "." class-name)
       class-name)))
 
-(defun eclim-run-class ()
-  "Run the current class."
-  (interactive)
+(defun eclim-run-class (&optional editp)
+  "Run the current class.
+If optional EDITP is non-nil, edit the command before running
+it. The following format specs are substituted in the eclim command:
+
+   %p project name
+   %c fully qualified class name
+   %r root directory of the current project
+
+See help string of 'eclim ? java` for available
+arguments. Currently available arguments:
+
+    java -p project [-d] [-c classname] [-w workingdir]
+         [-v vmargs] [-s sysprops] [-e envargs] [-a args]
+"
+  (interactive "P")
   (if (not (string= major-mode "java-mode"))
       (message "Sorry cannot run current buffer.")
-    (compile (concat eclim-executable " -command java -p "  (eclim-project-name)
-                     " -c " (eclim-package-and-class)))))
+    (let* ((class (eclim-package-and-class))
+           (hist-command (and eclim--run-class-commands
+                              (assoc class eclim--run-class-commands)))
+           (command (or (cdr hist-command)
+                        (concat eclim-executable " -command java -p %p -c %c"))))
+      (when editp
+        (setq command (read-string "Run command: " command 'eclim--run-class-history))
+        (if hist-command
+            (setf (cdr hist-command) command)
+          (add-to-list 'eclim--run-class-commands (cons class command))))
+      (compile (format-spec command `((?p . ,(eclim-project-name))
+                                      (?c . ,class)
+                                      (?r . ,(eclim--project-dir))))))))
 
 (defun eclim--java-junit-file (project file offset encoding)
   (concat eclim-executable
