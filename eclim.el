@@ -506,7 +506,7 @@ for example."
     (remove-hook 'after-save-hook 'eclim--after-save-hook 't)))
 
 (defcustom eclim-accepted-file-regexps
-  '("\\.java" "\\.js" "\\.xml" "\\.rb" "\\.groovy" "\\.php" "\\.c" "\\.cc" "\\.h" "\\.scala")
+  '("\\.java$" "\\.js$" "\\.xml$" "\\.rb$" "\\.groovy$" "\\.php$" "\\.c$" "\\.cc$" "\\.h$" "\\.scala$")
   "List of regular expressions that are matched against filenames
 to decide if eclim should be automatically started on a
 particular file. By default all files part of a project managed
