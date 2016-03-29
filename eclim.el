@@ -120,7 +120,8 @@ in the current workspace."
     ("utf-8-unix" . "utf-8")
     ("utf-8-emacs-unix" . "utf-8")))
 
-(defvar eclim--compressed-urls-regexp "^\\(\\(?:jar\\|file\\|zip\\)://\\)")
+(defvar eclim--compressed-urls-regexp
+  "^\\(\\(?:jar\\|file\\|zip\\):\\(?:file:\\)?//\\)")
 (defvar eclim--compressed-file-path-replacement-regexp "\\\\")
 (defvar eclim--compressed-file-path-removal-regexp "^/")
 
@@ -372,19 +373,19 @@ FILENAME is given, return that file's  project name instead."
         (kill-buffer old-buffer)))))
 
 (defun eclim--find-display-results (pattern results &optional open-single-file)
-  (let ((results (cl-remove-if (lambda (result) (string-match (rx bol (or "jar" "zip") ":") (assoc-default 'filename result))) results)))
-    (if (and (= 1 (length results)) open-single-file) (eclim--visit-declaration (elt results 0))
-      (pop-to-buffer (get-buffer-create "*eclim: find"))
-      (let ((buffer-read-only nil))
-        (erase-buffer)
-        (insert (concat "-*- mode: eclim-find; default-directory: " default-directory " -*-"))
-        (newline 2)
-        (insert (concat "eclim java_search -p " pattern))
-        (newline)
-        (loop for result across results
-              do (insert (eclim--format-find-result result default-directory)))
-        (goto-char 0)
-        (grep-mode)))))
+  (if (and (= 1 (length results)) open-single-file)
+      (eclim--visit-declaration (elt results 0))
+    (pop-to-buffer (get-buffer-create "*eclim: find"))
+    (let ((buffer-read-only nil))
+      (erase-buffer)
+      (insert (concat "-*- mode: eclim-find; default-directory: " default-directory " -*-"))
+      (newline 2)
+      (insert (concat "eclim java_search -p " pattern))
+      (newline)
+      (loop for result across results
+            do (insert (eclim--format-find-result result default-directory)))
+      (goto-char 0)
+      (grep-mode))))
 
 (defun eclim--format-find-result (line &optional directory)
   (let ((converted-directory (replace-regexp-in-string "\\\\" "/" (assoc-default 'filename line))))
