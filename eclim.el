@@ -574,6 +574,7 @@ the use of eclim to java and ant files."
 
 (require 'eclim-project)
 (require 'eclim-java)
+(require 'eclim-scala)
 (require 'eclim-ant)
 (require 'eclim-maven)
 (require 'eclim-problems)
