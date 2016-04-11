@@ -16,3 +16,16 @@
 
   )
 
+(ert-deftest completion-insert-empty-usable ()
+  (let ((eclim-insertion-functions '(eclim-completion-insert-empty)))
+    (cl-letf (((symbol-function 'eclim-java-import) #'ignore))
+      (with-temp-buffer
+        (insert "method(String arg1, List<String> arg2) - some.Class")
+        (eclim--completion-action-java (line-beginning-position) (point))
+        (should (equal (thing-at-point 'line) "method()"))
+        (should (looking-at ")"))
+        (erase-buffer)
+        (insert "method2()")
+        (should (equal (thing-at-point 'line) "method2()"))
+        (should (eolp))
+        ))))
