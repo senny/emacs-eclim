@@ -120,7 +120,8 @@ in the current workspace."
     ("utf-8-unix" . "utf-8")
     ("utf-8-emacs-unix" . "utf-8")))
 
-(defvar eclim--compressed-urls-regexp "^\\(\\(?:jar\\|file\\|zip\\)://\\)")
+(defvar eclim--compressed-urls-regexp
+    "^\\(\\(?:jar\\|file\\|zip\\):\\(?:file:\\)?//\\)")
 (defvar eclim--compressed-file-path-replacement-regexp "\\\\")
 (defvar eclim--compressed-file-path-removal-regexp "^/")
 
@@ -367,40 +368,40 @@ FILENAME is given, return that file's  project name instead."
         (beginning-of-buffer)
         (kill-buffer old-buffer)))))
 
-(defun eclim-java-archive-file (file)
-  (let ((eclim-auto-save nil))
-    (eclim/with-results tmp-file ("archive_read" ("-f" file))
-      tmp-file)))
-
 (defun eclim--find-display-results (pattern results &optional open-single-file)
-  (let ((results
-         (loop for result across results
-               for file = (cdr (assoc 'filename result))
-               if (string-match (rx bol (or "jar" "zip") ":") file)
-                 do (setf (cdr (assoc 'filename result)) (eclim-java-archive-file file))
-               finally (return results))))
-    (if (and (= 1 (length results)) open-single-file) (eclim--visit-declaration (elt results 0))
-      (pop-to-buffer (get-buffer-create "*eclim: find"))
-      (let ((buffer-read-only nil))
-        (erase-buffer)
-        (insert (concat "-*- mode: eclim-find; default-directory: " default-directory " -*-"))
-        (newline 2)
-        (insert (concat "eclim java_search -p " pattern))
-        (newline)
-        (loop for result across results
-              do (insert (eclim--format-find-result result default-directory)))
-        (goto-char 0)
-        (grep-mode)))))
+  (if (and (= 1 (length results)) open-single-file)
+      (eclim--visit-declaration (elt results 0))
+    (pop-to-buffer (get-buffer-create "*eclim: find*"))
+    (let ((buffer-read-only nil))
+      (erase-buffer)
+      (insert (concat "-*- mode: eclim-find; default-directory: " default-directory " -*-"))
+      (newline 2)
+      (insert (concat "eclim java_search -p " pattern))
+      (newline)
+      (loop for result across results
+            do (insert (eclim--format-find-result result default-directory)))
+      (goto-char 0)
+      (grep-mode))))
 
 (defun eclim--format-find-result (line &optional directory)
-  (let ((converted-directory (replace-regexp-in-string "\\\\" "/" (assoc-default 'filename line))))
-    (format "%s:%d:%d:%s\n"
-            (if converted-directory
-                (replace-regexp-in-string (concat (regexp-quote directory) "/?") "" converted-directory)
-              converted-directory)
-            (assoc-default 'line line)
-            (assoc-default 'column line)
-            (assoc-default 'message line))))
+  (let* ((converted-directory (replace-regexp-in-string "\\\\" "/" (assoc-default 'filename line)))
+         (parts (split-string converted-directory "!"))
+         (filename (replace-regexp-in-string
+                    eclim--compressed-urls-regexp "" (first parts)))
+         (filename-in-dir (if directory
+                (replace-regexp-in-string (concat (regexp-quote directory) "/?")
+                                          "" filename)
+              filename)))
+    (if (cdr parts)
+        ;; Just put the jar path, since there's no easy way to instruct
+        ;; compile-mode to go into an archive. Better than nothing.
+        ;; TODO: revisit when an archive file-handler shows up somewhere.
+        (format "%s:1: %s\n" filename-in-dir (assoc-default 'message line))
+      (format "%s:%d:%d:%s\n"
+              filename-in-dir
+              (assoc-default 'line line)
+              (assoc-default 'column line)
+              (assoc-default 'message line)))))
 
 (defun eclim--visit-declaration (line)
   (ring-insert find-tag-marker-ring (point-marker))
