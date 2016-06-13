@@ -351,7 +351,8 @@ FILENAME is given, return that file's  project name instead."
     (if filename
         (get-project-name filename)
       (or eclim--project-name
-          (and buffer-file-name (setq eclim--project-name (get-project-name buffer-file-name)))))))
+          (and buffer-file-name (setq eclim--project-name (get-project-name buffer-file-name)))
+          (and buffer-file-name (gethash buffer-file-name eclim-projects-for-archive-file))))))
 
 (defun eclim--find-file (path-to-file)
   (if (not (string-match-p "!" path-to-file))
@@ -372,20 +373,34 @@ FILENAME is given, return that file's  project name instead."
         (goto-char (point-min))
         (kill-buffer old-buffer)))))
 
+(defvar eclim-projects-for-archive-file (make-hash-table :test 'equal)) 
+(defun eclim-java-archive-file (file)
+  (let ((eclim-auto-save nil))
+    (eclim/with-results tmp-file ("archive_read" ("-f" file))
+      ;; archive file's project should be same as current context.
+      (setf (gethash tmp-file eclim-projects-for-archive-file) (eclim-project-name))
+      tmp-file)))
+
 (defun eclim--find-display-results (pattern results &optional open-single-file)
-  (if (and (= 1 (length results)) open-single-file)
+  (let ((results
+         (loop for result across results
+               for file = (cdr (assoc 'filename result))
+               if (string-match (rx bol (or "jar" "zip") ":") file)
+                 do (setf (cdr (assoc 'filename result)) (eclim-java-archive-file file))
+               finally (return results))))
+    (if (and (= 1 (length results)) open-single-file)
       (eclim--visit-declaration (elt results 0))
-    (pop-to-buffer (get-buffer-create "*eclim: find*"))
-    (let ((buffer-read-only nil))
-      (erase-buffer)
-      (insert (concat "-*- mode: eclim-find; default-directory: " default-directory " -*-"))
-      (newline 2)
-      (insert (concat "eclim java_search -p " pattern))
-      (newline)
-      (loop for result across results
-            do (insert (eclim--format-find-result result default-directory)))
-      (goto-char 0)
-      (grep-mode))))
+      (pop-to-buffer (get-buffer-create "*eclim: find"))
+      (let ((buffer-read-only nil))
+        (erase-buffer)
+        (insert (concat "-*- mode: eclim-find; default-directory: " default-directory " -*-"))
+        (newline 2)
+        (insert (concat "eclim java_search -p " pattern))
+        (newline)
+        (loop for result across results
+              do (insert (eclim--format-find-result result default-directory)))
+        (goto-char 0)
+        (grep-mode)))))
 
 (defun eclim--format-find-result (line &optional directory)
   (let* ((converted-directory (replace-regexp-in-string "\\\\" "/" (assoc-default 'filename line)))
@@ -420,7 +435,9 @@ FILENAME is given, return that file's  project name instead."
 (defun eclim--project-current-file ()
   (or eclim--project-current-file
       (setq eclim--project-current-file
-            (eclim/execute-command "project_link_resource" ("-f" buffer-file-name)))))
+            (eclim/execute-command "project_link_resource" ("-f" buffer-file-name)))
+      ;; command archive_read will extract archive file to /tmp directory, which is out of current project directory.
+      buffer-file-name))
 
 (defun eclim--byte-offset (&optional text)
   ;; TODO: restricted the ugly newline counting to dos buffers => remove it all the way later
