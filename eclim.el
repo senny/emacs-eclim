@@ -437,7 +437,7 @@ FILENAME is given, return that file's  project name instead."
       (setq eclim--project-current-file
             (eclim/execute-command "project_link_resource" ("-f" buffer-file-name)))
       ;; command archive_read will extract archive file to /tmp directory, which is out of current project directory.
-      buffer-file-name))
+      (and buffer-file-name (gethash buffer-file-name eclim-projects-for-archive-file) buffer-file-name)))
 
 (defun eclim--byte-offset (&optional text)
   ;; TODO: restricted the ugly newline counting to dos buffers => remove it all the way later
