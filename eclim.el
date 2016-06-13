@@ -369,7 +369,7 @@ FILENAME is given, return that file's  project name instead."
         (beginning-of-buffer)
         (kill-buffer old-buffer)))))
 
-(defvar eclim-projects-for-archive-file (make-hash-table :test 'equal)) 
+(defvar eclim-projects-for-archive-file (make-hash-table :test 'equal))
 (defun eclim-java-archive-file (file)
   (let ((eclim-auto-save nil))
     (eclim/with-results tmp-file ("archive_read" ("-f" file))
