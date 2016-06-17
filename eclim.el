@@ -121,7 +121,7 @@ in the current workspace."
     ("utf-8-emacs-unix" . "utf-8")))
 
 (defvar eclim--compressed-urls-regexp
-  "^\\(\\(?:jar\\|file\\|zip\\):\\(?:file:\\)?//\\)")
+    "^\\(\\(?:jar\\|file\\|zip\\):\\(?:file:\\)?//\\)")
 (defvar eclim--compressed-file-path-replacement-regexp "\\\\")
 (defvar eclim--compressed-file-path-removal-regexp "^/")
 
