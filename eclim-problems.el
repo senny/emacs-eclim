@@ -236,7 +236,7 @@ it asynchronously."
                    (length (remove-if-not (lambda (p) (eq t (assoc-default 'warning p))) problems)))))))
 
 (defun eclim--problems-cleanup-filename (filename)
-  (let ((x (file-name-nondirectory (assoc-default 'filename problem))))
+  (let ((x (file-name-nondirectory filename)))
     (if eclim-problems-show-file-extension x (file-name-sans-extension x))))
 
 (defun eclim--problems-filecol-size ()

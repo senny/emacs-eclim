@@ -67,7 +67,7 @@ stored. It is used globally for all eclim projects."
   (eclim--check-project project)
   (mapcar (lambda (line)
             (split-string line "|"))
-          (eclim--call-process "ant_validate" "-p" project "-f" file)))
+          (eclim--call-process "ant_validate" "-p" project "-f" buildfile)))
 
 (defun eclim/ant-target-list (project buildfile)
   (eclim--check-project project)
