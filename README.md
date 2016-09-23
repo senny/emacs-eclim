@@ -1,13 +1,15 @@
-Development has moved to https://github.com/emacs-eclim/emacs-eclim
-
 [![License GPL 3][badge-license]](http://www.gnu.org/licenses/gpl-3.0.txt)
 [![Build Status](https://travis-ci.org/senny/emacs-eclim.svg?branch=master)](https://travis-ci.org/senny/emacs-eclim)
 [![MELPA](http://melpa.org/packages/emacs-eclim-badge.svg)](http://melpa.org/#/emacs-eclim)
 [![MELPA Stable](http://stable.melpa.org/packages/emacs-eclim-badge.svg)](http://stable.melpa.org/#/emacs-eclim)
 
+## Development has moved to https://github.com/emacs-eclim/emacs-eclim
+
 ## Overview
 
 [![Join the chat at https://gitter.im/senny/emacs-eclim](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/senny/emacs-eclim?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
+Please Note: **Development has moved to https://github.com/emacs-eclim/emacs-eclim**
 
 [Eclim](http://eclim.org) is an Eclipse plugin which exposes Eclipse
 features through a server interface.  When this server is started, the
