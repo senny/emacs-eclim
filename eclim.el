@@ -270,6 +270,7 @@ other java buffers as well), performs an eclim source update
 operation, and refreshes the current buffer if necessary. Raises
 an error if the connection is refused. Automatically calls
 `eclim--check-project' if neccessary."
+  (declare (debug (stringp &rest [&or stringp (stringp form)])))
   `(eclim--execute-command-internal
     (lambda (command-line on-complete-fn)
       (let ((res (apply 'eclim--call-process command-line)))
@@ -285,6 +286,7 @@ operation, and refreshes the current buffer if necessary. Raises
 an error if the connection is refused. Automatically calls
 `eclim--check-project' if neccessary. CALLBACK is a lambda
 expression which is called with the results of the operation."
+  (declare (debug (stringp &rest [&or stringp (stringp form)])))
   `(eclim--execute-command-internal
     (lambda (command-line on-complete-fn)
       (lexical-let ((on-complete-fn on-complete-fn))
@@ -301,7 +303,8 @@ expression which is called with the results of the operation."
 CMD to execute and the rest an ARGS list. Calls eclim with CMD
 and the expanded ARGS list and binds RESULT to the results. If
 RESULT is non-nil, BODY is executed."
-  (declare (indent defun))
+  (declare (indent defun)
+           (debug (sexp (&rest [&or stringp (stringp form)]) body)))
   (let ((sync (eclim--args-contains (rest params) (list "-f" "-o"))))
     `(let* ((,result (eclim/execute-command ,@params))
             (eclim-auto-save (and eclim-auto-save (not ,sync))))
@@ -313,7 +316,8 @@ RESULT is non-nil, BODY is executed."
 CMD to execute and the rest an ARGS list. Calls eclim with CMD
 and the expanded ARGS list and binds RESULT to the results. If
 RESULT is non-nil, BODY is executed."
-  (declare (indent defun))
+  (declare (indent defun)
+           (debug (sexp (&rest [&or stringp (stringp form)]) body)))
   (let ((sync (eclim--args-contains (rest params) (list "-f" "-o"))))
     `(eclim/execute-command-async
       (lambda (,result)
