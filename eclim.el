@@ -344,7 +344,10 @@ FILENAME is given, return that file's  project name instead."
   (labels ((get-project-name (file)
                              (eclim/execute-command "project_by_resource" ("-f" file))))
     (if filename
-        (get-project-name filename)
+        (if-let ((buffer (ignore-errors (get-file-buffer filename))))
+            (with-current-buffer buffer
+              (eclim-project-name))
+            (get-project-name filename))
       (or eclim--project-name
           (and buffer-file-name (setq eclim--project-name (get-project-name buffer-file-name)))))))
 
