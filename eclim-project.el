@@ -1,4 +1,4 @@
-;; eclim-project.el --- an interface to the Eclipse IDE.
+; eclim-project.el --- an interface to the Eclipse IDE.
 ;;
 ;; Copyright (C) 2009  Yves Senn <yves senn * gmx ch>
 ;;
@@ -185,6 +185,10 @@
   ;; TODO: make the output useable
   (eclim--call-process "project_setting" "-p" project "-s" setting))
 
+(defun eclim/project-setting-set (project setting value)
+  (eclim--check-project project)
+  (eclim--call-process "project_setting" "-p" project "-s" setting "-v" (concat "[\"" value "\"]")))
+
 (defun eclim/project-nature-add (project nature)
   (eclim--check-project project)
   (eclim--check-nature nature)
@@ -217,6 +221,20 @@
 (defun eclim/project-rename (project new-name)
   (eclim--check-project project)
   (eclim--call-process "project_rename" "-p" project "-n" new-name))
+
+(defun eclim--ask-which-project-setting ()
+  (completing-read "Which project setting do you wish to set? "
+                   (--map (cdr (assoc 'name it))
+                          (eclim/project-settings (eclim-project-name)))
+                   nil t))
+
+(defun eclim-project-setting-set (setting)
+  "Assigns the Eclim project setting given in SETTING."
+  (interactive (list (eclim--ask-which-project-setting)))
+  (let* ((project (eclim-project-name))
+         (prev-value (eclim/project-setting project setting))
+         (value (read-string (concat "value " prev-value ": "))))
+    (eclim/project-setting-set project setting value)))
 
 (defun eclim/project-classpath (&optional delimiter)
   "return project classpath for the current buffer."
