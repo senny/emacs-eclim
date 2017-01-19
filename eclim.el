@@ -367,8 +367,18 @@ FILENAME is given, return that file's  project name instead."
         (beginning-of-buffer)
         (kill-buffer old-buffer)))))
 
+(defun eclim-java-archive-file (file)
+  (let ((eclim-auto-save nil))
+    (eclim/with-results tmp-file ("archive_read" ("-f" file))
+      tmp-file)))
+
 (defun eclim--find-display-results (pattern results &optional open-single-file)
-  (let ((results (remove-if (lambda (result) (string-match (rx bol (or "jar" "zip") ":") (assoc-default 'filename result))) results)))
+  (let ((results
+         (loop for result across results
+               for file = (cdr (assoc 'filename result))
+               if (string-match (rx bol (or "jar" "zip") ":") file)
+                 do (setf (cdr (assoc 'filename result)) (eclim-java-archive-file file))
+               finally (return results))))
     (if (and (= 1 (length results)) open-single-file) (eclim--visit-declaration (elt results 0))
       (pop-to-buffer (get-buffer-create "*eclim: find"))
       (let ((buffer-read-only nil))
