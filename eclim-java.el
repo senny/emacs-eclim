@@ -174,6 +174,34 @@ declaration has been found. TYPE may be either 'class',
 has been found."
   (eclim--java-current-type-name "\\(class\\)"))
 
+(defun eclim--java-generate-bean-properties (project file offset encoding type)
+  "Generates a bean property for the symbol at point. TYPE specifies the property to generate."
+  (eclim--call-process "java_bean_properties"
+                       "-p" project
+                       "-f" file
+                       "-o" (number-to-string offset)
+                       "-e" encoding
+                       "-r" (cdr (eclim--java-identifier-at-point t))
+                       "-t" type)
+  (revert-buffer t t t))
+
+(defun eclim--java-refactor (result)
+  "Processes the resulst of a refactor command. RESULT is the
+  results of invoking eclim/execute-command."
+  (if (stringp res) (error res))
+  (loop for (from to) in (mapcar (lambda (x) (list (assoc-default 'from x) (assoc-default 'to x))) res)
+        do (when (and from to)
+             (kill-buffer (find-buffer-visiting from))
+             (find-file to)))
+  (save-excursion
+    (loop for file in (mapcar (lambda (x) (assoc-default 'file x)) res)
+          do (when file
+               (let ((buf (get-file-buffer (file-name-nondirectory file))))
+                 (when buf
+                   (switch-to-buffer buf)
+                   (revert-buffer t t t))))))
+  (message "Done"))
+
 (defun eclim/java-classpath (project)
   (eclim--check-project project)
   (eclim--call-process "java_classpath" "-p" project))
@@ -215,15 +243,15 @@ has been found."
                      (eclim--project-current-file)
                      (eclim--byte-offset)
                      (eclim--current-encoding)))
+  (eclim--java-generate-bean-properties project file offset encoding "gettersetter"))
 
-  (eclim--call-process "java_bean_properties"
-                       "-p" project
-                       "-f" file
-                       "-o" (number-to-string offset)
-                       "-e" encoding
-                       "-r" (cdr (eclim--java-identifier-at-point t))
-                       "-t" "gettersetter")
-  (revert-buffer t t t))
+(defun eclim-java-generate-getter (project file offset encoding)
+  "Generates a getter method for the symbol at point."
+  (interactive (list (eclim-project-name)
+                     (eclim--project-current-file)
+                     (eclim--byte-offset)
+                     (eclim--current-encoding)))
+  (eclim--java-generate-bean-properties project file offset encoding "getter"))
 
 (defun eclim-java-constructor ()
   (interactive)
@@ -251,19 +279,17 @@ has been found."
          (n (read-string (concat "Rename " (cdr i) " to: ") (cdr i))))
     (eclim/with-results res ("java_refactor_rename" "-p" "-e" "-f" ("-n" n)
                              ("-o" (car i)) ("-l" (length (cdr i))))
-      (if (stringp res) (error res))
-      (loop for (from to) in (mapcar (lambda (x) (list (assoc-default 'from x) (assoc-default 'to x))) res)
-            do (when (and from to)
-                 (kill-buffer (find-buffer-visiting from))
-                 (find-file to)))
-      (save-excursion
-        (loop for file in (mapcar (lambda (x) (assoc-default 'file x)) res)
-              do (when file
-                   (let ((buf (get-file-buffer (file-name-nondirectory file))))
-                     (when buf
-                       (switch-to-buffer buf)
-                       (revert-buffer t t t))))))
-      (message "Done"))))
+      (eclim--java-refactor res))))
+
+(defun eclim-java-refactor-move-class ()
+  "Renames the java class. Searches backward in the current buffer
+until a class declaration has been found."
+  (interactive)
+  (let* ((class-name (eclim--java-current-class-name))
+         (package-name (eclim--java-current-package))
+         (n (read-string (concat "Move " class-name " to: ") package-name)))
+    (eclim/with-results res ("java_refactor_move" "-p" "-f" ("-n" n))
+      (eclim--java-refactor res))))
 
 (defun eclim-java-call-hierarchy (project file encoding)
   (interactive (list (eclim-project-name)
