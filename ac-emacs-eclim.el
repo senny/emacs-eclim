@@ -1,6 +1,8 @@
-;; ac-emacs-eclim-source.el --- an interface to the Eclipse IDE.
+;;; ac-emacs-eclim.el --- auto-complete source for eclim
 ;;
 ;; Copyright (C) 2009   Fredrik Appelberg
+;;
+;; Package-Requires: ((eclim "0.3") (auto-complete "1.5"))
 ;;
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -22,10 +24,12 @@
 ;; Conventions used in this file: Name internal variables and functions
 ;; "eclim--<descriptive-name>", and name eclim command invocations
 ;; "eclim/command-name", like eclim/project-list.
-;;; Description
 ;;
-;; ac-emacs-eclim-source.el -- a emacs eclime source for auto-complete-mode
+;;; Commentary:
 ;;
+;; An Emacs eclim source for auto-complete-mode.
+
+;;; Code:
 
 (require 'eclim)
 (require 'eclim-java)
@@ -73,9 +77,10 @@
 (defun ac-emacs-eclim-scala-setup ()
   (add-to-list 'ac-sources 'ac-source-emacs-eclim))
 
+;;;###autoload
 (defun ac-emacs-eclim-config ()
   (add-hook 'java-mode-hook 'ac-emacs-eclim-java-setup)
-  (add-hook 'groovy-mode-hook '(lambda() (interactive)
+  (add-hook 'groovy-mode-hook '(lambda ()
                                  (add-to-list 'ac-sources 'ac-source-emacs-eclim)))
   (add-hook 'xml-mode-hook 'ac-emacs-eclim-xml-setup)
   (add-hook 'nxml-mode-hook 'ac-emacs-eclim-xml-setup)
@@ -85,4 +90,5 @@
   (add-hook 'c++-mode-hook 'ac-emacs-eclim-c-setup)
   (add-hook 'scala-mode-hook 'ac-emacs-eclim-scala-setup))
 
-(provide 'ac-emacs-eclim-source)
+(provide 'ac-emacs-eclim)
+;;; ac-emacs-eclim.el ends here

@@ -1,7 +1,9 @@
-;; company-emacs-eclim.el --- an interface to the Eclipse IDE.
+;;; company-emacs-eclim.el --- company-mode backend for eclim
 ;;
 ;; Copyright (C) 2009-2012   Fredrik Appelberg
 ;; Copyright (C) 2013-2014   Dmitry Gutov
+;;
+;; Package-Requires: ((eclim "0.3") (company "0.7"))
 ;;
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -16,17 +18,13 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;
-;;; Description
-;;
-;; company-emacs-eclim.el -- company-mode backend that replaces company-eclim
+;;; Commentary:
 ;;
 ;; To activate this backend, replace company-eclim and/or company-nxml
 ;; with company-emacs-eclim in the eclim-backends list, or call the
 ;; convenience function company-emacs-eclim-setup.
-;;
-;; Minimum company-mode version required: 0.7.
 
-;;* Eclim Company
+;;; Code:
 
 (require 'eclim)
 (require 'eclim-completion)
@@ -87,6 +85,7 @@
     (when (and str (string-match "(" str))
       (substring str (match-beginning 0)))))
 
+;;;###autoload
 (defun company-emacs-eclim (command &optional arg &rest ignored)
   "`company-mode' back-end for Eclim completion"
   (interactive (list 'interactive))
@@ -115,3 +114,4 @@
     (eclim--completion-action beg end)))
 
 (provide 'company-emacs-eclim)
+;;; company-emacs-eclim.el ends here
