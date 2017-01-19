@@ -174,6 +174,17 @@ declaration has been found. TYPE may be either 'class',
 has been found."
   (eclim--java-current-type-name "\\(class\\)"))
 
+(defun eclim--java-generate-bean-properties (project file offset encoding type)
+  "Generates a bean property for the symbol at point. TYPE specifies the property to generate."
+  (eclim--call-process "java_bean_properties"
+                       "-p" project
+                       "-f" file
+                       "-o" (number-to-string offset)
+                       "-e" encoding
+                       "-r" (cdr (eclim--java-identifier-at-point t))
+                       "-t" type)
+  (revert-buffer t t t))
+
 (defun eclim/java-classpath (project)
   (eclim--check-project project)
   (eclim--call-process "java_classpath" "-p" project))
@@ -215,15 +226,15 @@ has been found."
                      (eclim--project-current-file)
                      (eclim--byte-offset)
                      (eclim--current-encoding)))
+  (eclim--java-generate-bean-properties project file offset encoding "gettersetter"))
 
-  (eclim--call-process "java_bean_properties"
-                       "-p" project
-                       "-f" file
-                       "-o" (number-to-string offset)
-                       "-e" encoding
-                       "-r" (cdr (eclim--java-identifier-at-point t))
-                       "-t" "gettersetter")
-  (revert-buffer t t t))
+(defun eclim-java-generate-getter (project file offset encoding)
+  "Generates a getter method for the symbol at point."
+  (interactive (list (eclim-project-name)
+                     (eclim--project-current-file)
+                     (eclim--byte-offset)
+                     (eclim--current-encoding)))
+  (eclim--java-generate-bean-properties project file offset encoding "getter"))
 
 (defun eclim-java-constructor ()
   (interactive)
