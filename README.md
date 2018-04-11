@@ -3,7 +3,7 @@
 [![MELPA](http://melpa.org/packages/emacs-eclim-badge.svg)](http://melpa.org/#/emacs-eclim)
 [![MELPA Stable](http://stable.melpa.org/packages/emacs-eclim-badge.svg)](http://stable.melpa.org/#/emacs-eclim)
 
-## Development has moved to https://github.com/emacs-eclim/emacs-eclim
+## Development has moved to https://github.com/emacs-eclim/emacs-eclim !!!
 
 ## Overview
 
