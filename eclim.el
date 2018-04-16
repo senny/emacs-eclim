@@ -120,7 +120,8 @@ in the current workspace."
     ("utf-8-unix" . "utf-8")
     ("utf-8-emacs-unix" . "utf-8")))
 
-(defvar eclim--compressed-urls-regexp "^\\(\\(?:jar\\|file\\|zip\\)://\\)")
+(defvar eclim--compressed-urls-regexp
+    "^\\(\\(?:jar\\|file\\|zip\\):\\(?:file:\\)?//\\)")
 (defvar eclim--compressed-file-path-replacement-regexp "\\\\")
 (defvar eclim--compressed-file-path-removal-regexp "^/")
 
@@ -143,7 +144,7 @@ operation, and the rest are flags/values to be passed on to
 eclimd."
   (when (not eclim-executable)
     (error "Eclim installation not found. Please set eclim-executable."))
-  (reduce (lambda (a b) (format "%s %s" a b))
+  (cl-reduce (lambda (a b) (format "%s %s" a b))
           (append (list eclim-executable "-command" (first args))
                   (loop for a = (rest args) then (rest (rest a))
                         for arg = (first a)
@@ -177,13 +178,17 @@ where <encoding> is the corresponding java name for this encoding." e e)))
               (error (match-string 1 result)))
              (t (error result)))))))
 
+(defun eclim--call-process-no-parse (&rest args)
+  "Calls eclim with the supplied arguments but does not attempt to parse the result. "
+  (let ((cmd (eclim--make-command args)))
+    (when eclim-print-debug-messages (message "Executing: %s" cmd))
+    (shell-command-to-string cmd)))
+
 (defun eclim--call-process (&rest args)
   "Calls eclim with the supplied arguments. Consider using
 `eclim/execute-command' instead, as it has argument expansion,
 error checking, and some other niceties.."
-  (let ((cmd (eclim--make-command args)))
-    (when eclim-print-debug-messages (message "Executing: %s" cmd))
-    (eclim--parse-result (shell-command-to-string cmd))))
+  (eclim--parse-result (apply 'eclim--call-process-no-parse args)))
 
 (defvar eclim--currently-running-async-calls nil)
 
@@ -193,7 +198,7 @@ asynchronously. CALLBACK is a function that accepts a list of
 strings and will be called on completion."
   (lexical-let ((handler callback)
                 (cmd (eclim--make-command args)))
-    (when (not (find cmd eclim--currently-running-async-calls :test #'string=))
+    (when (not (cl-find cmd eclim--currently-running-async-calls :test #'string=))
       (lexical-let ((buf (get-buffer-create (generate-new-buffer-name "*eclim-async*"))))
         (when eclim-print-debug-messages
           (message "Executing: %s" cmd)
@@ -203,25 +208,25 @@ strings and will be called on completion."
           (let ((sentinel (lambda (process signal)
                             (unwind-protect
                                 (save-excursion
-                                  (setq eclim--currently-running-async-calls (remove-if (lambda (x) (string= cmd x)) eclim--currently-running-async-calls))
+                                  (setq eclim--currently-running-async-calls (cl-remove-if (lambda (x) (string= cmd x)) eclim--currently-running-async-calls))
                                   (set-buffer (process-buffer process))
                                   (funcall handler (eclim--parse-result (buffer-substring 1 (point-max)))))
                               (kill-buffer buf)))))
             (set-process-sentinel proc sentinel)))))))
 
-(setq eclim--default-args
-      '(("-n" . (eclim-project-name))
-        ("-p" . (or (eclim-project-name) (error "Could not find eclipse project for %s" (buffer-name (current-buffer)))))
-        ("-e" . (eclim--current-encoding))
-        ("-f" . (eclim--project-current-file))
-        ("-o" . (eclim--byte-offset))
-        ("-s" . "project")))
+(defvar eclim--default-args
+  '(("-n" . (eclim-project-name))
+    ("-p" . (or (eclim-project-name) (error "Could not find eclipse project for %s" (buffer-name (current-buffer)))))
+    ("-e" . (eclim--current-encoding))
+    ("-f" . (eclim--project-current-file))
+    ("-o" . (eclim--byte-offset))
+    ("-s" . "project")))
 
 (defun eclim--args-contains (args flags)
   "Check if an (unexpanded) ARGS list contains any of the
 specified FLAGS."
   (loop for f in flags
-        return (find f args :test #'string= :key (lambda (a) (if (listp a) (car a) a)))))
+        return (cl-find f args :test #'string= :key (lambda (a) (if (listp a) (car a) a)))))
 
 (defun eclim--expand-args (args)
   "Takes a list of command-line arguments with which to call the
@@ -341,12 +346,13 @@ argument PROJECTNAME is given, return that project's root directory."
 (defun eclim-project-name (&optional filename)
   "Returns this file's project name. If the optional argument
 FILENAME is given, return that file's  project name instead."
-  (labels ((get-project-name (file)
+  (cl-labels ((get-project-name (file)
                              (eclim/execute-command "project_by_resource" ("-f" file))))
     (if filename
         (get-project-name filename)
       (or eclim--project-name
-          (and buffer-file-name (setq eclim--project-name (get-project-name buffer-file-name)))))))
+          (and buffer-file-name (setq eclim--project-name (get-project-name buffer-file-name)))
+          (and buffer-file-name (gethash buffer-file-name eclim-projects-for-archive-file))))))
 
 (defun eclim--find-file (path-to-file)
   (if (not (string-match-p "!" path-to-file))
@@ -356,7 +362,7 @@ FILENAME is given, return that file's  project name instead."
            (archive-name (replace-regexp-in-string eclim--compressed-urls-regexp "" (first parts)))
            (file-name (second parts)))
       (find-file-other-window archive-name)
-      (beginning-of-buffer)
+      (goto-char (point-min))
       (re-search-forward (replace-regexp-in-string
                           eclim--compressed-file-path-removal-regexp ""
                           (regexp-quote (replace-regexp-in-string
@@ -364,12 +370,26 @@ FILENAME is given, return that file's  project name instead."
                                          "/" file-name))))
       (let ((old-buffer (current-buffer)))
         (archive-extract)
-        (beginning-of-buffer)
+        (goto-char (point-min))
         (kill-buffer old-buffer)))))
 
+(defvar eclim-projects-for-archive-file (make-hash-table :test 'equal))
+(defun eclim-java-archive-file (file)
+  (let ((eclim-auto-save nil))
+    (eclim/with-results tmp-file ("archive_read" ("-f" file))
+      ;; archive file's project should be same as current context.
+      (setf (gethash tmp-file eclim-projects-for-archive-file) (eclim-project-name))
+      tmp-file)))
+
 (defun eclim--find-display-results (pattern results &optional open-single-file)
-  (let ((results (remove-if (lambda (result) (string-match (rx bol (or "jar" "zip") ":") (assoc-default 'filename result))) results)))
-    (if (and (= 1 (length results)) open-single-file) (eclim--visit-declaration (elt results 0))
+  (let ((results
+         (loop for result across results
+               for file = (cdr (assoc 'filename result))
+               if (string-match (rx bol (or "jar" "zip") ":") file)
+                 do (setf (cdr (assoc 'filename result)) (eclim-java-archive-file file))
+               finally (return results))))
+    (if (and (= 1 (length results)) open-single-file)
+      (eclim--visit-declaration (elt results 0))
       (pop-to-buffer (get-buffer-create "*eclim: find"))
       (let ((buffer-read-only nil))
         (erase-buffer)
@@ -383,19 +403,30 @@ FILENAME is given, return that file's  project name instead."
         (grep-mode)))))
 
 (defun eclim--format-find-result (line &optional directory)
-  (let ((converted-directory (replace-regexp-in-string "\\\\" "/" (assoc-default 'filename line))))
-    (format "%s:%d:%d:%s\n"
-            (if converted-directory
-                (replace-regexp-in-string (concat (regexp-quote directory) "/?") "" converted-directory)
-              converted-directory)
-            (assoc-default 'line line)
-            (assoc-default 'column line)
-            (assoc-default 'message line))))
+  (let* ((converted-directory (replace-regexp-in-string "\\\\" "/" (assoc-default 'filename line)))
+         (parts (split-string converted-directory "!"))
+         (filename (replace-regexp-in-string
+                    eclim--compressed-urls-regexp "" (first parts)))
+         (filename-in-dir (if directory
+                (replace-regexp-in-string (concat (regexp-quote directory) "/?")
+                                          "" filename)
+              filename)))
+    (if (cdr parts)
+        ;; Just put the jar path, since there's no easy way to instruct
+        ;; compile-mode to go into an archive. Better than nothing.
+        ;; TODO: revisit when an archive file-handler shows up somewhere.
+        (format "%s:1: %s\n" filename-in-dir (assoc-default 'message line))
+      (format "%s:%d:%d:%s\n"
+              filename-in-dir
+              (assoc-default 'line line)
+              (assoc-default 'column line)
+              (assoc-default 'message line)))))
 
 (defun eclim--visit-declaration (line)
   (ring-insert find-tag-marker-ring (point-marker))
   (eclim--find-file (assoc-default 'filename line))
-  (goto-line (assoc-default 'line line))
+  (goto-char (point-min))
+  (forward-line (1- (assoc-default 'line line)))
   (move-to-column (1- (assoc-default 'column line))))
 
 (defun eclim--string-strip (content)
@@ -404,7 +435,9 @@ FILENAME is given, return that file's  project name instead."
 (defun eclim--project-current-file ()
   (or eclim--project-current-file
       (setq eclim--project-current-file
-            (eclim/execute-command "project_link_resource" ("-f" buffer-file-name)))))
+            (eclim/execute-command "project_link_resource" ("-f" buffer-file-name)))
+      ;; command archive_read will extract archive file to /tmp directory, which is out of current project directory.
+      (and buffer-file-name (gethash buffer-file-name eclim-projects-for-archive-file) buffer-file-name)))
 
 (defun eclim--byte-offset (&optional text)
   ;; TODO: restricted the ugly newline counting to dos buffers => remove it all the way later
@@ -434,6 +467,26 @@ FILENAME is given, return that file's  project name instead."
                                                                     (cons 'message "")))
                                                 hits))
                                  t)))
+
+(defun eclim-find-file-path-strict (filename &optional project directory)
+  "Locates a file (basename) in Eclipse. If PROJECT is a string,
+searches only that project; if nil, the project of the current
+file. If t, searches all Eclipse projects. If DIRECTORY is
+specified, returns only files that are under that
+directory. Returns a list of matching absolute paths; possibly
+empty. This can be used to help resolve exception stack traces,
+for example."
+  (let* ((results (apply #'eclim--call-process "locate_file"
+                        "-p" (regexp-quote filename)
+                         (if (eq project t)
+                             (list "-s" "workspace")
+                           (list "-s" "project" "-n"
+                                 (or project (eclim-project-name))))))
+         (paths (mapcar #'(lambda(hit) (assoc-default 'path hit)) results)))
+    (if directory
+        (cl-remove-if-not #'(lambda (f) (file-in-directory-p f directory)) paths)
+      paths)))
+
 
 ;;;###autoload
 (defun eclim/workspace-dir ()
@@ -470,11 +523,11 @@ FILENAME is given, return that file's  project name instead."
     (remove-hook 'after-save-hook 'eclim--after-save-hook 't)))
 
 (defcustom eclim-accepted-file-regexps
-  '("\\.java" "\\.js" "\\.xml" "\\.rb" "\\.groovy" "\\.php" "\\.c" "\\.cc" "\\.h" "\\.scala")
+  '("\\.java$" "\\.js$" "\\.xml$" "\\.rb$" "\\.groovy$" "\\.php$" "\\.c$" "\\.cc$" "\\.h$" "\\.scala$")
   "List of regular expressions that are matched against filenames
 to decide if eclim should be automatically started on a
 particular file. By default all files part of a project managed
-by eclim can be accepted (see `eclim--accepted-filename' for more
+by eclim can be accepted (see `eclim--accepted-filename-p' for more
 information). It is nevertheless possible to restrict eclim to
 some files by changing this variable. For example, a value
 of (\"\\\\.java\\\\'\" \"build\\\\.xml\\\\'\") can be used to restrict
@@ -485,7 +538,7 @@ the use of eclim to java and ant files."
 (defun eclim--accepted-filename-p (filename)
   "Return t if and only one of the regular expressions in
 `eclim-accepted-file-regexps' matches FILENAME."
-  (if (member-if
+  (if (cl-member-if
        (lambda (regexp) (string-match regexp filename))
        eclim-accepted-file-regexps)
       t))
@@ -529,13 +582,16 @@ the use of eclim to java and ant files."
 ;;;###autoload
 (define-globalized-minor-mode global-eclim-mode eclim-mode
   (lambda ()
-    (if (and buffer-file-name
-             (eclim--accepted-p buffer-file-name)
-             (eclim--project-dir))
-        (eclim-mode 1))))
+    ;; Errors here can REALLY MESS UP AN EMACS SESSION. Can't emphasize enough.
+    (ignore-errors
+      (if (and buffer-file-name
+               (eclim--accepted-p buffer-file-name)
+               (eclim--project-dir))
+          (eclim-mode 1)))))
 
 (require 'eclim-project)
 (require 'eclim-java)
+(require 'eclim-scala)
 (require 'eclim-ant)
 (require 'eclim-maven)
 (require 'eclim-problems)
@@ -544,6 +600,6 @@ the use of eclim to java and ant files."
 
 (defun eclim-modeline-string ()
   (when eclim-mode
-    (concat " Eclim " (eclim-problems-modeline-string))))
+    (concat " Eclim" (eclim-problems-modeline-string))))
 
 (provide 'eclim)

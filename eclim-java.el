@@ -104,6 +104,11 @@ Java documentation under Android docs, so don't forget to set
                                       "references"))
 
 (defvar eclim--is-completing nil)
+(defvar eclim-java-show-documentation-history nil)
+(defvar eclim--run-class-history nil)
+(defvar-local eclim--run-class-commands nil
+  "Alist of previously ran commands in current buffer.
+See `eclim-run-class'.")
 
 (defun eclim/groovy-src-update (&optional save-others)
   "If `eclim-auto-save' is non-nil, save the current java
@@ -142,9 +147,9 @@ in eclim when appropriate."
             (replace-regexp-in-string
              "[<>(),?]"
              (lambda (m) (assoc-default m '(("<" . "((") (">" . "))")
-                                            ("(" . "((") (")" ."))")
-                                            ("," . ")(")
-                                            ("?" . "\\\\?"))))
+                                       ("(" . "((") (")" ."))")
+                                       ("," . ")(")
+                                       ("?" . "\\\\?"))))
              str)))))
 
 (defun eclim--java-parse-method-signature (signature)
@@ -174,6 +179,34 @@ declaration has been found. TYPE may be either 'class',
 has been found."
   (eclim--java-current-type-name "\\(class\\)"))
 
+(defun eclim--java-generate-bean-properties (project file offset encoding type)
+  "Generates a bean property for the symbol at point. TYPE specifies the property to generate."
+  (eclim--call-process "java_bean_properties"
+                       "-p" project
+                       "-f" file
+                       "-o" (number-to-string offset)
+                       "-e" encoding
+                       "-r" (cdr (eclim--java-identifier-at-point t))
+                       "-t" type)
+  (revert-buffer t t t))
+
+(defun eclim--java-refactor (result)
+  "Processes the resulst of a refactor command. RESULT is the
+  results of invoking eclim/execute-command."
+  (if (stringp result) (error "%s" result))
+  (loop for (from to) in (mapcar (lambda (x) (list (assoc-default 'from x) (assoc-default 'to x))) result)
+        do (when (and from to)
+             (kill-buffer (find-buffer-visiting from))
+             (find-file to)))
+  (save-excursion
+    (loop for file in (mapcar (lambda (x) (assoc-default 'file x)) result)
+          do (when file
+               (let ((buf (get-file-buffer (file-name-nondirectory file))))
+                 (when buf
+                   (switch-to-buffer buf)
+                   (revert-buffer t t t))))))
+  (message "Done"))
+
 (defun eclim/java-classpath (project)
   (eclim--check-project project)
   (eclim--call-process "java_classpath" "-p" project))
@@ -197,11 +230,11 @@ has been found."
 (defun eclim-run-java-doc ()
   "Run Javadoc on current or all projects."
   (interactive)
-  (let ((project-list (mapcar 'third (eclim/project-list))))
+  (let ((proj-list (eclim/project-list)))
     (if (y-or-n-p "Run Javadoc for all projects?")
-        (dolist (project project-list)
-          (eclim/execute-command "javadoc" ("-p" project)))
-      (eclim/execute-command "javadoc" "-p"))
+        (dotimes (i (length proj-list))
+            (eclim--call-process-no-parse "javadoc" "-p" (rest (assq 'name (elt proj-list i)))))
+      (eclim--call-process-no-parse "javadoc" "-p"))
     (message "Javadoc creation finished.")))
 
 (defun eclim-java-format ()
@@ -215,15 +248,23 @@ has been found."
                      (eclim--project-current-file)
                      (eclim--byte-offset)
                      (eclim--current-encoding)))
+  (eclim--java-generate-bean-properties project file offset encoding "gettersetter"))
 
-  (eclim--call-process "java_bean_properties"
-                       "-p" project
-                       "-f" file
-                       "-o" (number-to-string offset)
-                       "-e" encoding
-                       "-r" (cdr (eclim--java-identifier-at-point t))
-                       "-t" "gettersetter")
-  (revert-buffer t t t))
+(defun eclim-java-generate-getter (project file offset encoding)
+  "Generates a getter method for the symbol at point."
+  (interactive (list (eclim-project-name)
+                     (eclim--project-current-file)
+                     (eclim--byte-offset)
+                     (eclim--current-encoding)))
+  (eclim--java-generate-bean-properties project file offset encoding "getter"))
+
+(defun eclim-java-generate-setter (project file offset encoding)
+  "Generates a setter method for the symbol at point."
+  (interactive (list (eclim-project-name)
+                     (eclim--project-current-file)
+                     (eclim--byte-offset)
+                     (eclim--current-encoding)))
+  (eclim--java-generate-bean-properties project file offset encoding "setter"))
 
 (defun eclim-java-constructor ()
   (interactive)
@@ -251,19 +292,17 @@ has been found."
          (n (read-string (concat "Rename " (cdr i) " to: ") (cdr i))))
     (eclim/with-results res ("java_refactor_rename" "-p" "-e" "-f" ("-n" n)
                              ("-o" (car i)) ("-l" (length (cdr i))))
-      (if (stringp res) (error res))
-      (loop for (from to) in (mapcar (lambda (x) (list (assoc-default 'from x) (assoc-default 'to x))) res)
-            do (when (and from to)
-                 (kill-buffer (find-buffer-visiting from))
-                 (find-file to)))
-      (save-excursion
-        (loop for file in (mapcar (lambda (x) (assoc-default 'file x)) res)
-              do (when file
-                   (let ((buf (get-file-buffer (file-name-nondirectory file))))
-                     (when buf
-                       (switch-to-buffer buf)
-                       (revert-buffer t t t))))))
-      (message "Done"))))
+      (eclim--java-refactor res))))
+
+(defun eclim-java-refactor-move-class ()
+  "Renames the java class. Searches backward in the current buffer
+until a class declaration has been found."
+  (interactive)
+  (let* ((class-name (eclim--java-current-class-name))
+         (package-name (eclim--java-current-package))
+         (n (read-string (concat "Move " class-name " to: ") package-name)))
+    (eclim/with-results res ("java_refactor_move" "-p" "-f" ("-n" n))
+      (eclim--java-refactor res))))
 
 (defun eclim-java-call-hierarchy (project file encoding)
   (interactive (list (eclim-project-name)
@@ -419,12 +458,12 @@ imports section of a java source file. This will preserve the
 undo history."
   (interactive)
   (cl-flet ((cut-imports ()
-                         (beginning-of-buffer)
+                         (goto-char (point-min))
                          (if (re-search-forward "^import" nil t)
                              (progn
                                (beginning-of-line)
                                (let ((beg (point)))
-                                 (end-of-buffer)
+                                 (goto-char (point-max))
                                  (re-search-backward "^import")
                                  (end-of-line)
                                  (let ((imports (buffer-substring-no-properties beg (point))))
@@ -435,27 +474,29 @@ undo history."
                              (delete-blank-lines)
                              (insert "\n\n\n")
                              (forward-line -2)))))
-    (save-excursion
-      (clear-visited-file-modtime)
-      (cut-imports)
-      (widen)
-      (insert
-       (let ((fname (buffer-file-name)))
-         (with-temp-buffer
-           (insert-file-contents fname)
-           (cut-imports))))
-      (not-modified)
-      (set-visited-file-modtime))))
+    (let* ((fname (buffer-file-name))
+           (new-imports (with-temp-buffer
+                          (insert-file-contents fname)
+                          (cut-imports))))
+      (save-excursion
+        (clear-visited-file-modtime)
+        (cut-imports)
+        (widen)
+        (insert new-imports)
+        (not-modified)
+        (set-visited-file-modtime)))))
 
 (defun eclim-java-import (type)
   "Adds an import statement for the given type, if one does not
 exist already."
-  (save-excursion
-    (beginning-of-buffer)
+  (unless (save-excursion
+            (goto-char (point-min))
+            (beginning-of-buffer)
+            (re-search-forward (format "^import %s;" type) nil t))
     (let ((revert-buffer-function 'eclim-soft-revert-imports))
-      (when (not (re-search-forward (format "^import %s;" type) nil t))
-        (eclim/execute-command "java_import" "-p" "-f" "-o" "-e" ("-t" type))
-        (eclim--problems-update-maybe)))))
+      (eclim/execute-command "java_import" "-p" "-f" "-o" "-e" ("-t" type))
+      (eclim--problems-update-maybe)
+      (message "Imported %s" type))))
 
 (defun eclim-java-import-organize (&optional types)
   "Checks the current file for missing imports, removes unused imports and
@@ -470,57 +511,135 @@ sorts import statements. "
           (eclim-java-import-organize
            (mapcar (lambda (imports) (eclim--completing-read "Import: " (append imports '()))) res)))))))
 
-(defun format-type (type)
-  (cond ((null type) nil)
-        ((listp (first type))
-         (append (list "<") (rest (mapcan (lambda (type) (append (list ", ") (format-type type))) (first type))) (list ">")
-                 (format-type (rest type))))
-        (t (cons (let ((type-name (symbol-name (first type))))
-                   (when (string-match "\\(.*\\.\\)?\\(.*\\)" type-name)
-                     (match-string 2 type-name)))
-                 (format-type (rest type))))))
+
+(defun eclim--signature-has-keyword (sig java-keyword)
+  "Returns true if a method signature SIG has the keyword JAVA-KEYWORD."
+  ;; \_< is beginning of identifier E.g. don't match do_abstract".
+  (string-match-p (format "\\_<%s\\_>" java-keyword) sig))
+
+
+(defun eclim--colorize-signature (sig)
+  "Minimal colorization for a method signature that we offer for completion,
+so the essential bits stand out from the block of text that ido presents.
+Keep this minimal: more highlighting could easily make things worse not better."
+  (save-match-data
+    (mapc #'(lambda(re-g-f)             ;; expecting single match per RE
+              (when (string-match (elt re-g-f 0) sig)
+                (setq sig (replace-match
+                           (propertize (match-string (elt re-g-f 1) sig)
+                                       'face (elt re-g-f 2))
+                           nil nil sig (elt re-g-f 1)))))
+          '(("\\_<\\(class\\|interface\\)\\s +\\([[:alnum:]_]+\\_>\\)"
+             2 font-lock-type-face)
+            ("\\_<\\([[:alnum:]_]+\\)(" 1 font-lock-function-name-face)
+            ("all [[:digit:]]+ \\w+ methods" 0 font-lock-function-name-face))))
+  sig)
+
 
 (defun eclim-java-implement (&optional name)
-  "Lets the user select from a list of methods to
-implemnt/override, then inserts a skeleton for the chosen
-method."
+  "Implement or override methods from parents of the class, prompting the
+user to select with a completing read (even if one, as confirmation). If
+NAME was specified programmatically, filters for that name (strict,
+although only on method name not arguments) and if only one choice
+implement it without prompting. The actual change is done by Eclipse
+and will be close to point although not necessarily at it (e.g. if in a
+sub block)."
   (interactive)
-  (eclim/with-results response ("java_impl" "-p" "-f" "-o")
-    (cl-flet ((join (glue items)
-                    (cond ((null items) "")
-                          ((= 1 (length items)) (format "%s" (first items)))
-                          (t (reduce (lambda (a b) (format "%s%s%s" a glue b)) items))))
-              (format-type (type)
-                           (cond ((null type) nil)
-                                 ((listp (first type))
-                                  (append (list "<") (rest (mapcan (lambda (type) (append (list ", ") (format-type type))) (first type))) (list ">")
-                                          (format-type (rest type))))
-                                 (t (cons (let ((type-name (symbol-name (first type))))
-                                            (when (string-match "\\(.*\\.\\)?\\(.*\\)" type-name)
-                                              (let ((package (match-string 1 type-name))
-                                                    (class (match-string 2 type-name)))
-                                                (eclim-java-import (concat package class))
-                                                class)))
-                                          (format-type (rest type)))))))
-      (let* ((methods (remove-if-not (lambda (m) (or (null name)
-                                                     (string-match name m)))
-                                     (mapcar (lambda (x) (replace-regexp-in-string "[ \n\t]+" " " x))
-                                             (apply 'append
-                                                    (mapcar (lambda (x) (append (assoc-default 'methods x) nil))
-                                                            (assoc-default 'superTypes response))))))
-             (method (if (= 1 (length methods)) (first methods)
-                       (eclim--completing-read "Signature: " methods)))
-             (sig (eclim--java-parse-method-signature method))
-             (ret (assoc-default :return sig)))
-        (yas/expand-snippet (format "@Override\n%s %s(%s) {$0}"
-                                    (apply #'concat
-                                           (join " " (remove-if-not (lambda (m) (find m '(public protected private void))) (subseq ret 0 (1- (length ret)))))
-                                           " "
-                                           (format-type (remove-if (lambda (m) (find m '(abstract public protected private ))) ret)))
-                                    (assoc-default :name sig)
-                                    (join ", " (loop for arg in (remove-if #'null (assoc-default :arglist sig))
-                                                     for i from 0
-                                                     collect (format "%s ${arg%s}" (apply #'concat (format-type (assoc-default :type arg))) i)))))))))
+  (eclim/with-results list-response ("java_impl" "-p" "-f" "-o")
+    (let* ((supertypes (assoc-default 'superTypes list-response))
+           ;; "Choices" are lists of user-friendly method names. We want to
+           ;; present interfaces/abstract first, otherwise Object can barge in.
+           (choices nil) (choices-opt nil) (choices-last nil)
+           ;; Maps a choice to a (supertype method1 method2...), needed
+           ;; when we request eclim to implement that method.
+           (choice-data (make-hash-table :test 'equal)))
+      (loop
+       for super-entry across supertypes do
+       (let* ((package (assoc-default 'packageName super-entry))
+              (super-sig (assoc-default 'signature super-entry))
+              ;; Erase type arguments. This looks like "class List<String>".
+              (friendly-super (replace-regexp-in-string "<[^<]*>" "" super-sig))
+              (full-super (concat package "."
+                                  (replace-regexp-in-string "^\\w+ " ""
+                                                            friendly-super)))
+              (is-interface (eclim--signature-has-keyword
+                             super-sig "interface"))
+              (methods (assoc-default 'methods super-entry))
+              (required-methods nil))   ;; Eclim names here
+         (loop
+          for method across methods
+          ;; Skip if specified name doesn't match.
+          if (or (null name)
+                 (string-match-p (format "\\_<%s(" (regexp-quote name)) method))
+          do
+          ;; This regexp stuff is how vim (and thus eclim) does it. Nothing
+          ;; fancy. If it breaks, Google eclim/java/impl.vim for changes.
+          (let ((name-for-eclim
+                 ;; Remove keywords and return type. \_< begins identifier.
+                 (replace-regexp-in-string "^\\s *[^(]*\\(\\_<[[:alnum:]_]+(\\)"
+                                           "\\1"
+                                           ;; Remove any and all type parameters.
+                                           (replace-regexp-in-string "<[^<]*>" "" method)))
+                ;; For the user, we have very different requirements. I like
+                ;; knowing public and abstract, and the return type. I hate
+                ;; packages -- I'm already implementing this class so I know.
+                (friendly-name
+                 ;; Packages are non-trivial to find (think Map.Entry) but
+                 ;; if we stop at the first capitalized portion we're okay.
+                 (replace-regexp-in-string "\\_<[[:lower:]][[:alnum:]_]+\\."
+                                           "" method))
+                (is-required (or is-interface (eclim--signature-has-keyword
+                                               method "abstract"))))
+            (let ((choice (format "%s [%s]" friendly-name friendly-super))
+                  (data (list full-super name-for-eclim)))
+              ;; This is probably overkill but what if our package erasing
+              ;; resulted in duplicates? Use full name then. As in, really full.
+              (when (gethash choice choice-data)
+                (setq choice (format "%s [%s]" name-for-eclim full-super)))
+              (cond (is-required (push choice choices))
+                    ((member full-super '("java.lang.Object")) ; others like it?
+                     (push choice choices-last))
+                    (t (push choice choices-opt)))
+              (puthash choice (list full-super name-for-eclim) choice-data)
+              (when is-required (push name-for-eclim required-methods)))))
+         ;; Since we don't allow multiple selection like Eclipse / vim, let's
+         ;; provide for the cases that matter. Note that full non-abstract
+         ;; overrides are typically a use case for *delegates*.
+         (when (> (length required-methods) 1) ;; 1 method already there
+           (let ((choice
+                  (format "<all %d %s methods from %s>"
+                          (length required-methods)
+                          (cond (is-interface "missing") (name) (t "abstract"))
+                          friendly-super))
+                 (data (cons full-super (reverse required-methods))))
+             (push choice choices) ;; I'll not worry about conflict here.
+             (puthash choice data choice-data)))))
+      ;; Keep inital order, except for our tweaks.
+      (setq choices (append (nreverse choices) (reverse choices-opt)
+                            (reverse choices-last)))
+      (unless choices
+        (if name (error "No such unimplemented method: %s" name) ;most likely
+          (error "No candidates to implement"))) ;; Rare, given Object ancestor.
+
+      ;; Ask user even if only one choice, for confirmation. Otherwise it's
+      ;; possible to not even notice the change from a bad key combo. Unless
+      ;; we were called programmatically a for specific method.
+      (let ((choice
+             (if (and name (eq 1 (length choices)))
+                 (first choices)
+               (funcall eclim-interactive-completion-function
+                        "Implement: "
+                        (mapcar #'eclim--colorize-signature choices)
+                        nil t))))    ; require match
+        (setq choice (substring-no-properties choice)) ; uncolorize
+        (let* ((eclim-data (gethash choice choice-data))
+               (super (car eclim-data)) (methods (cdr eclim-data))
+               (methods-str (json-encode methods)))
+          (eclim/with-results impl-result ("java_impl" "-p" "-f" "-o"
+                                           ("-s" super) ("-m" methods-str))
+            ;; eclim should give us a smaller list if it did something. But
+            ;; it's probably not worth an error in case this changes.
+            (revert-buffer t t t)))))))
 
 (defun eclim-package-and-class ()
   (let ((package-name (eclim--java-current-package))
@@ -528,25 +647,49 @@ method."
     (if package-name (concat package-name "." class-name)
       class-name)))
 
-(defun eclim-run-class ()
-  "Run the current class."
-  (interactive)
+(defun eclim-run-class (&optional editp)
+  "Run the current class.
+If optional EDITP is non-nil, edit the command before running
+it. The following format specs are substituted in the eclim command:
+
+   %p project name
+   %c fully qualified class name
+   %r root directory of the current project
+
+See help string of 'eclim ? java` for available
+arguments. Currently available arguments:
+
+    java -p project [-d] [-c classname] [-w workingdir]
+         [-v vmargs] [-s sysprops] [-e envargs] [-a args]
+"
+  (interactive "P")
   (if (not (string= major-mode "java-mode"))
       (message "Sorry cannot run current buffer.")
-    (compile (concat eclim-executable " -command java -p "  (eclim-project-name)
-                     " -c " (eclim-package-and-class)))))
+    (let* ((class (eclim-package-and-class))
+           (hist-command (and eclim--run-class-commands
+                              (assoc class eclim--run-class-commands)))
+           (command (or (cdr hist-command)
+                        (concat eclim-executable " -command java -p %p -c %c"))))
+      (when editp
+        (setq command (read-string "Run command: " command 'eclim--run-class-history))
+        (if hist-command
+            (setf (cdr hist-command) command)
+          (add-to-list 'eclim--run-class-commands (cons class command))))
+      (compile (format-spec command `((?p . ,(eclim-project-name))
+                                      (?c . ,class)
+                                      (?r . ,(eclim--project-dir))))))))
 
 (defun eclim--java-junit-file (project file offset encoding)
-     (concat eclim-executable
-             " -command java_junit -p " project
-             " -f " file
-             " -o " (number-to-string offset)
-             " -e " encoding))
+  (concat eclim-executable
+          " -command java_junit -p " project
+          " -f " file
+          " -o " (number-to-string offset)
+          " -e " encoding))
 
 (defun eclim--java-junit-project (project encoding)
-     (concat eclim-executable
-             " -command java_junit -p " project
-             " -e " encoding))
+  (concat eclim-executable
+          " -command java_junit -p " project
+          " -e " encoding))
 
 (defun eclim--buffer-contains-substring (string)
   (save-excursion
@@ -595,8 +738,46 @@ much faster than running mvn test -Dtest=TestClass#method."
              "-f"
              ("-l" line)
              ("-o" offset)
-             ("-a" choice)))
+             ("-a" choice))
+            ;; Problem updates can be distracting, but here the user was
+            ;; actively trying to fix one.
+            (eclim--problems-update-maybe))
         (message "No automatic corrections found. Sorry")))))
+
+(defun eclim-java-browse-documentation-at-point (&optional arg)
+  "Browse the documentation of the element at point.
+With the prefix ARG, ask for pattern. Pattern is a shell glob
+pattern, not a regexp. Rely on `browse-url' to open user defined
+browser."
+  (interactive "P")
+  (let ((symbol (if arg
+                    (read-string "Glob Pattern: ")
+                  (symbol-at-point)))
+        (proj-name (or (eclim-project-name)
+                       (error "Not in Eclim project"))))
+    (if symbol
+        (let* ((urls (if arg
+                         (eclim/execute-command "java_docsearch"
+                                                ("-n" proj-name)
+                                                "-f"
+                                                ("-p" symbol))
+                       (let ((bounds (bounds-of-thing-at-point 'symbol)))
+                         (eclim/execute-command "java_docsearch"
+                                                ("-n" proj-name)
+                                                "-f"
+                                                ("-l" (- (cdr bounds) (car bounds)))
+                                                ("-o" (save-excursion
+                                                        (goto-char (car bounds))
+                                                        (eclim--byte-offset)))))))
+               ;; convert from vector to list
+               (urls (append urls nil)))
+          (if urls
+              (let ((url (if (> (length urls) 1)
+                             (eclim--completing-read "Browse: " (append urls nil))
+                           (car urls))))
+                (browse-url url))
+            (message "No documentation for '%s' found" symbol)))
+      (message "No element at point"))))
 
 (defun eclim-java-show-documentation-for-current-element ()
   "Displays the doc comments for the element at the pointers position."
@@ -649,16 +830,16 @@ much faster than running mvn test -Dtest=TestClass#method."
         (replace-match text)
         (make-text-button (match-beginning 0)
                           (+ (match-beginning 0) (length text))
+                          'follow-link t
                           'action 'eclim-java-show-documentation-follow-link
                           'url href))))
 
   (when add-to-history
     (goto-char (point-max))
     (insert "\n\n")
-    (insert-text-button "back" 'action 'eclim--java-show-documentation-go-back))
+    (insert-text-button "back" 'follow-link t 'action 'eclim--java-show-documentation-go-back))
 
   (goto-char (point-min)))
-
 
 (defun eclim-java-show-documentation-follow-link (link)
   (interactive)
@@ -672,16 +853,16 @@ much faster than running mvn test -Dtest=TestClass#method."
           (let* ((doc-root-vars '(eclim-java-documentation-root
                                   eclim-java-android-documentation-root))
                  (path (replace-regexp-in-string "^[./]+" "" url))
-                 (fullpath (some (lambda (var)
-                                   (let ((fullpath (concat (symbol-value var)
-                                                           "/"
-                                                           path)))
-                                     (if (file-exists-p (replace-regexp-in-string
-                                                         "#.+"
-                                                         ""
-                                                         fullpath))
+                 (fullpath (cl-some (lambda (var)
+                                      (let ((fullpath (concat (symbol-value var)
+                                                              "/"
+                                                              path)))
+                                        (if (file-exists-p (replace-regexp-in-string
+                                                            "#.+"
+                                                            ""
+                                                            fullpath))
                                          fullpath)))
-                                 doc-root-vars)))
+                                    doc-root-vars)))
             (if fullpath
                 (browse-url (concat "file://" fullpath))
 

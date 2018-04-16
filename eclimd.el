@@ -64,6 +64,8 @@ You can freeze emacs until eclimd is ready to accept commands with this variable
 (defvar eclimd-process nil
   "The active eclimd process")
 
+(defvar eclimd-port nil)
+
 (defconst eclimd-process-buffer-name "eclimd")
 
 (defun eclimd--executable-path ()

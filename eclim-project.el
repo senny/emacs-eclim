@@ -1,4 +1,4 @@
-;; eclim-project.el --- an interface to the Eclipse IDE.
+; eclim-project.el --- an interface to the Eclipse IDE.
 ;;
 ;; Copyright (C) 2009  Yves Senn <yves senn * gmx ch>
 ;;
@@ -98,7 +98,8 @@
       (erase-buffer)
       (loop for project across (eclim/project-list)
             do (eclim--insert-project project))
-      (goto-line line-number))))
+      (goto-char (point-min))
+      (forward-line (1- line-number)))))
 
 (defun eclim--insert-project (project)
   (insert (format "  | %-6s | %-30s | %s\n"
@@ -125,7 +126,7 @@
   (interactive)
   (let ((marked-projects '()))
     (save-excursion
-      (beginning-of-buffer)
+      (goto-char (point-min))
       (while (re-search-forward "*" nil t)
         (push (eclim--project-current-line) marked-projects)))
     marked-projects))
@@ -185,6 +186,10 @@
   ;; TODO: make the output useable
   (eclim--call-process "project_setting" "-p" project "-s" setting))
 
+(defun eclim/project-setting-set (project setting value)
+  (eclim--check-project project)
+  (eclim--call-process "project_setting" "-p" project "-s" setting "-v" (concat "[\"" value "\"]")))
+
 (defun eclim/project-nature-add (project nature)
   (eclim--check-project project)
   (eclim--check-nature nature)
@@ -218,6 +223,20 @@
   (eclim--check-project project)
   (eclim--call-process "project_rename" "-p" project "-n" new-name))
 
+(defun eclim--ask-which-project-setting ()
+  (completing-read "Which project setting do you wish to set? "
+                   (--map (cdr (assoc 'name it))
+                          (eclim/project-settings (eclim-project-name)))
+                   nil t))
+
+(defun eclim-project-setting-set (setting)
+  "Assigns the Eclim project setting given in SETTING."
+  (interactive (list (eclim--ask-which-project-setting)))
+  (let* ((project (eclim-project-name))
+         (prev-value (eclim/project-setting project setting))
+         (value (read-string (concat "value " prev-value ": "))))
+    (eclim/project-setting-set project setting value)))
+
 (defun eclim/project-classpath (&optional delimiter)
   "return project classpath for the current buffer."
   (eclim/execute-command "java_classpath" "-p" ("-d" delimiter)))
@@ -242,12 +261,13 @@
                      (eclim--project-nature-read)))
   ;;android project is need the vars target,package,application
   (if (string-equal nature "android")
-      (progn (setq target (read-string "Target: "))
-             (setq package (read-string "Package: "))
-             (setq application (read-string "Application: "))
-             (message (eclim/project-create path nature name target package application)))
-      (message (eclim/project-create path nature name))
-  (eclim--project-buffer-refresh)))
+      (progn
+        (let ((target (read-string "Target: "))
+              (package (read-string "Package: "))
+              (application (read-string "Application: ")))
+          (message (eclim/project-create path nature name target package application))))
+    (message (eclim/project-create path nature name))
+    (eclim--project-buffer-refresh)))
 
 (defun eclim-project-import (folder)
   (interactive "DProject Directory: ")
@@ -317,7 +337,7 @@
 (defun eclim-project-mark-all ()
   (interactive)
   (save-excursion
-    (beginning-of-buffer)
+    (goto-char (point-min))
     (loop do (eclim--project-insert-mark-current 'dired-mark)
           until (not (forward-line 1)))))
 
@@ -329,7 +349,7 @@
 (defun eclim-project-unmark-all ()
   (interactive)
   (save-excursion
-    (beginning-of-buffer)
+    (goto-char (point-min))
     (loop do (eclim--project-remove-mark-current)
           until (not (forward-line 1)))))
 
@@ -337,7 +357,7 @@
   (interactive (list (eclim--project-read t)))
   (ido-find-file-in-dir
    (assoc-default 'path
-                  (find project (eclim/project-list)
+                  (cl-find project (eclim/project-list)
                         :key (lambda (e) (assoc-default 'name e))
                         :test #'string=))))
 
@@ -390,7 +410,7 @@
   (use-local-map eclim-project-mode-map)
   (cd "~") ;; setting a defualt directoy avoids some problems with tramp
   (eclim--project-buffer-refresh)
-  (beginning-of-buffer)
+  (goto-char (point-min))
   (run-mode-hooks 'eclim-project-mode-hook))
 
 (defalias 'eclim-manage-projects 'eclim-project-mode)

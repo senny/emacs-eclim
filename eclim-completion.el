@@ -50,6 +50,13 @@
 
 (defvar eclim--completion-candidates nil)
 
+(defvar eclim-insertion-functions nil
+  "Use one of these functons when inserting a completion in
+preference to yasnippet or raw insertion. Each will be called
+with a yas template and should return nil iff it cannot do the
+insertion (e.g. wrong mode). For example, `eclim-completion-insert-empty'
+removes all arguments before inserting.")
+
 (defun eclim--complete ()
   (setq eclim--is-completing t)
   (unwind-protect
@@ -75,6 +82,7 @@
     (setq eclim--is-completing nil)))
 
 (defun eclim--completion-candidates-filter (c)
+  "Rejects completion candidate C (non-nil return) in certain situations."
   (case major-mode
     ((xml-mode nxml-mode) (or (search "XML Schema" c)
                               (search "Namespace" c)))
@@ -142,15 +150,24 @@ buffer."
 
 (defun eclim--completion-yasnippet-convert (completion)
   "Convert a completion string to a yasnippet template"
-  (apply #' concat
-            (loop for c across (replace-regexp-in-string ", " "," completion)
-                  collect (case c
-                            (40 "(${")
-                            (60 "<${")
-                            (44 "}, ${")
-                            (41 "})")
-                            (62 "}>")
-                            (t (char-to-string c))))))
+  (let ((level 0))
+    (replace-regexp-in-string
+     ;; ORs: 1) avoid empty case; 2) eat spaces sometimes; 3) not when closing.
+     "()\\|[(<,] *\\|[)>]"
+     #'(lambda (m)
+         (let ((c (string-to-char m)) (repl m))
+           (unless (string= m "()")
+             (when (memq c '(?\( ?<)) (incf level))
+             (when (<= level 1) (setq repl (case c
+                                             (?\( "(${")
+                                             (?< "<${")
+                                             (?, "}, ${")
+                                             (?\) "})")
+                                             (?> "}>")
+                                             (t (error "RE/case mismatch")))))
+             (when (memq c '(?\) ?>)) (decf level)))
+           repl))
+     completion)))
 
 (defvar eclim--completion-start)
 
@@ -161,6 +178,15 @@ buffer."
           (case major-mode
             ((java-mode javascript-mode js-mode ruby-mode groovy-mode php-mode c-mode c++-mode scala-mode)
              (progn
+               ;; Allow completion after open bracket. Eclipse/eclim do.
+               (when (or (eq ?\( (char-before))
+                         ;; Template? Technically it could be a less-than sign
+                         ;; but it's unlikely the user completes there and
+                         ;; no particular harm done.
+                         (and (eq ?\< (char-before))
+                              (memq major-mode
+                                    '(java-mode c++-mode goovy-mode))))
+                 (backward-char 1))
                (ignore-errors (beginning-of-thing 'symbol))
                ;; Completion candidates for annotations don't include '@'.
                (when (eq ?@ (char-after))
@@ -183,9 +209,12 @@ buffer."
                   (package (if (and rest (string-match "\\w+\\(\\.\\w+\\)*" rest)) rest nil))
                   (template (eclim--completion-yasnippet-convert insertion)))
              (delete-region beg end)
-             (if (and eclim-use-yasnippet template (featurep 'yasnippet) yas-minor-mode)
+             (unless (loop for f in eclim-insertion-functions thereis
+                           (funcall f template))
+               (if (and eclim-use-yasnippet template
+                        (featurep 'yasnippet) yas-minor-mode)
                  (yas/expand-snippet template)
-               (insert insertion))
+               (insert insertion)))
              (when package
                (eclim-java-import
                 (concat package "." (substring insertion 0 (or (string-match "[<(]" insertion)
@@ -212,12 +241,13 @@ buffer."
         (backward-char)))))
 
 (defun eclim--completion-action (beg end)
-  (case major-mode
-    ('java-mode (eclim--completion-action-java beg end))
-    ('groovy-mode (eclim--completion-action-java beg end))
-    ((c-mode c++-mode) (eclim--completion-action-java beg end))
-    ('nxml-mode (eclim--completion-action-xml beg end))
-    (t (eclim--completion-action-default))))
+  (let ((eclim--is-completing t)) ;; an import should not refresh problems
+    (case major-mode
+      ('java-mode (eclim--completion-action-java beg end))
+      ('groovy-mode (eclim--completion-action-java beg end))
+      ((c-mode c++-mode) (eclim--completion-action-java beg end))
+      ('nxml-mode (eclim--completion-action-xml beg end))
+      (t (eclim--completion-action-default)))))
 
 (defun eclim--render-doc (str)
   "Performs rudimentary rendering of HTML elements in
@@ -237,5 +267,15 @@ completion candidates list."
   (let ((doc (assoc-default 'info (find symbol eclim--completion-candidates :test #'string= :key #'eclim--completion-candidate-menu-item))))
     (when doc
       (eclim--render-doc doc))))
+
+(defun eclim-completion-insert-empty (template)
+  "Insert a completion erasing arguments, leaving point inside argument list
+or outside if empty. Meant for `eclim-insertion-functions'."
+  (save-match-data
+    (if (not (string-match "${.*}" template))
+        (insert template)
+      (insert (substring template 0 (match-beginning 0)))
+      (save-excursion (insert (substring template (match-end 0))))))
+  t)
 
 (provide 'eclim-completion)
