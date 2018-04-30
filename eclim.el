@@ -115,6 +115,7 @@ in the current workspace."
 (defvar eclim--file-coding-system-mapping
   '(("undecided-dos" . "iso-8859-1")
     ("dos" . "iso-8859-1")
+    ("iso-latin-1-unix" . "iso-8859-1")
     ("undecided-unix" . "iso-8859-1")
     ("utf-8-dos" . "utf-8")
     ("utf-8-unix" . "utf-8")
