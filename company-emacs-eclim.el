@@ -80,7 +80,11 @@
       (mapcar
        (lambda (candidate)
          (annotate (without-redundant-prefix candidate)))
-       (eclim--completion-candidates)))))
+       ;; Company says backend is responsible for filtering prefix case.
+       (if company-emacs-eclim-ignore-case
+           (eclim--completion-candidates)
+         (remove-if-not #'(lambda(str) (string-prefix-p prefix str))
+                        (eclim--completion-candidates)))))))
 
 (defun company-emacs-eclim--annotation (candidate)
   (let ((str (get-text-property 0 'eclim-meta candidate)))
