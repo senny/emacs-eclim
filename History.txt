@@ -4,6 +4,14 @@
 
 === New features
  * company mode completion can be case insensitive
+ * added eclim-run-configuartion which runs a run configuration in the
+   compilation buffer.
+ * added eclim-java-generate-getter which generates a getter method
+ for the symbol at point.
+ * added eclim-java-refactor-move-class which allows moving a top level
+   class or interface from one package to another.
+ * added eclim-project-setting-set which can assign an Eclim project
+   setting.
 
 == 0.3
 

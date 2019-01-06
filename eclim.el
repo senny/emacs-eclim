@@ -209,13 +209,13 @@ strings and will be called on completion."
                               (kill-buffer buf)))))
             (set-process-sentinel proc sentinel)))))))
 
-(setq eclim--default-args
-      '(("-n" . (eclim-project-name))
-        ("-p" . (or (eclim-project-name) (error "Could not find eclipse project for %s" (buffer-name (current-buffer)))))
-        ("-e" . (eclim--current-encoding))
-        ("-f" . (eclim--project-current-file))
-        ("-o" . (eclim--byte-offset))
-        ("-s" . "project")))
+(defvar eclim--default-args
+  '(("-n" . (eclim-project-name))
+    ("-p" . (or (eclim-project-name) (error "Could not find eclipse project for %s" (buffer-name (current-buffer)))))
+    ("-e" . (eclim--current-encoding))
+    ("-f" . (eclim--project-current-file))
+    ("-o" . (eclim--byte-offset))
+    ("-s" . "project")))
 
 (defun eclim--args-contains (args flags)
   "Check if an (unexpanded) ARGS list contains any of the
@@ -435,6 +435,26 @@ FILENAME is given, return that file's  project name instead."
                                                 hits))
                                  t)))
 
+(defun eclim-find-file-path-strict (filename &optional project directory)
+  "Locates a file (basename) in Eclipse. If PROJECT is a string,
+searches only that project; if nil, the project of the current
+file. If t, searches all Eclipse projects. If DIRECTORY is
+specified, returns only files that are under that
+directory. Returns a list of matching absolute paths; possibly
+empty. This can be used to help resolve exception stack traces,
+for example."
+  (let* ((results (apply #'eclim--call-process "locate_file"
+                        "-p" (regexp-quote filename)
+                         (if (eq project t)
+                             (list "-s" "workspace")
+                           (list "-s" "project" "-n"
+                                 (or project (eclim-project-name))))))
+         (paths (mapcar #'(lambda(hit) (assoc-default 'path hit)) results)))
+    (if directory
+        (remove-if-not #'(lambda (f) (file-in-directory-p f directory)) paths)
+      paths)))
+
+
 ;;;###autoload
 (defun eclim/workspace-dir ()
   (eclim--call-process "workspace_dir"))
@@ -474,7 +494,7 @@ FILENAME is given, return that file's  project name instead."
   "List of regular expressions that are matched against filenames
 to decide if eclim should be automatically started on a
 particular file. By default all files part of a project managed
-by eclim can be accepted (see `eclim--accepted-filename' for more
+by eclim can be accepted (see `eclim--accepted-filename-p' for more
 information). It is nevertheless possible to restrict eclim to
 some files by changing this variable. For example, a value
 of (\"\\\\.java\\\\'\" \"build\\\\.xml\\\\'\") can be used to restrict
@@ -529,10 +549,12 @@ the use of eclim to java and ant files."
 ;;;###autoload
 (define-globalized-minor-mode global-eclim-mode eclim-mode
   (lambda ()
-    (if (and buffer-file-name
-             (eclim--accepted-p buffer-file-name)
-             (eclim--project-dir))
-        (eclim-mode 1))))
+    ;; Errors here can REALLY MESS UP AN EMACS SESSION. Can't emphasize enough.
+    (ignore-errors
+      (if (and buffer-file-name
+               (eclim--accepted-p buffer-file-name)
+               (eclim--project-dir))
+          (eclim-mode 1)))))
 
 (require 'eclim-project)
 (require 'eclim-java)
@@ -544,6 +566,6 @@ the use of eclim to java and ant files."
 
 (defun eclim-modeline-string ()
   (when eclim-mode
-    (concat " Eclim " (eclim-problems-modeline-string))))
+    (concat " Eclim" (eclim-problems-modeline-string))))
 
 (provide 'eclim)

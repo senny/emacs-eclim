@@ -33,6 +33,17 @@
   :type '(choice (const :tag "Off" nil)
                  (const :tag "On" t)))
 
+(defcustom eclim-problems-suppress-highlights nil
+  "When set, error and warning highlights are disabled in source files,
+although counts are printed and they remain navigable. This is
+designed to be made buffer-local (by user, not eclim) most of the
+time, but it also works globally."
+  :group 'eclim-problems
+  :type '(choice (const :tag "Allow" nil)
+                  (const :tag "Suppress" t)
+                  (sexp :tag "Suppress when"
+                        :value (lambda() 'for-example buffer-read-only))))
+
 (defface eclim-problems-highlight-error-face
   '((t (:underline "red")))
   "Face used for highlighting errors in code"
@@ -68,6 +79,7 @@
 (define-key eclim-mode-map (kbd "C-c C-e o") 'eclim-problems-open)
 
 (defvar eclim--problems-list nil)
+(defvar eclim--problems-refreshing nil) ;; Set to true while refreshing probs.
 
 (defvar eclim--problems-filter nil) ;; nil -> all problems, w -> warnings, e -> errors
 (defvar eclim--problems-filefilter nil) ;; should filter by file name
@@ -151,17 +163,27 @@
         (overlay-put highlight 'category 'eclim-problem)
         (overlay-put highlight 'kbd-help (assoc-default 'message problem))))))
 
-(defun eclim--problems-clear-highlights ()
+
+(defun eclim-problems-clear-highlights ()
+  "Clears all eclim problem highlights in the current buffer. This is temporary
+until the next refresh."
+  (interactive)
   (remove-overlays nil nil 'category 'eclim-problem))
 
+
 (defun eclim-problems-highlight ()
+  "Inserts the currently active problem highlights in the current buffer,
+if `eclim-problems-suppress-highlights' allows it."
   (interactive)
   (when (eclim--accepted-p (buffer-file-name))
     (save-restriction
       (widen)
-      (eclim--problems-clear-highlights)
-      (loop for problem across (remove-if-not (lambda (p) (string= (assoc-default 'filename p) (buffer-file-name))) eclim--problems-list)
-            do (eclim--problems-insert-highlight problem)))))
+      (eclim-problems-clear-highlights)
+      (unless (if (functionp eclim-problems-suppress-highlights)
+                  (funcall eclim-problems-suppress-highlights)
+                eclim-problems-suppress-highlights)
+        (loop for problem across (remove-if-not (lambda (p) (string= (assoc-default 'filename p) (buffer-file-name))) eclim--problems-list)
+              do (eclim--problems-insert-highlight problem))))))
 
 (defadvice find-file (after eclim-problems-highlight-on-find-file activate)
   (eclim-problems-highlight))
@@ -201,10 +223,19 @@
     (eclim--problem-goto-pos p)))
 
 (defun eclim-problems-correct ()
+  "Pops up a suggestion for the current correction. This can be
+invoked in either the problems buffer or a source code buffer."
   (interactive)
   (let ((p (eclim--problems-get-current-problem)))
-    (if (not (string-match "\\.\\(groovy\\|java\\)$" (cdr (assoc 'filename p))))
-        (error "Not a Java or Groovy file. Corrections are currently supported only for Java or Groovy")
+    (unless (string-match "\\.\\(groovy\\|java\\)$" (cdr (assoc 'filename p)))
+      (error "Not a Java or Groovy file. Corrections are currently supported only for Java or Groovy"))
+    (if (eq major-mode 'eclim-problems-mode)
+        (let ((p-buffer (find-file-other-window (assoc-default 'filename p))))
+          (with-selected-window (get-buffer-window p-buffer t)
+            ;; Intentionally DON'T save excursion. Often times we need edits.
+            (eclim--problem-goto-pos p)
+            (eclim-java-correct (cdr (assoc 'line p)) (eclim--byte-offset))))
+      ;; source code buffer
       (eclim-java-correct (cdr (assoc 'line p)) (eclim--byte-offset)))))
 
 (defmacro eclim--with-problems-list (problems &rest body)
@@ -213,14 +244,14 @@
 it asynchronously."
   (let ((res (gensym)))
     `(when eclim--problems-project
-       (when (not (minibuffer-window-active-p (minibuffer-window)))
-         (message "refreshing... %s " (current-buffer)))
+       (setq eclim--problems-refreshing t)
        (eclim/with-results-async ,res ("problems" ("-p" eclim--problems-project) (when (string= "e" eclim--problems-filter) '("-e" "true")))
          (loop for problem across ,res
                do (let ((filecell (assq 'filename problem)))
                     (when filecell (setcdr filecell (file-truename (cdr filecell))))))
          (setq eclim--problems-list ,res)
          (let ((,problems ,res))
+           (setq eclim--problems-refreshing nil)
            ,@body)))))
 
 (defun eclim-problems-buffer-refresh ()
@@ -236,7 +267,7 @@ it asynchronously."
                    (length (remove-if-not (lambda (p) (eq t (assoc-default 'warning p))) problems)))))))
 
 (defun eclim--problems-cleanup-filename (filename)
-  (let ((x (file-name-nondirectory (assoc-default 'filename problem))))
+  (let ((x (file-name-nondirectory filename)))
     (if eclim-problems-show-file-extension x (file-name-sans-extension x))))
 
 (defun eclim--problems-filecol-size ()
@@ -439,27 +470,57 @@ is convenient as it lets the user navigate between errors using
 `next-error' (\\[next-error])."
   (interactive)
   (lexical-let ((filecol-size (eclim--problems-filecol-size))
-                (project-directory (concat (eclim--project-dir buffer-file-name) "/"))
-                (compil-buffer (get-buffer-create eclim--problems-compilation-buffer-name)))
+                (project-directory (concat (eclim--project-dir) "/"))
+                (compil-buffer (get-buffer-create eclim--problems-compilation-buffer-name))
+                (project-name (eclim-project-name))) ; To store it in buffer.
+
+    (with-current-buffer compil-buffer
+      (setq default-directory project-directory)
+      (setq mode-line-process
+            (concat ": " (propertize "refreshing"
+                                     'face 'compilation-mode-line-run))))
+    ;; Remember that the part below is asynchronous. This can be tricky.
     (eclim--with-problems-list problems
-      (with-current-buffer compil-buffer
-        (setq default-directory project-directory)
-        (setq buffer-read-only nil)
-        (erase-buffer)
-        (insert (concat "-*- mode: compilation; default-directory: "
-                        project-directory
-                        " -*-\n\n"))
-        (let ((errors 0) (warnings 0))
-          (loop for problem across (eclim--problems-filtered)
-                do (eclim--insert-problem-compilation problem filecol-size project-directory)
-                (cond ((assoc-default 'warning problem)
-                       (setq warnings (1+ warnings)))
-                      (t
-                       (setq errors (1+ errors)))))
-          (insert (format "\nCompilation results: %d errors and %d warnings."
-                          errors warnings)))
-        (compilation-mode))
-      (display-buffer compil-buffer 'other-window))))
+      (let (saved-user-pos)
+        (with-current-buffer compil-buffer
+          (buffer-disable-undo)
+          (setq buffer-read-only nil)
+          (setq saved-user-pos (point))
+          (erase-buffer)
+          (let ((errors 0) (warnings 0))
+            (loop for problem across (eclim--problems-filtered) do
+                  (eclim--insert-problem-compilation
+                   problem filecol-size project-directory)
+                (if (eq t (assoc-default 'warning problem)) ; :json-false, WTH
+                    (setq warnings (1+ warnings))
+                  (setq errors (1+ errors))))
+            (let ((msg (format
+                        "Compilation results: %d errors, %d warnings [%s].\n"
+                        errors warnings (current-time-string))))
+              (insert "\n" msg)
+              (goto-char (point-min))
+            (insert msg "\n"))
+            (compilation-mode)
+            ;; The above killed local variables, so recover our lexical-lets
+            (setq default-directory project-directory)
+            (setq eclim--project-name project-name)
+            ;; Remap the very dangerous "g" command :)  A make -k in some of
+            ;; my projects would throw Eclipse off-balance by cleaning .classes.
+            ;; May look funky, but it's safe.
+            (local-set-key "g" 'eclim-problems-compilation-buffer)
+
+            (setq mode-line-process
+                  (concat ": "
+                          (propertize (format "%d/%d" errors warnings)
+                                      'face (when (> errors 0)
+                                              'compilation-mode-line-fail))))))
+        ;; Sometimes, buffer was already current. Note outside with-current-buf.
+        (unless (eq compil-buffer (current-buffer))
+          (display-buffer compil-buffer 'other-window))
+        (with-selected-window (get-buffer-window compil-buffer t)
+          (when (< saved-user-pos (point-max))
+            (goto-char saved-user-pos)))))))
+
 
 (defun eclim--insert-problem-compilation (problem filecol-size project-directory)
   (let ((filename (first (split-string (assoc-default 'filename problem) project-directory t)))
@@ -477,11 +538,46 @@ is convenient as it lets the user navigate between errors using
   (length
    (eclim--filter-problems "w" t (buffer-file-name (current-buffer)) eclim--problems-list)))
 
+(defun eclim-problems-next-same-file (&optional up)
+  "Moves to the next problem in the current file, with wraparound. If UP
+or prefix arg, moves to previous instead; see `eclim-problems-prev-same-file'."
+  (interactive "P")
+  ;; This seems pretty inefficient, but it's fast enough. Would be even
+  ;; more inefficient if we didn't assume problems were sorted.
+  (let ((problems-file
+         (eclim--filter-problems nil t (buffer-file-name (current-buffer))
+                                 eclim--problems-list))
+        (pass-line (line-number-at-pos))
+        (pass-col (+ (current-column) (if up 0 1)))
+        (first-passed nil) (last-not-passed nil))
+    (when (= 0 (length problems-file)) (error "No problems in this file"))
+    (loop for p across problems-file until first-passed do
+          (let ((line (assoc-default 'line p))
+                (col (assoc-default 'column p)))
+            (if (or (> line pass-line)
+                      (and (= line pass-line) (> col pass-col)))
+                (setq first-passed p)
+              (setq last-not-passed p))))
+    (eclim--problem-goto-pos
+     (or
+      (if up last-not-passed first-passed)
+      (when up (message "Moved past first error, continuing to last")
+            (elt problems-file (- (length problems-file) 1))) ; Ugh, vector
+      (progn (message "Moved past last error, continuing to first")
+             (elt problems-file 0))))))
+
+(defun eclim-problems-prev-same-file ()
+  "Moves to the previous problem in the same file, with wraparound."
+  (interactive)
+  (eclim-problems-next-same-file t))
+
+
 (defun eclim-problems-modeline-string ()
   "Returns modeline string with additional info about
 problems for current file"
-  (concat (format " : %s/%s"
+  (concat (format ": %s/%s"
                   (eclim--count-current-errors)
-                  (eclim--count-current-warnings))))
+                  (eclim--count-current-warnings))
+          (when eclim--problems-refreshing "*")))
 
 (provide 'eclim-problems)
