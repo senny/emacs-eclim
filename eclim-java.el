@@ -410,7 +410,7 @@ matters for buffers containing non-ASCII characters)."
   "Returns the package for the class in the current buffer."
   (save-excursion
     (goto-char 0)
-    (if (re-search-forward "package \\(.*?\\);" (point-max) t)
+    (if (re-search-forward "^package \\(.*?\\);" (point-max) t)
         (match-string-no-properties 1))))
 
 (defun eclim-soft-revert-imports (ignore-auto noconfirm)
